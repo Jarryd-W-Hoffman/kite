@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Providers\NativeAppServiceProvider;
+
 arch()->preset()->php();
 arch()->preset()->strict();
 arch()->preset()->laravel()->ignoring([
-    App\Providers\NativeAppServiceProvider::class,
+    NativeAppServiceProvider::class,
 ]);
 arch()->preset()->security()->ignoring([
     'assert',

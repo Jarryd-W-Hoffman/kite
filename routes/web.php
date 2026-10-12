@@ -22,7 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     // User Profile...
-    Route::redirect('settings', '/settings/profile');
+    Route::get('settings', fn () => to_route('user-profile.edit'))->name('settings');
     Route::get('settings/profile', [UserProfileController::class, 'edit'])->name('user-profile.edit');
     Route::patch('settings/profile', [UserProfileController::class, 'update'])->name('user-profile.update');
 });
