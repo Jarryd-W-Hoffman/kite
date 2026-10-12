@@ -15,6 +15,10 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            kite: {
+                native: boolean;
+                platform: string;
+            };
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

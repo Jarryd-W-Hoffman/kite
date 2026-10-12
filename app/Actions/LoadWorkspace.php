@@ -1,0 +1,127 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions;
+
+use App\Models\Note;
+use App\Models\NoteLink;
+use App\Models\NoteTag;
+use App\Models\Vault;
+use App\Services\VaultFilesystem;
+
+final readonly class LoadWorkspace
+{
+    private const int BACKLINK_LIMIT = 100;
+
+    public function __construct(
+        private VaultFilesystem $files,
+        private RenderMarkdown $renderMarkdown,
+    ) {
+        //
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function handle(Vault $vault, ?Note $note = null): array
+    {
+        return [
+            'vault' => $vault->only(['id', 'name', 'path']),
+            'vaults' => Vault::query()
+                ->latest('opened_at')
+                ->get(['id', 'name', 'path'])
+                ->map(fn (Vault $vault): array => $vault->only(['id', 'name', 'path']))
+                ->all(),
+            'tree' => Note::query()
+                ->where('vault_id', $vault->id)
+                ->orderByRaw('path COLLATE NOCASE')
+                ->get(['id', 'path', 'title'])
+                ->map(fn (Note $note): array => $note->only(['id', 'path', 'title']))
+                ->all(),
+            'tags' => NoteTag::query()
+                ->where('vault_id', $vault->id)
+                ->orderBy('name')
+                ->pluck('name')
+                ->countBy()
+                ->map(fn (int $count, string $name): array => ['name' => $name, 'count' => $count])
+                ->values()
+                ->all(),
+            'note' => $note instanceof Note ? $this->note($note) : null,
+            'backlinks' => $note instanceof Note ? $this->backlinks($note) : [],
+            'outgoing' => $note instanceof Note ? $this->outgoing($note) : [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function note(Note $note): array
+    {
+        $contents = $this->files->read($note->vault, $note->path);
+
+        return [
+            ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'hash', 'modified_at']),
+            'contents' => $contents,
+            'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
+            'html' => $this->renderMarkdown->handle($note->vault, $contents),
+        ];
+    }
+
+    /**
+     * @return list<array{id: int, title: string, path: string, line: int, context: string}>
+     */
+    private function backlinks(Note $note): array
+    {
+        $links = NoteLink::query()
+            ->with('source:id,vault_id,path,title')
+            ->where('target_note_id', $note->id)
+            ->where('source_note_id', '!=', $note->id)
+            ->orderBy('source_note_id')
+            ->orderBy('line')
+            ->limit(self::BACKLINK_LIMIT)
+            ->get();
+
+        $lines = [];
+        $backlinks = [];
+
+        foreach ($links as $link) {
+            $source = $link->source;
+
+            $lines[$source->id] ??= explode("\n", str_replace("\r\n", "\n", $this->files->exists($note->vault, $source->path)
+                ? $this->files->read($note->vault, $source->path)
+                : ''));
+
+            $backlinks[] = [
+                'id' => $source->id,
+                'title' => $source->title,
+                'path' => $source->path,
+                'line' => $link->line,
+                'context' => mb_trim($lines[$source->id][$link->line - 1] ?? ''),
+            ];
+        }
+
+        usort($backlinks, fn (array $a, array $b): int => [mb_strtolower($a['title']), $a['line']] <=> [mb_strtolower($b['title']), $b['line']]);
+
+        return $backlinks;
+    }
+
+    /**
+     * @return list<array{target: string, note_id: int|null, title: string|null, path: string|null}>
+     */
+    private function outgoing(Note $note): array
+    {
+        return array_values($note->outgoingLinks()
+            ->with('targetNote:id,title,path')
+            ->orderBy('line')
+            ->get()
+            ->unique('target_key')
+            ->map(fn (NoteLink $link): array => [
+                'target' => $link->target,
+                'note_id' => $link->target_note_id,
+                'title' => $link->targetNote?->title,
+                'path' => $link->targetNote?->path,
+            ])
+            ->all());
+    }
+}

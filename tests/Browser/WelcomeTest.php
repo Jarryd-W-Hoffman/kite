@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
-it('has welcome page', function (): void {
+it('asks first-time users to open a folder', function (): void {
     $page = visit('/');
 
-    $page->assertSee('Laravel');
+    $page->assertPathIs('/vaults')
+        ->assertSee('Welcome to Kite')
+        ->assertSee('Folder path')
+        ->assertNoJavaScriptErrors();
 });

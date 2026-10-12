@@ -73,7 +73,7 @@ it('may delete the account from the profile settings', function (): void {
     $page->click('@delete-user-button')
         ->fill('password', 'password')
         ->click('@confirm-delete-user-button')
-        ->assertPathIs('/')
+        ->assertPathIs('/vaults')
         ->assertNoJavaScriptErrors();
 
     expect($user->fresh())->toBeNull();
