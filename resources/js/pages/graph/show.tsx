@@ -1,0 +1,165 @@
+import { Head, router } from '@inertiajs/react';
+import { Search } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { CommandPalette } from '@/components/kite/command-palette';
+import { GraphCanvas } from '@/components/kite/graph-canvas';
+import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
+import {
+    WorkspaceSidebar,
+    createNote,
+} from '@/components/kite/workspace-sidebar';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { useVaultSync } from '@/hooks/use-vault-sync';
+import { show, store } from '@/routes/notes';
+import type { WorkspaceProps } from '@/types';
+
+type Props = WorkspaceProps & {
+    graph: {
+        nodes: (GraphNode & { note_id: number | null; path: string | null })[];
+        edges: GraphEdge[];
+    };
+};
+
+export default function GraphShow({ vault, vaults, tree, tags, graph }: Props) {
+    const [query, setQuery] = useState('');
+    const [showGhosts, setShowGhosts] = useState(true);
+    const [showOrphans, setShowOrphans] = useState(true);
+    const [paletteOpen, setPaletteOpen] = useState(false);
+
+    useVaultSync(vault, () =>
+        router.reload({ only: ['graph', 'tree', 'tags'] }),
+    );
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            const modifier = event.metaKey || event.ctrlKey;
+
+            if (modifier && event.key === 'k') {
+                event.preventDefault();
+                setPaletteOpen((open) => !open);
+            } else if (modifier && event.key === 'n') {
+                event.preventDefault();
+                createNote(vault);
+            }
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [vault]);
+
+    const { nodes, edges } = useMemo(() => {
+        const visible = graph.nodes.filter(
+            (node) =>
+                (showGhosts || !node.ghost) && (showOrphans || node.degree > 0),
+        );
+        const ids = new Set(visible.map((node) => node.id));
+
+        return {
+            nodes: visible,
+            edges: graph.edges.filter(
+                (edge) => ids.has(edge.source) && ids.has(edge.target),
+            ),
+        };
+    }, [graph, showGhosts, showOrphans]);
+
+    const noteCount = graph.nodes.filter((node) => !node.ghost).length;
+
+    const open = (node: GraphNode) => {
+        const match = graph.nodes.find((candidate) => candidate.id === node.id);
+
+        if (match?.note_id) {
+            router.visit(show({ vault: vault.id, note: match.note_id }));
+        } else {
+            router.post(store(vault.id).url, { title: node.title });
+        }
+    };
+
+    return (
+        <>
+            <Head title={`Graph · ${vault.name}`} />
+
+            <div className="flex h-svh overflow-hidden bg-background">
+                <WorkspaceSidebar
+                    vault={vault}
+                    vaults={vaults}
+                    tree={tree}
+                    tags={tags}
+                    activeNoteId={null}
+                    graphActive
+                    onSearch={() => setPaletteOpen(true)}
+                />
+
+                <main className="relative flex min-w-0 flex-1 flex-col">
+                    <header className="kite-drag flex h-12 shrink-0 items-center gap-4 border-b px-4">
+                        <h1 className="text-sm font-medium">Graph</h1>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                            {noteCount} notes · {graph.edges.length} links
+                        </span>
+
+                        <div className="kite-no-drag ml-auto flex items-center gap-4">
+                            <div className="flex items-center gap-2 text-sm">
+                                <Checkbox
+                                    id="show-ghosts"
+                                    checked={showGhosts}
+                                    onCheckedChange={(value) =>
+                                        setShowGhosts(value === true)
+                                    }
+                                />
+                                <Label htmlFor="show-ghosts">Unresolved</Label>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                                <Checkbox
+                                    id="show-orphans"
+                                    checked={showOrphans}
+                                    onCheckedChange={(value) =>
+                                        setShowOrphans(value === true)
+                                    }
+                                />
+                                <Label htmlFor="show-orphans">Orphans</Label>
+                            </div>
+                            <label className="flex items-center gap-2 rounded-md border px-2 py-1">
+                                <Search className="size-3.5 text-muted-foreground" />
+                                <input
+                                    value={query}
+                                    onChange={(event) =>
+                                        setQuery(event.target.value)
+                                    }
+                                    placeholder="Highlight notes…"
+                                    aria-label="Highlight notes"
+                                    className="w-40 bg-transparent text-sm outline-none"
+                                />
+                            </label>
+                        </div>
+                    </header>
+
+                    <div className="relative min-h-0 flex-1">
+                        {nodes.length === 0 ? (
+                            <p className="p-8 text-center text-sm text-muted-foreground">
+                                Nothing to show yet. Link notes with [[wiki
+                                links]] to grow the graph.
+                            </p>
+                        ) : (
+                            <GraphCanvas
+                                nodes={nodes}
+                                edges={edges}
+                                highlight={query}
+                                onOpen={open}
+                            />
+                        )}
+                        <p className="pointer-events-none absolute bottom-3 left-4 text-xs text-muted-foreground">
+                            Scroll to zoom · drag to pan · double-click to fit
+                        </p>
+                    </div>
+                </main>
+            </div>
+
+            <CommandPalette
+                vault={vault}
+                open={paletteOpen}
+                onOpenChange={setPaletteOpen}
+            />
+        </>
+    );
+}
