@@ -1,6 +1,9 @@
 import { Link, router } from '@inertiajs/react';
 import { ArrowUpRight, Hash, Link2, Plus } from 'lucide-react';
+import { useMemo } from 'react';
 import type { ReactNode } from 'react';
+import { GraphCanvas } from '@/components/kite/graph-canvas';
+import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
 import { show, store } from '@/routes/notes';
 import type { Backlink, NoteMeta, OutgoingLink, VaultSummary } from '@/types';
 
@@ -55,6 +58,53 @@ export function NotePanel({
     outgoing,
     children,
 }: Props) {
+    const localGraph = useMemo(() => {
+        const nodes = new Map<string, GraphNode & { noteId: number | null }>();
+        const center = `n${note.id}`;
+
+        nodes.set(center, {
+            id: center,
+            noteId: note.id,
+            title: note.title,
+            folder: '',
+            degree: 0,
+            ghost: false,
+        });
+
+        for (const link of outgoing) {
+            const id =
+                link.note_id === null ? `g${link.target}` : `n${link.note_id}`;
+
+            nodes.set(id, {
+                id,
+                noteId: link.note_id,
+                title: link.title ?? link.target,
+                folder: '',
+                degree: 1,
+                ghost: link.note_id === null,
+            });
+        }
+
+        for (const backlink of backlinks) {
+            nodes.set(`n${backlink.id}`, {
+                id: `n${backlink.id}`,
+                noteId: backlink.id,
+                title: backlink.title,
+                folder: '',
+                degree: 1,
+                ghost: false,
+            });
+        }
+
+        const edges: GraphEdge[] = [...nodes.keys()]
+            .filter((id) => id !== center)
+            .map((id) => ({ source: center, target: id }));
+
+        nodes.get(center)!.degree = edges.length;
+
+        return { nodes: [...nodes.values()], edges };
+    }, [note.id, note.title, outgoing, backlinks]);
+
     const properties = Object.entries(note.frontmatter).filter(
         ([key]) => !['title', 'tags', 'tag'].includes(key),
     );
@@ -62,6 +112,37 @@ export function NotePanel({
     return (
         <div className="space-y-6 p-4 text-sm">
             {children}
+
+            {localGraph.edges.length > 0 && (
+                <Section title="Local graph">
+                    <div className="h-48 overflow-hidden rounded-lg border bg-background">
+                        <GraphCanvas
+                            compact
+                            nodes={localGraph.nodes}
+                            edges={localGraph.edges}
+                            activeId={`n${note.id}`}
+                            onOpen={(node) => {
+                                const match = localGraph.nodes.find(
+                                    (candidate) => candidate.id === node.id,
+                                );
+
+                                if (match?.noteId) {
+                                    router.visit(
+                                        show({
+                                            vault: vault.id,
+                                            note: match.noteId,
+                                        }),
+                                    );
+                                } else {
+                                    router.post(store(vault.id).url, {
+                                        title: node.title,
+                                    });
+                                }
+                            }}
+                        />
+                    </div>
+                </Section>
+            )}
 
             <Section title="Backlinks" count={backlinks.length}>
                 {backlinks.length === 0 ? (

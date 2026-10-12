@@ -4,9 +4,11 @@ import {
     ChevronsUpDown,
     FolderOpen,
     Hash,
+    Network,
     Plus,
     Search,
 } from 'lucide-react';
+import { useEffect } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { FileTree } from '@/components/kite/file-tree';
 import { Button } from '@/components/ui/button';
@@ -25,6 +27,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { store } from '@/routes/notes';
+import { show as showGraph } from '@/routes/vault-graph';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
 import type { TagCount, TreeNote, VaultSummary } from '@/types';
 
@@ -34,6 +37,7 @@ type Props = {
     tree: TreeNote[];
     tags: TagCount[];
     activeNoteId: number | null;
+    graphActive?: boolean;
     onSearch: () => void;
 };
 
@@ -47,10 +51,24 @@ export function WorkspaceSidebar({
     tree,
     tags,
     activeNoteId,
+    graphActive = false,
     onSearch,
 }: Props) {
     const { kite } = usePage().props;
     const insetTrafficLights = kite.native && kite.platform === 'darwin';
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'g') {
+                event.preventDefault();
+                router.visit(showGraph(vault.id));
+            }
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [vault.id]);
 
     return (
         <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -111,7 +129,7 @@ export function WorkspaceSidebar({
                 </Tooltip>
             </div>
 
-            <div className="p-2">
+            <div className="space-y-1 p-2">
                 <button
                     type="button"
                     onClick={onSearch}
@@ -123,6 +141,21 @@ export function WorkspaceSidebar({
                         ⌘K
                     </kbd>
                 </button>
+                <Link
+                    href={showGraph(vault.id)}
+                    data-test="graph-link"
+                    className={cn(
+                        'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent',
+                        graphActive &&
+                            'bg-sidebar-accent font-medium text-sidebar-accent-foreground',
+                    )}
+                >
+                    <Network className="size-4" />
+                    Graph view
+                    <kbd className="ml-auto rounded border px-1.5 text-[10px] text-muted-foreground">
+                        ⌘G
+                    </kbd>
+                </Link>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">

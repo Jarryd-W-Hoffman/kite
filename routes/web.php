@@ -16,6 +16,7 @@ use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\UserTwoFactorAuthenticationController;
 use App\Http\Controllers\VaultController;
 use App\Http\Controllers\VaultFolderController;
+use App\Http\Controllers\VaultGraphController;
 use App\Http\Controllers\VaultPreviewController;
 use App\Http\Controllers\VaultSearchController;
 use App\Http\Controllers\VaultSyncController;
@@ -33,6 +34,7 @@ Route::delete('vaults/{vault}', [VaultController::class, 'destroy'])->name('vaul
 Route::post('vaults/{vault}/sync', [VaultSyncController::class, 'store'])->name('vault-sync.store');
 Route::get('vaults/{vault}/search', [VaultSearchController::class, 'index'])->name('vault-search.index');
 Route::post('vaults/{vault}/preview', [VaultPreviewController::class, 'store'])->name('vault-preview.store');
+Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->name('vault-graph.show');
 
 // Notes...
 Route::scopeBindings()->group(function (): void {
