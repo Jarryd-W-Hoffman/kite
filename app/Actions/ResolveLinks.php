@@ -7,45 +7,60 @@ namespace App\Actions;
 use App\Models\NoteLink;
 use App\Models\Vault;
 use App\Services\LinkResolver;
+use App\Services\Row;
 use Illuminate\Database\Eloquent\Builder;
 
 final readonly class ResolveLinks
 {
+    private const int MAX_KEY_FILTER = 500;
+
     public function __construct(private LinkResolver $resolver)
     {
         //
     }
 
     /**
-     * Re-resolve dangling links, plus any links using the given keys, returning how many links changed.
+     * Re-resolve links against the vault's notes, returning how many links changed target.
      *
-     * @param  list<string>  $keys
+     * Without keys every link is checked; with keys only dangling links and links using those keys are.
+     *
+     * @param  list<string>|null  $keys
      */
-    public function handle(Vault $vault, array $keys = []): int
+    public function handle(Vault $vault, ?array $keys = null): int
     {
-        /** @var list<string> $danglingKeys */
-        $danglingKeys = NoteLink::query()
+        $index = $this->resolver->index($vault);
+
+        $links = NoteLink::query()
             ->where('vault_id', $vault->id)
-            ->whereNull('target_note_id')
-            ->distinct()
-            ->pluck('target_key')
-            ->all();
+            ->when(
+                $keys !== null && count($keys) <= self::MAX_KEY_FILTER,
+                fn (Builder $query): Builder => $query->where(
+                    fn (Builder $query): Builder => $query->whereNull('target_note_id')->orWhereIn('target_key', $keys ?? []),
+                ),
+            )
+            ->toBase()
+            ->select(['id', 'target_key', 'target_note_id'])
+            ->lazyById(2000);
+
+        /** @var array<int, list<int>> $changes */
+        $changes = [];
+
+        foreach ($links as $link) {
+            $desired = $index[Row::string($link, 'target_key')] ?? null;
+
+            if ($desired !== Row::nullableInt($link, 'target_note_id')) {
+                $changes[$desired ?? 0][] = Row::int($link, 'id');
+            }
+        }
 
         $changed = 0;
 
-        foreach (array_chunk(array_values(array_unique([...$danglingKeys, ...$keys])), 500) as $chunk) {
-            $resolved = $this->resolver->resolve($vault, $chunk);
-
-            foreach ($chunk as $key) {
-                $noteId = $resolved[$key] ?? null;
-
+        foreach ($changes as $targetNoteId => $linkIds) {
+            foreach (array_chunk($linkIds, 500) as $chunk) {
                 $changed += NoteLink::query()
-                    ->where('vault_id', $vault->id)
-                    ->where('target_key', $key)
-                    ->where(fn (Builder $query): Builder => $noteId === null
-                        ? $query->whereNotNull('target_note_id')
-                        : $query->whereNull('target_note_id')->orWhere('target_note_id', '!=', $noteId))
-                    ->update(['target_note_id' => $noteId]);
+                    ->whereKey($chunk)
+                    ->toBase()
+                    ->update(['target_note_id' => $targetNoteId === 0 ? null : $targetNoteId]);
             }
         }
 

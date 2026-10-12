@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Models\Note;
-use App\Models\NoteLink;
 use App\Models\Vault;
+use App\Services\Row;
+use Illuminate\Support\Facades\DB;
 
 final readonly class BuildGraph
 {
@@ -22,13 +22,16 @@ final readonly class BuildGraph
     {
         $nodes = [];
 
-        foreach (Note::query()->where('vault_id', $vault->id)->orderBy('id')->get(['id', 'title', 'path']) as $note) {
-            $nodes['n'.$note->id] = [
-                'id' => 'n'.$note->id,
-                'note_id' => $note->id,
-                'title' => $note->title,
-                'path' => $note->path,
-                'folder' => str_contains($note->path, '/') ? dirname($note->path) : '',
+        foreach (DB::table('notes')->where('vault_id', $vault->id)->orderBy('id')->get(['id', 'title', 'path']) as $row) {
+            $id = Row::int($row, 'id');
+            $path = Row::string($row, 'path');
+
+            $nodes['n'.$id] = [
+                'id' => 'n'.$id,
+                'note_id' => $id,
+                'title' => Row::string($row, 'title'),
+                'path' => $path,
+                'folder' => str_contains($path, '/') ? dirname($path) : '',
                 'degree' => 0,
                 'ghost' => false,
             ];
@@ -38,28 +41,29 @@ final readonly class BuildGraph
 
         $degrees = [];
 
-        $links = NoteLink::query()
+        $links = DB::table('note_links')
             ->where('vault_id', $vault->id)
             ->orderBy('id')
             ->get(['source_note_id', 'target_note_id', 'target', 'target_key']);
 
         foreach ($links as $link) {
-            $source = 'n'.$link->source_note_id;
+            $source = 'n'.Row::int($link, 'source_note_id');
+            $targetNoteId = Row::nullableInt($link, 'target_note_id');
 
-            if ($link->target_note_id === null) {
-                $target = 'g'.$link->target_key;
+            if ($targetNoteId === null) {
+                $target = 'g'.Row::string($link, 'target_key');
 
                 $nodes[$target] ??= [
                     'id' => $target,
                     'note_id' => null,
-                    'title' => $link->target,
+                    'title' => Row::string($link, 'target'),
                     'path' => null,
                     'folder' => '',
                     'degree' => 0,
                     'ghost' => true,
                 ];
             } else {
-                $target = 'n'.$link->target_note_id;
+                $target = 'n'.$targetNoteId;
             }
 
             if ($source === $target) {

@@ -25,3 +25,20 @@ it('prefers the match closest to the vault root, then alphabetical', function ()
 it('returns nothing for no keys', function (): void {
     expect(new LinkResolver()->resolve(Vault::factory()->create(), []))->toBe([]);
 });
+
+it('resolves large key sets against an in-memory index with the same precedence', function (): void {
+    $vault = Vault::factory()->create();
+
+    $deep = Note::factory()->for($vault)->create(['path' => 'z/y/Idea.md', 'path_key' => 'z/y/idea', 'slug' => 'idea']);
+    $shallow = Note::factory()->for($vault)->create(['path' => 'b/Idea.md', 'path_key' => 'b/idea', 'slug' => 'idea']);
+    Note::factory()->for($vault)->create(['path' => 'c/Idea.md', 'path_key' => 'c/idea', 'slug' => 'idea']);
+
+    $keys = ['idea', 'y/idea', 'z/y/idea', 'b/idea', ...array_map(fn (int $i): string => "missing {$i}", range(1, 70))];
+
+    expect(new LinkResolver()->resolve($vault, $keys))->toBe([
+        'idea' => $shallow->id,
+        'y/idea' => $deep->id,
+        'z/y/idea' => $deep->id,
+        'b/idea' => $shallow->id,
+    ]);
+});

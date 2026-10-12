@@ -6,9 +6,10 @@ namespace App\Actions;
 
 use App\Models\Note;
 use App\Models\NoteLink;
-use App\Models\NoteTag;
 use App\Models\Vault;
+use App\Services\Row;
 use App\Services\VaultFilesystem;
+use Illuminate\Support\Facades\DB;
 
 final readonly class LoadWorkspace
 {
@@ -33,19 +34,25 @@ final readonly class LoadWorkspace
                 ->get(['id', 'name', 'path'])
                 ->map(fn (Vault $vault): array => $vault->only(['id', 'name', 'path']))
                 ->all(),
-            'tree' => Note::query()
+            'tree' => DB::table('notes')
                 ->where('vault_id', $vault->id)
                 ->orderByRaw('path COLLATE NOCASE')
                 ->get(['id', 'path', 'title'])
-                ->map(fn (Note $note): array => $note->only(['id', 'path', 'title']))
+                ->map(fn (object $row): array => [
+                    'id' => Row::int($row, 'id'),
+                    'path' => Row::string($row, 'path'),
+                    'title' => Row::string($row, 'title'),
+                ])
                 ->all(),
-            'tags' => NoteTag::query()
+            'tags' => DB::table('note_tags')
                 ->where('vault_id', $vault->id)
+                ->groupBy('name')
                 ->orderBy('name')
-                ->pluck('name')
-                ->countBy()
-                ->map(fn (int $count, string $name): array => ['name' => $name, 'count' => $count])
-                ->values()
+                ->get(['name', DB::raw('count(*) as count')])
+                ->map(fn (object $row): array => [
+                    'name' => Row::string($row, 'name'),
+                    'count' => Row::int($row, 'count'),
+                ])
                 ->all(),
             'note' => $note instanceof Note ? $this->note($note) : null,
             'backlinks' => $note instanceof Note ? $this->backlinks($note) : [],

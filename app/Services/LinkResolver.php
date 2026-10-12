@@ -7,9 +7,15 @@ namespace App\Services;
 use App\Models\Note;
 use App\Models\Vault;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 final readonly class LinkResolver
 {
+    /**
+     * Above this many keys it is cheaper to resolve against an in-memory index of the whole vault.
+     */
+    private const int INDEX_THRESHOLD = 64;
+
     /**
      * Every link key that could point at a note with the given path key, e.g. "a/b/c", "b/c" and "c".
      *
@@ -26,6 +32,36 @@ final readonly class LinkResolver
     }
 
     /**
+     * Map every resolvable link key in the vault to its note, preferring the match closest to the vault root.
+     *
+     * @return array<string, int>
+     */
+    public function index(Vault $vault): array
+    {
+        $notes = DB::table('notes')
+            ->where('vault_id', $vault->id)
+            ->get(['id', 'path_key'])
+            ->map(fn (object $row): array => [
+                'id' => Row::int($row, 'id'),
+                'path_key' => Row::string($row, 'path_key'),
+                'depth' => mb_substr_count(Row::string($row, 'path_key'), '/'),
+            ])
+            ->all();
+
+        usort($notes, fn (array $a, array $b): int => [$a['depth'], $a['path_key']] <=> [$b['depth'], $b['path_key']]);
+
+        $index = [];
+
+        foreach ($notes as $note) {
+            foreach ($this->keysFor($note['path_key']) as $key) {
+                $index[$key] ??= $note['id'];
+            }
+        }
+
+        return $index;
+    }
+
+    /**
      * Resolve link target keys to note ids, preferring the match closest to the vault root.
      *
      * @param  list<string>  $keys
@@ -37,6 +73,15 @@ final readonly class LinkResolver
 
         if ($keys === []) {
             return [];
+        }
+
+        if (count($keys) > self::INDEX_THRESHOLD) {
+            $index = $this->index($vault);
+
+            return array_filter(
+                array_combine($keys, array_map(fn (string $key): ?int => $index[$key] ?? null, $keys)),
+                fn (?int $id): bool => $id !== null,
+            );
         }
 
         $nameKeys = array_values(array_filter($keys, fn (string $key): bool => ! str_contains($key, '/')));
