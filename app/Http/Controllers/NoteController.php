@@ -7,10 +7,8 @@ namespace App\Http\Controllers;
 use App\Actions\CreateNote;
 use App\Actions\DeleteNote;
 use App\Actions\LoadWorkspace;
-use App\Actions\RenameNote;
 use App\Actions\RenderMarkdown;
 use App\Actions\SaveNote;
-use App\Http\Requests\RenameNoteRequest;
 use App\Http\Requests\StoreNoteRequest;
 use App\Http\Requests\UpdateNoteRequest;
 use App\Models\Note;
@@ -57,21 +55,6 @@ final readonly class NoteController
             'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
             'html' => $renderMarkdown->handle($vault, $contents),
         ]);
-    }
-
-    public function rename(RenameNoteRequest $request, Vault $vault, Note $note, RenameNote $action): RedirectResponse
-    {
-        try {
-            $note = $action->handle($note, $request->string('path')->toString());
-        } catch (InvalidArgumentException $exception) {
-            throw ValidationException::withMessages([
-                'path' => str_contains($exception->getMessage(), 'already exists')
-                    ? __('A note already exists at that path.')
-                    : __('That path is not valid.'),
-            ]);
-        }
-
-        return to_route('notes.show', [$vault, $note]);
     }
 
     public function destroy(Vault $vault, Note $note, DeleteNote $action): RedirectResponse

@@ -37,6 +37,10 @@ final class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'kite' => [
+                'native' => (bool) config('nativephp-internal.running'),
+                'platform' => mb_strtolower(PHP_OS_FAMILY),
+            ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

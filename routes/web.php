@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\NotePathController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserEmailResetNotificationController;
@@ -20,7 +22,7 @@ use App\Http\Controllers\VaultSyncController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', [VaultController::class, 'home'])->name('home');
+Route::get('/', HomeController::class)->name('home');
 
 // Vaults...
 Route::get('vaults', [VaultController::class, 'index'])->name('vaults.index');
@@ -37,7 +39,7 @@ Route::scopeBindings()->group(function (): void {
     Route::post('vaults/{vault}/notes', [NoteController::class, 'store'])->name('notes.store');
     Route::get('vaults/{vault}/notes/{note}', [NoteController::class, 'show'])->name('notes.show');
     Route::put('vaults/{vault}/notes/{note}', [NoteController::class, 'update'])->name('notes.update');
-    Route::patch('vaults/{vault}/notes/{note}/path', [NoteController::class, 'rename'])->name('notes.rename');
+    Route::put('vaults/{vault}/notes/{note}/path', [NotePathController::class, 'update'])->name('note-path.update');
     Route::delete('vaults/{vault}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
 });
 

@@ -17,15 +17,6 @@ use InvalidArgumentException;
 
 final readonly class VaultController
 {
-    public function home(): RedirectResponse
-    {
-        $vault = Vault::query()->latest('opened_at')->first();
-
-        return $vault instanceof Vault
-            ? to_route('vaults.show', $vault)
-            : to_route('vaults.index');
-    }
-
     public function index(): Response
     {
         return Inertia::render('vault/index', [
@@ -63,7 +54,7 @@ final readonly class VaultController
         $landing = Note::query()
             ->where('vault_id', $vault->id)
             ->orderByRaw("CASE WHEN slug IN ('home', 'index', 'readme', 'welcome') AND path NOT LIKE '%/%' THEN 0 ELSE 1 END")
-            ->orderByDesc('modified_at')
+            ->latest('modified_at')
             ->first();
 
         if ($landing instanceof Note) {

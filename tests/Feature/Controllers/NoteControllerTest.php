@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 use App\Actions\IndexVault;
 use App\Models\Note;
+use App\Models\Vault;
 
-function indexedVault(array $files): App\Models\Vault
+function indexedVault(array $files): Vault
 {
     $vault = vaultWithFiles($files);
 
@@ -96,33 +97,6 @@ it('requires contents when saving', function (): void {
     $this->putJson(route('notes.update', [$vault, Note::query()->sole()]))
         ->assertJsonValidationErrors('contents');
 });
-
-it('renames a note', function (): void {
-    $vault = indexedVault(['Old.md' => '# Old']);
-    $note = Note::query()->sole();
-
-    $this->patch(route('notes.rename', [$vault, $note]), ['path' => 'Archive/New'])
-        ->assertRedirectToRoute('notes.show', [$vault, $note]);
-
-    expect($note->refresh()->path)->toBe('Archive/New.md');
-});
-
-it('validates renames', function (array $data, ?string $message): void {
-    $vault = indexedVault(['A.md' => 'a', 'B.md' => 'b']);
-    $note = Note::query()->where('path', 'A.md')->sole();
-
-    $response = $this->fromRoute('notes.show', [$vault, $note])
-        ->patch(route('notes.rename', [$vault, $note]), $data)
-        ->assertSessionHasErrors('path');
-
-    if ($message !== null) {
-        $response->assertSessionHasErrors(['path' => $message]);
-    }
-})->with([
-    'missing' => [[], null],
-    'taken' => [['path' => 'B.md'], 'A note already exists at that path.'],
-    'invalid' => [['path' => '../B.md'], 'That path is not valid.'],
-]);
 
 it('deletes a note', function (): void {
     $vault = indexedVault(['A.md' => 'a']);

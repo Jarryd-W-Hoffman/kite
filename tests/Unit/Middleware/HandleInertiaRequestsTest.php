@@ -91,3 +91,14 @@ it('includes parent shared data', function (): void {
     // Parent Inertia middleware shares 'errors' by default
     expect($shared)->toHaveKey('errors');
 });
+
+it('shares whether kite is running as a desktop app', function (bool $native): void {
+    config(['nativephp-internal.running' => $native]);
+
+    $shared = new HandleInertiaRequests()->share(Request::create('/', 'GET'));
+
+    expect($shared['kite'])->toBe([
+        'native' => $native,
+        'platform' => mb_strtolower(PHP_OS_FAMILY),
+    ]);
+})->with([true, false]);
