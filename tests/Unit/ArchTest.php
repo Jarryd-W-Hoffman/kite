@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 arch()->preset()->php();
 arch()->preset()->strict();
-arch()->preset()->laravel();
+arch()->preset()->laravel()->ignoring([
+    App\Providers\NativeAppServiceProvider::class,
+]);
 arch()->preset()->security()->ignoring([
     'assert',
 ]);
