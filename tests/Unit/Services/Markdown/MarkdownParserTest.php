@@ -47,6 +47,13 @@ it('supports frontmatter closed at the end of the file and windows line endings'
         ->and(parseNote("\u{FEFF}---\ntitle: Bom\n...\nText")->title)->toBe('Bom');
 });
 
+it('tolerates invalid utf-8 bytes', function (): void {
+    $note = parseNote("# Caf\xE9 notes\n[[Link]]");
+
+    expect($note->title)->toBe('Caf? notes')
+        ->and($note->links)->toHaveCount(1);
+});
+
 it('falls back to the first heading, then the file name, for the title', function (): void {
     expect(parseNote("Intro\n\n# The [[Big]] Idea ##\n\n# Second")->title)->toBe('The Big Idea')
         ->and(parseNote("```\n# Not a title\n```\nplain", 'Deep/Folder/My Note.md')->title)->toBe('My Note')

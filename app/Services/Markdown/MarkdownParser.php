@@ -30,15 +30,26 @@ final readonly class MarkdownParser
             frontmatter: $frontmatter,
             links: $this->links($searchable),
             tags: $this->tags($frontmatter, $searchable),
-            wordCount: preg_match_all('/[\p{L}\p{N}][\p{L}\p{N}\'’_-]*/u', $searchable),
+            wordCount: $this->wordCount($searchable),
         );
+    }
+
+    private function wordCount(string $searchable): int
+    {
+        $count = preg_match_all('/[\p{L}\p{N}][\p{L}\p{N}\'’_-]*/u', $searchable);
+
+        return $count === false ? 0 : $count;
     }
 
     private function normalise(string $contents): string
     {
+        if (! mb_check_encoding($contents, 'UTF-8')) {
+            $contents = mb_convert_encoding($contents, 'UTF-8', 'UTF-8');
+        }
+
         $contents = str_replace(["\r\n", "\r"], "\n", $contents);
 
-        return str_starts_with($contents, "\u{FEFF}") ? mb_substr($contents, 3) : $contents;
+        return (string) preg_replace('/\A\x{FEFF}/u', '', $contents);
     }
 
     /**
@@ -146,14 +157,17 @@ final readonly class MarkdownParser
     private function links(string $searchable): array
     {
         preg_match_all(self::LINK_PATTERN, $searchable, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        preg_match_all('/\n/', $searchable, $newlines, PREG_OFFSET_CAPTURE);
+
+        $newlineOffsets = array_column($newlines[0], 1);
 
         $links = [];
 
         foreach ($matches as $match) {
             $inner = str_replace('\|', '|', $match[2][0]);
 
-            [$destination, $alias] = array_pad(explode('|', $inner, 2), 2, null);
-            [$target, $heading] = array_pad(explode('#', $destination, 2), 2, null);
+            [$destination, $alias] = $this->splitOnce($inner, '|');
+            [$target, $heading] = $this->splitOnce($destination, '#');
 
             $target = mb_trim($target);
 
@@ -170,11 +184,40 @@ final readonly class MarkdownParser
                 heading: $heading === '' ? null : $heading,
                 alias: $alias === '' ? null : $alias,
                 isEmbed: $match[1][0] === '!',
-                line: mb_substr_count($searchable, "\n", 0, $match[0][1]) + 1,
+                line: $this->lineAt($newlineOffsets, $match[0][1]),
             );
         }
 
         return $links;
+    }
+
+    /**
+     * @param  non-empty-string  $separator
+     * @return array{0: string, 1: string|null}
+     */
+    private function splitOnce(string $value, string $separator): array
+    {
+        $parts = explode($separator, $value, 2);
+
+        return [$parts[0], $parts[1] ?? null];
+    }
+
+    /**
+     * @param  list<int>  $newlineOffsets
+     */
+    private function lineAt(array $newlineOffsets, int $offset): int
+    {
+        $line = 1;
+
+        foreach ($newlineOffsets as $newlineOffset) {
+            if ($newlineOffset >= $offset) {
+                break;
+            }
+
+            $line++;
+        }
+
+        return $line;
     }
 
     private function isAttachment(string $target): bool
