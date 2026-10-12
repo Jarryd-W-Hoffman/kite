@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\NoteController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserEmailResetNotificationController;
@@ -11,10 +12,34 @@ use App\Http\Controllers\UserPasskeyController;
 use App\Http\Controllers\UserPasswordController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\UserTwoFactorAuthenticationController;
+use App\Http\Controllers\VaultController;
+use App\Http\Controllers\VaultFolderController;
+use App\Http\Controllers\VaultPreviewController;
+use App\Http\Controllers\VaultSearchController;
+use App\Http\Controllers\VaultSyncController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', fn () => Inertia::render('welcome'))->name('home');
+Route::get('/', [VaultController::class, 'home'])->name('home');
+
+// Vaults...
+Route::get('vaults', [VaultController::class, 'index'])->name('vaults.index');
+Route::post('vaults', [VaultController::class, 'store'])->name('vaults.store');
+Route::post('vaults/folder', [VaultFolderController::class, 'store'])->name('vault-folder.store');
+Route::get('vaults/{vault}', [VaultController::class, 'show'])->name('vaults.show');
+Route::delete('vaults/{vault}', [VaultController::class, 'destroy'])->name('vaults.destroy');
+Route::post('vaults/{vault}/sync', [VaultSyncController::class, 'store'])->name('vault-sync.store');
+Route::get('vaults/{vault}/search', [VaultSearchController::class, 'index'])->name('vault-search.index');
+Route::post('vaults/{vault}/preview', [VaultPreviewController::class, 'store'])->name('vault-preview.store');
+
+// Notes...
+Route::scopeBindings()->group(function (): void {
+    Route::post('vaults/{vault}/notes', [NoteController::class, 'store'])->name('notes.store');
+    Route::get('vaults/{vault}/notes/{note}', [NoteController::class, 'show'])->name('notes.show');
+    Route::put('vaults/{vault}/notes/{note}', [NoteController::class, 'update'])->name('notes.update');
+    Route::patch('vaults/{vault}/notes/{note}/path', [NoteController::class, 'rename'])->name('notes.rename');
+    Route::delete('vaults/{vault}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
+});
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');

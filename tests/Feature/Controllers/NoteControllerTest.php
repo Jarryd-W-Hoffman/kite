@@ -1,0 +1,136 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Actions\IndexVault;
+use App\Models\Note;
+
+function indexedVault(array $files): App\Models\Vault
+{
+    $vault = vaultWithFiles($files);
+
+    resolve(IndexVault::class)->handle($vault);
+
+    return $vault;
+}
+
+it('shows a note in the workspace', function (): void {
+    $vault = indexedVault(['Topic.md' => '# Topic', 'Other.md' => '[[Topic]]']);
+    $topic = Note::query()->where('path', 'Topic.md')->sole();
+
+    $this->get(route('notes.show', [$vault, $topic]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('note/show')
+            ->where('note.id', $topic->id)
+            ->where('note.contents', '# Topic')
+            ->has('backlinks', 1)
+            ->has('tree', 2));
+});
+
+it('does not show notes from another vault', function (): void {
+    $vault = indexedVault(['A.md' => 'a']);
+    $other = indexedVault(['B.md' => 'b']);
+
+    $this->get(route('notes.show', [$vault, $other->notes()->sole()]))->assertNotFound();
+});
+
+it('creates a note', function (): void {
+    $vault = indexedVault([]);
+
+    $response = $this->post(route('notes.store', $vault), ['title' => 'New idea', 'folder' => 'Ideas']);
+
+    $note = Note::query()->sole();
+
+    $response->assertRedirectToRoute('notes.show', [$vault, $note]);
+
+    expect($note->path)->toBe('Ideas/New idea.md');
+});
+
+it('creates a note at the vault root when no folder is given', function (): void {
+    $vault = indexedVault([]);
+
+    $this->post(route('notes.store', $vault), ['title' => 'Root', 'folder' => '']);
+
+    expect(Note::query()->sole()->path)->toBe('Root.md');
+});
+
+it('validates new notes', function (array $data, string $error): void {
+    $vault = indexedVault([]);
+
+    $this->fromRoute('vaults.show', $vault)
+        ->post(route('notes.store', $vault), $data)
+        ->assertSessionHasErrors($error);
+})->with([
+    'missing title' => [[], 'title'],
+    'escaping folder' => [['title' => 'x', 'folder' => '../outside'], 'folder'],
+]);
+
+it('saves note contents and returns fresh metadata', function (): void {
+    $vault = indexedVault(['Note.md' => '# Old']);
+    $note = Note::query()->sole();
+
+    $this->putJson(route('notes.update', [$vault, $note]), ['contents' => "# New\n#tag"])
+        ->assertOk()
+        ->assertJsonPath('id', $note->id)
+        ->assertJsonPath('title', 'New')
+        ->assertJsonPath('tags', ['tag'])
+        ->assertJsonPath('html', "<h1>New</h1>\n<p>#tag</p>\n");
+
+    expect(file_get_contents($vault->path.'/Note.md'))->toBe("# New\n#tag");
+});
+
+it('allows saving an empty note', function (): void {
+    $vault = indexedVault(['Note.md' => '# Old']);
+
+    $this->putJson(route('notes.update', [$vault, Note::query()->sole()]), ['contents' => null])
+        ->assertOk()
+        ->assertJsonPath('title', 'Note');
+
+    expect(file_get_contents($vault->path.'/Note.md'))->toBe('');
+});
+
+it('requires contents when saving', function (): void {
+    $vault = indexedVault(['Note.md' => '# Old']);
+
+    $this->putJson(route('notes.update', [$vault, Note::query()->sole()]))
+        ->assertJsonValidationErrors('contents');
+});
+
+it('renames a note', function (): void {
+    $vault = indexedVault(['Old.md' => '# Old']);
+    $note = Note::query()->sole();
+
+    $this->patch(route('notes.rename', [$vault, $note]), ['path' => 'Archive/New'])
+        ->assertRedirectToRoute('notes.show', [$vault, $note]);
+
+    expect($note->refresh()->path)->toBe('Archive/New.md');
+});
+
+it('validates renames', function (array $data, ?string $message): void {
+    $vault = indexedVault(['A.md' => 'a', 'B.md' => 'b']);
+    $note = Note::query()->where('path', 'A.md')->sole();
+
+    $response = $this->fromRoute('notes.show', [$vault, $note])
+        ->patch(route('notes.rename', [$vault, $note]), $data)
+        ->assertSessionHasErrors('path');
+
+    if ($message !== null) {
+        $response->assertSessionHasErrors(['path' => $message]);
+    }
+})->with([
+    'missing' => [[], null],
+    'taken' => [['path' => 'B.md'], 'A note already exists at that path.'],
+    'invalid' => [['path' => '../B.md'], 'That path is not valid.'],
+]);
+
+it('deletes a note', function (): void {
+    $vault = indexedVault(['A.md' => 'a']);
+
+    $this->delete(route('notes.destroy', [$vault, Note::query()->sole()]))
+        ->assertRedirectToRoute('vaults.show', $vault)
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => __('Note deleted.')]);
+
+    expect(Note::query()->count())->toBe(0)
+        ->and(file_exists($vault->path.'/A.md'))->toBeFalse();
+});
