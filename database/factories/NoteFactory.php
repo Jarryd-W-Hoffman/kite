@@ -18,7 +18,7 @@ final class NoteFactory extends Factory
      */
     public function definition(): array
     {
-        $title = fake()->unique()->words(3, true);
+        $title = mb_rtrim(fake()->unique()->sentence(3), '.');
 
         return [
             'vault_id' => Vault::factory(),
@@ -30,7 +30,7 @@ final class NoteFactory extends Factory
             'word_count' => 0,
             'size' => 0,
             'modified_at' => 0,
-            'hash' => sha1($title),
+            'hash' => hash('xxh128', $title),
         ];
     }
 }

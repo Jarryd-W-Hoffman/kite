@@ -22,7 +22,7 @@ it('stores note metadata, search text, links and tags', function (): void {
         'word_count' => 8,
     ])
         ->and($note->frontmatter)->toBe(['title' => 'Monday', 'mood' => 'good'])
-        ->and($note->hash)->toBe(sha1((string) file_get_contents($vault->path.'/Daily/2026-10-12.md')))
+        ->and($note->hash)->toBe(hash('xxh128', (string) file_get_contents($vault->path.'/Daily/2026-10-12.md')))
         ->and($note->tags()->pluck('name')->all())->toBe(['meeting'])
         ->and($note->outgoingLinks()->get()->map->only(['target', 'heading', 'alias', 'is_embed', 'line'])->all())->toBe([
             ['target' => 'Ana', 'heading' => 'Agenda', 'alias' => 'Ana', 'is_embed' => false, 'line' => 5],

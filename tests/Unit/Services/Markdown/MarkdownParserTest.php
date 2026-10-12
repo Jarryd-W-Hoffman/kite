@@ -3,9 +3,10 @@
 declare(strict_types=1);
 
 use App\Services\Markdown\MarkdownParser;
+use App\Services\Markdown\ParsedNote;
 use App\Services\Markdown\WikiLink;
 
-function parseNote(string $contents, string $path = 'Notes/Example.md'): App\Services\Markdown\ParsedNote
+function parseNote(string $contents, string $path = 'Notes/Example.md'): ParsedNote
 {
     return new MarkdownParser()->parse($contents, $path);
 }

@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Note;
 use App\Models\Vault;
+use App\Services\LinkResolver;
 use App\Services\VaultFilesystem;
 use Illuminate\Support\Facades\DB;
 
@@ -13,6 +14,7 @@ final readonly class IndexVault
 {
     public function __construct(
         private VaultFilesystem $files,
+        private LinkResolver $resolver,
         private IndexNote $indexNote,
         private ResolveLinks $resolveLinks,
     ) {
@@ -42,8 +44,9 @@ final readonly class IndexVault
         $summary = ['added' => 0, 'updated' => 0, 'removed' => 0];
 
         $removed = array_diff_key($indexed, $files);
+        $addedKeys = [];
 
-        DB::transaction(function () use ($vault, $files, $indexed, $removed, &$summary): void {
+        DB::transaction(function () use ($vault, $files, $indexed, $removed, &$summary, &$addedKeys): void {
             foreach (array_chunk(array_column($removed, 'id'), 500) as $ids) {
                 $summary['removed'] += Note::query()->whereKey($ids)->toBase()->delete();
             }
@@ -55,13 +58,18 @@ final readonly class IndexVault
                     continue;
                 }
 
-                $this->indexNote->handle($vault, $path, resolveDanglingLinks: false);
+                $note = $this->indexNote->handle($vault, $path, resolveDanglingLinks: false);
 
-                $summary[$existing === null ? 'added' : 'updated']++;
+                if ($existing === null) {
+                    $summary['added']++;
+                    array_push($addedKeys, ...$this->resolver->keysFor($note->path_key));
+                } else {
+                    $summary['updated']++;
+                }
             }
 
             if ($summary['added'] > 0 || $summary['removed'] > 0) {
-                $this->resolveLinks->handle($vault);
+                $this->resolveLinks->handle($vault, $addedKeys);
             }
 
             $vault->update(['indexed_at' => now()]);

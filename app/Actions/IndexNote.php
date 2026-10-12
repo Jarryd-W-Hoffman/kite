@@ -46,7 +46,7 @@ final readonly class IndexNote
                 'word_count' => $parsed->wordCount,
                 'size' => $stat['size'],
                 'modified_at' => $stat['modified_at'],
-                'hash' => sha1($contents),
+                'hash' => hash('xxh128', $contents),
             ]);
 
             DB::table('notes_fts')->where('rowid', $note->id)->delete();
@@ -82,7 +82,7 @@ final readonly class IndexNote
             ], $parsed->tags));
 
             if ($resolveDanglingLinks && $note->wasRecentlyCreated) {
-                $this->resolveLinks->handle($vault);
+                $this->resolveLinks->handle($vault, $this->resolver->keysFor($pathKey));
             }
 
             return $note;

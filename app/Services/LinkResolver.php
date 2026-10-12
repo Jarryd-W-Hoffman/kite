@@ -6,9 +6,25 @@ namespace App\Services;
 
 use App\Models\Note;
 use App\Models\Vault;
+use Illuminate\Database\Eloquent\Builder;
 
 final readonly class LinkResolver
 {
+    /**
+     * Every link key that could point at a note with the given path key, e.g. "a/b/c", "b/c" and "c".
+     *
+     * @return list<string>
+     */
+    public function keysFor(string $pathKey): array
+    {
+        $segments = explode('/', $pathKey);
+
+        return array_map(
+            fn (int $offset): string => implode('/', array_slice($segments, $offset)),
+            array_keys($segments),
+        );
+    }
+
     /**
      * Resolve link target keys to note ids, preferring the match closest to the vault root.
      *
@@ -28,7 +44,7 @@ final readonly class LinkResolver
 
         $candidates = Note::query()
             ->where('vault_id', $vault->id)
-            ->where(function ($query) use ($nameKeys, $pathKeys): void {
+            ->where(function (Builder $query) use ($nameKeys, $pathKeys): void {
                 $query->whereIn('slug', $nameKeys)->orWhereIn('path_key', $pathKeys);
 
                 foreach ($pathKeys as $pathKey) {
