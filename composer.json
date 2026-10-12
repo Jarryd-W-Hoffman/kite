@@ -1,8 +1,8 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "nunomaduro/laravel-starter-kit-inertia-react",
+    "name": "jarryd-w-hoffman/kite",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "A local-first desktop app for markdown knowledge bases and note graphs.",
     "keywords": [
         "laravel",
         "framework"
@@ -14,7 +14,9 @@
         "laravel/fortify": "^1.41.0",
         "laravel/framework": "^13.35.0",
         "laravel/wayfinder": "^0.1.21",
-        "nunomaduro/essentials": "^1.2.0"
+        "nativephp/desktop": "^2.3.1",
+        "nunomaduro/essentials": "^1.2.0",
+        "symfony/yaml": "^8.1"
     },
     "require-dev": {
         "driftingly/rector-laravel": "^2.6.2",
@@ -67,7 +69,8 @@
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
             "@php artisan clear",
-            "@update:requirements"
+            "@update:requirements",
+            "@php artisan native:install --force --quiet"
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
@@ -105,6 +108,10 @@
             "@test:types",
             "@test:type-coverage",
             "@test:unit"
+        ],
+        "native:dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "bunx concurrently -k -c \"#93c5fd,#c4b5fd\" \"php artisan native:run --no-interaction\" \"bun run dev\" --names=app,vite"
         ]
     },
     "extra": {
