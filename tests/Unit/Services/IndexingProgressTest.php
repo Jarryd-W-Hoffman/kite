@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 it('tracks progress per vault', function (): void {
     $first = Vault::factory()->create();
     $second = Vault::factory()->create();
-    $progress = new IndexingProgress();
+    $progress = resolve(IndexingProgress::class);
 
     expect($progress->get($first))->toBeNull();
 
@@ -30,12 +30,12 @@ it('ignores malformed cached progress', function (): void {
 
     Cache::store('array')->put("kite:indexing:{$vault->id}", ['done' => 'x'], 60);
 
-    expect(new IndexingProgress()->get($vault))->toBeNull();
+    expect(resolve(IndexingProgress::class)->get($vault))->toBeNull();
 });
 
 it('provides a per vault lock', function (): void {
     $vault = Vault::factory()->create();
-    $progress = new IndexingProgress();
+    $progress = resolve(IndexingProgress::class);
 
     $lock = $progress->lock($vault);
 
@@ -48,7 +48,7 @@ it('provides a per vault lock', function (): void {
 });
 
 it('requires a cache store that supports locks', function (): void {
-    config(['cache.stores.nolocks' => ['driver' => 'null'], 'kite.indexing.cache_store' => 'nolocks']);
+    config(['cache.stores.nolocks' => ['driver' => 'null'], 'kite.cache_store' => 'nolocks']);
     Cache::extend('null', fn () => Cache::repository(new class implements Store
     {
         public function get($key): mixed
@@ -107,5 +107,5 @@ it('requires a cache store that supports locks', function (): void {
         }
     }));
 
-    new IndexingProgress()->lock(Vault::factory()->create());
+    resolve(IndexingProgress::class)->lock(Vault::factory()->create());
 })->throws(RuntimeException::class, 'atomic locks');
