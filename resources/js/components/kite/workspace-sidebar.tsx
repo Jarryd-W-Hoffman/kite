@@ -11,6 +11,7 @@ import {
 import { useEffect } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { FileTree } from '@/components/kite/file-tree';
+import { IndexingStatus } from '@/components/kite/indexing-status';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -29,7 +30,12 @@ import { cn } from '@/lib/utils';
 import { store } from '@/routes/notes';
 import { show as showGraph } from '@/routes/vault-graph';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
-import type { TagCount, TreeNote, VaultSummary } from '@/types';
+import type {
+    IndexingProgress,
+    TagCount,
+    TreeNote,
+    VaultSummary,
+} from '@/types';
 
 type Props = {
     vault: VaultSummary;
@@ -37,6 +43,7 @@ type Props = {
     tree: TreeNote[];
     tags: TagCount[];
     activeNoteId: number | null;
+    indexing?: IndexingProgress | null;
     graphActive?: boolean;
     onSearch: () => void;
 };
@@ -51,6 +58,7 @@ export function WorkspaceSidebar({
     tree,
     tags,
     activeNoteId,
+    indexing = null,
     graphActive = false,
     onSearch,
 }: Props) {
@@ -186,6 +194,7 @@ export function WorkspaceSidebar({
                     </div>
                 )}
             </div>
+            <IndexingStatus vault={vault} indexing={indexing} />
         </aside>
     );
 }

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Services\IndexingProgress;
 use App\Actions\IndexVault;
 use App\Models\Note;
 use App\Models\NoteLink;
+use App\Services\IndexingProgress;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 

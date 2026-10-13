@@ -54,7 +54,13 @@ export type OutgoingLink = {
     path: string | null;
 };
 
+export type IndexingProgress = {
+    done: number;
+    total: number;
+};
+
 export type WorkspaceProps = {
+    indexing: IndexingProgress | null;
     vault: VaultSummary;
     vaults: VaultSummary[];
     tree: TreeNote[];
@@ -75,5 +81,7 @@ export type SyncSummary = {
     added: number;
     updated: number;
     removed: number;
+    attachments: number;
     changed: boolean;
+    indexing: IndexingProgress | null;
 };

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Facades\Queue;
-use App\Jobs\IndexVaultInBackground;
-use App\Services\IndexingProgress;
 use App\Actions\OpenVault;
+use App\Jobs\IndexVaultInBackground;
 use App\Models\Vault;
+use App\Services\IndexingProgress;
+use Illuminate\Support\Facades\Queue;
 
 it('registers a folder as a vault and indexes it', function (): void {
     $folder = vaultWithFiles(['Note.md' => '# Hello']);

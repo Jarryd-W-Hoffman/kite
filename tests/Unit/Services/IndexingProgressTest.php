@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Illuminate\Contracts\Cache\Store;
 use App\Models\Vault;
 use App\Services\IndexingProgress;
+use Illuminate\Contracts\Cache\Store;
 use Illuminate\Support\Facades\Cache;
 
 it('tracks progress per vault', function (): void {

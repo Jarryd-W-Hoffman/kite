@@ -19,8 +19,12 @@ it('indexes notes and attachments, then clears progress', function (): void {
     expect($vault->notes()->count())->toBe(1)
         ->and($vault->attachments()->count())->toBe(1)
         ->and($progress->get($vault))->toBeNull()
-        ->and($job->uniqueId())->toBe((string) $vault->id)
-        ->and($job->tries)->toBe(1);
+        ->and($job->uniqueId())->toBe((string) $vault->id);
+
+    $attributes = collect(new ReflectionClass(IndexVaultInBackground::class)->getAttributes())
+        ->mapWithKeys(fn (ReflectionAttribute $attribute): array => [class_basename($attribute->getName()) => $attribute->getArguments()[0]]);
+
+    expect($attributes->all())->toMatchArray(['Tries' => 1, 'Timeout' => 3600]);
 });
 
 it('clears progress when the job fails', function (): void {

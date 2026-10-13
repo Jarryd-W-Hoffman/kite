@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use Illuminate\Queue\Attributes\Timeout;
-use Illuminate\Queue\Attributes\Tries;
 use App\Actions\IndexAttachments;
 use App\Actions\IndexVault;
 use App\Models\Vault;
@@ -13,6 +11,8 @@ use App\Services\IndexingProgress;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Attributes\Timeout;
+use Illuminate\Queue\Attributes\Tries;
 use Throwable;
 
 #[Timeout(3600)]
