@@ -8,6 +8,7 @@ import {
     Network,
     Plus,
     Search,
+    Settings2,
 } from 'lucide-react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { FileTree } from '@/components/kite/file-tree';
@@ -30,6 +31,7 @@ import { useAppCommands } from '@/hooks/use-app-commands';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
 import { store } from '@/routes/notes';
+import { edit as editPreferences } from '@/routes/preferences';
 import { show as showGraph } from '@/routes/vault-graph';
 import { show as showTag } from '@/routes/vault-tags';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
@@ -78,6 +80,7 @@ export function WorkspaceSidebar({
         'new-note': () => createNote(vault),
         'daily-note': () => openDailyNote(vault),
         'open-vault': () => router.visit(vaultsIndex()),
+        preferences: () => router.visit(editPreferences()),
         search: onSearch,
         graph: () => router.visit(showGraph(vault.id)),
     });
@@ -220,6 +223,16 @@ export function WorkspaceSidebar({
                         </ul>
                     </div>
                 )}
+            </div>
+            <div className="border-t p-2">
+                <Link
+                    href={editPreferences()}
+                    data-test="preferences-link"
+                    className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                >
+                    <Settings2 className="size-4" />
+                    Preferences
+                </Link>
             </div>
             <IndexingStatus vault={vault} indexing={indexing} />
         </aside>

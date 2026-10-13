@@ -55,3 +55,21 @@ it('lists files by extension and imports files atomically', function (): void {
         ->and($files->filesWithExtensions($vault, []))->toBe([])
         ->and($files->read($vault, 'nested/d.png'))->toBe('imported');
 });
+
+it('skips ignored folders when listing files', function (): void {
+    config(['kite.ignored_folders' => ['Archive', ' /Private/Old/ ', '', 5]]);
+
+    $vault = vaultWithFiles([
+        'Keep.md' => 'x',
+        'Archive/Gone.md' => 'x',
+        'Private/Old/Gone.md' => 'x',
+        'Private/New.md' => 'x',
+    ]);
+
+    expect(array_keys(new VaultFilesystem()->markdownFiles($vault)))->toBe(['Keep.md', 'Private/New.md'])
+        ->and(new VaultFilesystem()->ignoredFolders())->toBe(['Archive', 'Private/Old']);
+
+    config(['kite.ignored_folders' => 'nope']);
+
+    expect(new VaultFilesystem()->ignoredFolders())->toBe([]);
+});

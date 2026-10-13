@@ -8,6 +8,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NoteMentionController;
 use App\Http\Controllers\NotePathController;
+use App\Http\Controllers\PreferencesController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserEmailResetNotificationController;
@@ -32,6 +33,10 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', HomeController::class)->name('home');
+
+// Preferences...
+Route::get('preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');
+Route::put('preferences', [PreferencesController::class, 'update'])->name('preferences.update');
 
 // Quick capture...
 Route::get('capture', [CaptureController::class, 'create'])->name('capture.create');

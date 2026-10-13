@@ -67,6 +67,18 @@ final readonly class VaultFilesystem
         return $this->filesMatching($vault, '/\.('.$pattern.')$/i');
     }
 
+    /**
+     * @return list<string>
+     */
+    public function ignoredFolders(): array
+    {
+        $folders = config('kite.ignored_folders');
+
+        return is_array($folders)
+            ? array_values(array_filter(array_map(fn (mixed $folder): string => is_string($folder) ? mb_trim($folder, " \t/") : '', $folders)))
+            : [];
+    }
+
     public function exists(Vault $vault, string $path): bool
     {
         return File::isFile($this->absolutePath($vault, $path));
@@ -147,7 +159,7 @@ final readonly class VaultFilesystem
             ->ignoreDotFiles(true)
             ->ignoreVCS(true)
             ->ignoreUnreadableDirs()
-            ->exclude('node_modules');
+            ->exclude($this->ignoredFolders());
 
         $files = [];
 

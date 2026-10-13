@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Services\Settings;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -37,9 +38,13 @@ final class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            'kite' => [
+            'kite' => fn (): array => [
                 'native' => (bool) config('nativephp-internal.running'),
                 'platform' => mb_strtolower(PHP_OS_FAMILY),
+                'editor' => array_intersect_key(
+                    resolve(Settings::class)->all(),
+                    array_flip(['editor_font', 'editor_font_size', 'editor_width', 'autosave_ms']),
+                ),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

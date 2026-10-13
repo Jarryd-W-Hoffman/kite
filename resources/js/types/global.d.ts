@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { EditorPreferences } from '@/types/kite';
 import type { FlashToast } from '@/types/ui';
 
 declare module 'react' {
@@ -18,6 +19,7 @@ declare module '@inertiajs/core' {
             kite: {
                 native: boolean;
                 platform: string;
+                editor: EditorPreferences;
             };
             sidebarOpen: boolean;
             [key: string]: unknown;

@@ -10,3 +10,16 @@ export function cn(...inputs: ClassValue[]) {
 export function toUrl(url: NonNullable<InertiaLinkProps['href']>): string {
     return typeof url === 'string' ? url : url.url;
 }
+
+export const editorWidthClass = {
+    narrow: 'max-w-2xl',
+    normal: 'max-w-3xl',
+    wide: 'max-w-5xl',
+    full: 'max-w-none',
+} as const;
+
+export const editorFontClass = {
+    sans: 'font-sans',
+    serif: 'font-serif',
+    mono: 'font-mono',
+} as const;

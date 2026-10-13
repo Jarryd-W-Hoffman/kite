@@ -19,6 +19,7 @@ final readonly class VaultWatcher
     public function __construct(
         private KiteCache $cache,
         private AttachmentTypes $types,
+        private VaultFilesystem $files,
     ) {
         //
     }
@@ -44,6 +45,7 @@ final readonly class VaultWatcher
             resource_path('watcher/vault-watcher.mjs'),
             $vault->path,
             implode(',', ['md', ...$this->types->extensions()]),
+            implode(',', $this->files->ignoredFolders()),
         ], self::ALIAS, persistent: true);
 
         $this->cache->store()->forever(self::STATE_KEY, ['vault_id' => $vault->id, 'ready' => false]);

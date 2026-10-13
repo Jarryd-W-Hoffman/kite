@@ -1,9 +1,10 @@
+import { usePage } from '@inertiajs/react';
 import { FileText } from 'lucide-react';
 import { useImperativeHandle, useRef, useState } from 'react';
 import type { Ref } from 'react';
 import { caretCoordinates } from '@/lib/caret';
 import { matchNotes, noteName } from '@/lib/note-tree';
-import { cn } from '@/lib/utils';
+import { cn, editorFontClass, editorWidthClass } from '@/lib/utils';
 import type { TreeNote } from '@/types';
 
 export type NoteEditorHandle = {
@@ -43,6 +44,7 @@ export function NoteEditor({
     const [activeIndex, setActiveIndex] = useState(0);
 
     const matches = suggestion ? matchNotes(notes, suggestion.query) : [];
+    const { editor } = usePage().props.kite;
 
     useImperativeHandle(ref, () => ({
         jumpToLine: (line: number) => {
@@ -280,7 +282,12 @@ export function NoteEditor({
                 aria-label="Note contents"
                 data-test="note-editor"
                 placeholder="Start writing… Use [[ to link notes."
-                className="kite-editor block h-full w-full resize-none bg-transparent px-10 py-8 font-mono text-[14px] leading-7 text-foreground outline-none placeholder:text-muted-foreground"
+                style={{ fontSize: `${editor.editor_font_size}px` }}
+                className={cn(
+                    'kite-editor mx-auto block h-full w-full resize-none bg-transparent px-10 py-8 leading-[1.9] text-foreground outline-none placeholder:text-muted-foreground',
+                    editorFontClass[editor.editor_font],
+                    editorWidthClass[editor.editor_width],
+                )}
             />
 
             {suggestion && matches.length > 0 && (

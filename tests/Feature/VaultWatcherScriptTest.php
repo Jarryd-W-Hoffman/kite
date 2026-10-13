@@ -10,7 +10,7 @@ use Symfony\Component\Process\Process;
  */
 function startWatcher(string $path): Process
 {
-    $process = new Process(['node', resource_path('watcher/vault-watcher.mjs'), $path, 'md,png']);
+    $process = new Process(['node', resource_path('watcher/vault-watcher.mjs'), $path, 'md,png', 'Archive,node_modules']);
     $process->setTimeout(15);
     $process->start();
 
@@ -59,6 +59,8 @@ it('reports debounced markdown and attachment changes, ignoring hidden and unrel
     file_put_contents($vault->path.'/pic.png', 'png');
     file_put_contents($vault->path.'/notes.txt', 'ignored');
     file_put_contents($vault->path.'/.git/HEAD.md', 'ignored');
+    mkdir($vault->path.'/Archive');
+    file_put_contents($vault->path.'/Archive/Old.md', 'ignored');
 
     $lines = watcherLines($process, fn (array $lines): bool => count(array_merge(...array_column($lines, 'paths'))) >= 2);
 
@@ -67,7 +69,7 @@ it('reports debounced markdown and attachment changes, ignoring hidden and unrel
     $paths = array_unique(array_merge(...array_column(array_slice($lines, 1), 'paths')));
 
     expect($paths)->toContain('Sub/New.md', 'pic.png')
-        ->not->toContain('notes.txt', '.git/HEAD.md');
+        ->not->toContain('notes.txt', '.git/HEAD.md', 'Archive/Old.md');
 })->skip(fn (): bool => new Process(['node', '--version'])->run() !== 0, 'Node is not installed.');
 
 it('exits with a usage error without a vault path', function (): void {

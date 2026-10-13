@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Events\MenuCommandSelected;
 use App\Events\QuickCaptureRequested;
 use App\Services\AppMenu;
+use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Http;
 
 it('registers the app menu with commands that own their accelerators', function (): void {
@@ -12,7 +13,7 @@ it('registers the app menu with commands that own their accelerators', function 
 
     resolve(AppMenu::class)->register();
 
-    Http::assertSent(function (array $request): bool {
+    Http::assertSent(function (ClientRequest $request): bool {
         if (! str_ends_with($request->url(), 'menu')) {
             return false;
         }
