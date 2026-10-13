@@ -10,8 +10,10 @@ use InvalidArgumentException;
 
 final readonly class OpenVault
 {
-    public function __construct(private IndexVault $indexVault)
-    {
+    public function __construct(
+        private IndexVault $indexVault,
+        private IndexAttachments $indexAttachments,
+    ) {
         //
     }
 
@@ -37,6 +39,7 @@ final readonly class OpenVault
         $vault->update(['opened_at' => now()]);
 
         $this->indexVault->handle($vault);
+        $this->indexAttachments->handle($vault);
 
         return $vault->refresh();
     }

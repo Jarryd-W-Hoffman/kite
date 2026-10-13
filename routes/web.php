@@ -14,7 +14,9 @@ use App\Http\Controllers\UserPasskeyController;
 use App\Http\Controllers\UserPasswordController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\UserTwoFactorAuthenticationController;
+use App\Http\Controllers\VaultAttachmentController;
 use App\Http\Controllers\VaultController;
+use App\Http\Controllers\VaultFileController;
 use App\Http\Controllers\VaultFolderController;
 use App\Http\Controllers\VaultGraphController;
 use App\Http\Controllers\VaultPreviewController;
@@ -34,6 +36,8 @@ Route::delete('vaults/{vault}', [VaultController::class, 'destroy'])->name('vaul
 Route::post('vaults/{vault}/sync', [VaultSyncController::class, 'store'])->name('vault-sync.store');
 Route::get('vaults/{vault}/search', [VaultSearchController::class, 'index'])->name('vault-search.index');
 Route::post('vaults/{vault}/preview', [VaultPreviewController::class, 'store'])->name('vault-preview.store');
+Route::get('vaults/{vault}/files/{path}', [VaultFileController::class, 'show'])->where('path', '.*')->name('vault-files.show');
+Route::post('vaults/{vault}/attachments', [VaultAttachmentController::class, 'store'])->name('vault-attachments.store');
 Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->name('vault-graph.show');
 
 // Notes...

@@ -47,27 +47,24 @@ final readonly class VaultFilesystem
      */
     public function markdownFiles(Vault $vault): array
     {
-        $finder = Finder::create()
-            ->files()
-            ->in($vault->path)
-            ->name('/\.md$/i')
-            ->ignoreDotFiles(true)
-            ->ignoreVCS(true)
-            ->ignoreUnreadableDirs()
-            ->exclude('node_modules');
+        return $this->filesMatching($vault, '/\.md$/i');
+    }
 
-        $files = [];
-
-        foreach ($finder as $file) {
-            $files[str_replace('\\', '/', $file->getRelativePathname())] = [
-                'size' => (int) $file->getSize(),
-                'modified_at' => (int) $file->getMTime(),
-            ];
+    /**
+     * Files with one of the given extensions, e.g. images and PDFs referenced from notes.
+     *
+     * @param  list<string>  $extensions
+     * @return array<string, array{size: int, modified_at: int}>
+     */
+    public function filesWithExtensions(Vault $vault, array $extensions): array
+    {
+        if ($extensions === []) {
+            return [];
         }
 
-        ksort($files, SORT_NATURAL | SORT_FLAG_CASE);
+        $pattern = implode('|', array_map(fn (string $extension): string => preg_quote($extension, '/'), $extensions));
 
-        return $files;
+        return $this->filesMatching($vault, '/\.('.$pattern.')$/i');
     }
 
     public function exists(Vault $vault, string $path): bool
@@ -118,8 +115,51 @@ final readonly class VaultFilesystem
         File::move($this->absolutePath($vault, $from), $destination);
     }
 
+    /**
+     * Atomically copy a file from outside the vault (e.g. an upload) to a path inside it.
+     */
+    public function import(Vault $vault, string $path, string $sourcePath): void
+    {
+        $absolutePath = $this->absolutePath($vault, $path);
+
+        File::ensureDirectoryExists(dirname($absolutePath));
+
+        $temporaryPath = dirname($absolutePath).DIRECTORY_SEPARATOR.'.'.basename($absolutePath).'.'.bin2hex(random_bytes(4)).'.tmp';
+
+        File::copy($sourcePath, $temporaryPath);
+        File::move($temporaryPath, $absolutePath);
+    }
+
     public function delete(Vault $vault, string $path): void
     {
         File::delete($this->absolutePath($vault, $path));
+    }
+
+    /**
+     * @return array<string, array{size: int, modified_at: int}>
+     */
+    private function filesMatching(Vault $vault, string $pattern): array
+    {
+        $finder = Finder::create()
+            ->files()
+            ->in($vault->path)
+            ->name($pattern)
+            ->ignoreDotFiles(true)
+            ->ignoreVCS(true)
+            ->ignoreUnreadableDirs()
+            ->exclude('node_modules');
+
+        $files = [];
+
+        foreach ($finder as $file) {
+            $files[str_replace('\\', '/', $file->getRelativePathname())] = [
+                'size' => (int) $file->getSize(),
+                'modified_at' => (int) $file->getMTime(),
+            ];
+        }
+
+        ksort($files, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $files;
     }
 }

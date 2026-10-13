@@ -18,3 +18,10 @@ it('requires contents', function (): void {
         ->assertUnprocessable()
         ->assertJsonValidationErrors('contents');
 });
+
+it('resolves relative paths against the note being previewed', function (): void {
+    $vault = vaultWithFiles(['Notes/pic.png' => 'png']);
+
+    $this->postJson(route('vault-preview.store', $vault), ['contents' => '![x](pic.png)', 'path' => 'Notes/Draft.md'])
+        ->assertJsonPath('html', '<p><img class="attachment-embed" src="'.route('vault-files.show', ['vault' => $vault->id, 'path' => 'Notes/pic.png'], absolute: false).'" alt="x" /></p>'."\n");
+});

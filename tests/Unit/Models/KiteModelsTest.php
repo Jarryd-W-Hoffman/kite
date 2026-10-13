@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Attachment;
 use App\Models\Note;
 use App\Models\NoteLink;
 use App\Models\NoteTag;
@@ -40,4 +41,10 @@ it('casts note attributes', function (): void {
 
     expect($note->frontmatter)->toBe(['tags' => ['a']])
         ->and($note->vault_id)->toBeInt();
+});
+
+it('relates attachments to their vault', function (): void {
+    $attachment = Attachment::factory()->create();
+
+    expect($attachment->vault->attachments()->sole()->is($attachment))->toBeTrue();
 });
