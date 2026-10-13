@@ -32,3 +32,26 @@ export function isAbortError(error: unknown): boolean {
         (error.name === 'AbortError' || error.name === 'HttpCancelledError')
     );
 }
+
+/**
+ * Upload a file as multipart form data, returning the decoded JSON response.
+ */
+export async function uploadFile<T>(
+    route: RouteDefinition<'post'>,
+    file: File,
+): Promise<T> {
+    const data = new FormData();
+    data.append('file', file);
+
+    const response = await http.getClient().request({
+        method: route.method,
+        url: route.url,
+        data,
+        headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    });
+
+    return JSON.parse(response.data) as T;
+}

@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { store } from '@/routes/notes';
 import type { VaultSummary } from '@/types';
@@ -32,6 +33,20 @@ export function NotePreview({ vault, html, className }: Props) {
                 });
             } else {
                 router.visit(href);
+            }
+
+            return;
+        }
+
+        if (anchor.classList.contains('attachment-link')) {
+            event.preventDefault();
+
+            if (anchor.classList.contains('is-unresolved')) {
+                toast.error(
+                    `Attachment “${anchor.dataset.attachment ?? href}” was not found in this vault.`,
+                );
+            } else {
+                window.open(href, '_blank', 'noopener');
             }
 
             return;
