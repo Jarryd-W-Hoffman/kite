@@ -112,3 +112,18 @@ it('anchors headings and returns the outline with file line numbers', function (
         ->and($rendered->html)->toContain('<h2 id="h-setup-guide-1">')
         ->and(resolve(RenderMarkdown::class)->handle(vaultWithFiles(), '[[#Only|Jump]]'))->toContain('<a class="wiki-link heading-link" href="#only">Jump</a>');
 });
+
+it('links inline tags to their tag page with the same boundaries as indexing', function (): void {
+    $vault = vaultWithFiles();
+    $tag = fn (string $name): string => route('vault-tags.show', ['vault' => $vault->id, 'tag' => $name], absolute: false);
+
+    $html = resolve(RenderMarkdown::class)->handle($vault, "#Project/Kite and #café, not a#b, #123, [x](#anchor), `#code` or &#35;\n\n# Heading");
+
+    expect($html)
+        ->toContain('<a class="tag-link" data-tag="project/kite" href="'.$tag('project/kite').'">#Project/Kite</a>')
+        ->toContain('<a class="tag-link" data-tag="café" href="'.$tag('café').'">#café</a>')
+        ->toContain('not a#b, #123,')
+        ->toContain('<a href="#anchor">x</a>')
+        ->toContain('<code>#code</code>')
+        ->toContain('<h1 id="h-heading">Heading</h1>');
+});

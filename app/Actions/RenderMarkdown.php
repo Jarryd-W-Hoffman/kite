@@ -12,6 +12,7 @@ use App\Services\Markdown\MarkdownParser;
 use App\Services\Markdown\OutlineCollector;
 use App\Services\Markdown\RelativeLinkRewriter;
 use App\Services\Markdown\RenderedMarkdown;
+use App\Services\Markdown\TagInlineParser;
 use App\Services\Markdown\WikiLink;
 use App\Services\Markdown\WikiLinkInlineParser;
 use App\Services\Row;
@@ -84,6 +85,9 @@ final readonly class RenderMarkdown
                 'image' => $this->types->isImage($target),
             ] : null,
         ), 200);
+        $environment->addInlineParser(new TagInlineParser(
+            fn (string $tag): string => route('vault-tags.show', ['vault' => $vault->id, 'tag' => $tag], absolute: false),
+        ), 100);
         $environment->addEventListener(DocumentParsedEvent::class, new RelativeLinkRewriter(
             $noteFolder,
             fn (array $paths): array => DB::table('notes')
