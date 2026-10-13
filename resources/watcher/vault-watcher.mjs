@@ -8,8 +8,8 @@
  * Usage: node vault-watcher.mjs <vault-path> [comma-separated-extensions]
  */
 import { watch } from 'node:fs';
-import { exit } from 'node:process';
 import { extname, sep } from 'node:path';
+import { exit } from 'node:process';
 
 const DEBOUNCE_MS = 150;
 
@@ -22,7 +22,9 @@ const extensions = new Set(
 );
 
 if (!root) {
-    process.stderr.write('Usage: vault-watcher.mjs <vault-path> [extensions]\n');
+    process.stderr.write(
+        'Usage: vault-watcher.mjs <vault-path> [extensions]\n',
+    );
     exit(64);
 }
 
@@ -32,7 +34,9 @@ let timer = null;
 const isIgnored = (relativePath) =>
     relativePath
         .split(sep)
-        .some((segment) => segment.startsWith('.') || segment === 'node_modules');
+        .some(
+            (segment) => segment.startsWith('.') || segment === 'node_modules',
+        );
 
 // Paths without an extension may be folders being created, renamed or removed.
 const isRelevant = (relativePath) => {
@@ -63,7 +67,7 @@ const schedule = (relativePath) => {
 try {
     watch(root).close();
 } catch (error) {
-    process.stderr.write(`${error}\n`);
+    process.stderr.write(`${String(error)}\n`);
     exit(1);
 }
 
@@ -82,7 +86,7 @@ const watcher = watch(root, { recursive: true }, (_event, filename) => {
 });
 
 watcher.on('error', (error) => {
-    process.stderr.write(`${error}\n`);
+    process.stderr.write(`${String(error)}\n`);
     exit(1);
 });
 

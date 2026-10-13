@@ -121,8 +121,8 @@ export default function NoteShow(props: WorkspaceProps) {
     );
 }
 
-function EmptyWorkspace({ vault, indexing }: WorkspaceProps) {
-    useVaultSync(vault, () => router.reload());
+function EmptyWorkspace({ vault, indexing, watching }: WorkspaceProps) {
+    useVaultSync(vault, () => router.reload(), watching);
 
     return (
         <main className="flex flex-1 flex-col">
@@ -156,6 +156,7 @@ type NoteWorkspaceProps = WorkspaceProps & {
 
 function NoteWorkspace({
     vault,
+    watching,
     tree,
     note,
     backlinks,
@@ -231,13 +232,17 @@ function NoteWorkspace({
 
     useEffect(() => () => void save(), [save]);
 
-    useVaultSync(vault, () => {
-        router.reload({
-            only: isDirty()
-                ? ['tree', 'tags', 'backlinks', 'outgoing']
-                : undefined,
-        });
-    });
+    useVaultSync(
+        vault,
+        () => {
+            router.reload({
+                only: isDirty()
+                    ? ['tree', 'tags', 'backlinks', 'outgoing']
+                    : undefined,
+            });
+        },
+        watching,
+    );
 
     useEffect(() => {
         const slug = window.location.hash.slice(1);

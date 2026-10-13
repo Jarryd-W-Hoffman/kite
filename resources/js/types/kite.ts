@@ -61,6 +61,7 @@ export type IndexingProgress = {
 
 export type WorkspaceProps = {
     indexing: IndexingProgress | null;
+    watching: boolean;
     vault: VaultSummary;
     vaults: VaultSummary[];
     tree: TreeNote[];
