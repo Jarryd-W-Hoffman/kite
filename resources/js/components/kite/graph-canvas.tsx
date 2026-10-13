@@ -7,6 +7,7 @@ export type GraphNode = {
     id: string;
     title: string;
     folder: string;
+    tags?: string[];
     degree: number;
     ghost: boolean;
 };
@@ -21,6 +22,8 @@ type Props = {
     edges: GraphEdge[];
     activeId?: string | null;
     highlight?: string;
+    highlightTag?: string;
+    colourBy?: 'folder' | 'tag';
     onOpen: (node: GraphNode) => void;
     compact?: boolean;
     className?: string;
@@ -54,14 +57,14 @@ function readPalette(element: HTMLElement): Palette {
     };
 }
 
-function folderColour(folder: string): string {
-    if (folder === '') {
+function groupColour(group: string): string {
+    if (group === '') {
         return 'oklch(0.62 0.14 260)';
     }
 
     let hash = 0;
 
-    for (const character of folder.split('/')[0]) {
+    for (const character of group.split('/')[0]) {
         hash = (hash * 31 + (character.codePointAt(0) ?? 0)) % 360;
     }
 
@@ -73,6 +76,8 @@ export function GraphCanvas({
     edges,
     activeId = null,
     highlight = '',
+    highlightTag = '',
+    colourBy = 'folder',
     onOpen,
     compact = false,
     className,
@@ -80,12 +85,16 @@ export function GraphCanvas({
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const onOpenRef = useRef(onOpen);
     const highlightRef = useRef(highlight);
+    const highlightTagRef = useRef(highlightTag);
+    const colourByRef = useRef(colourBy);
     const activeRef = useRef(activeId);
     const redrawRef = useRef<() => void>(() => undefined);
 
     useEffect(() => {
         onOpenRef.current = onOpen;
         highlightRef.current = highlight.trim().toLowerCase();
+        highlightTagRef.current = highlightTag;
+        colourByRef.current = colourBy;
         activeRef.current = activeId;
         redrawRef.current();
     });
@@ -182,6 +191,12 @@ export function GraphCanvas({
         const draw = () => {
             const dpr = window.devicePixelRatio || 1;
             const query = highlightRef.current;
+            const tag = highlightTagRef.current;
+            const hasTag = (node: RenderNode) =>
+                tag === '' ||
+                (node.data.tags ?? []).some(
+                    (name) => name === tag || name.startsWith(`${tag}/`),
+                );
             const active = activeRef.current;
             const focus = hovered;
 
@@ -194,7 +209,9 @@ export function GraphCanvas({
                 (focus === null ||
                     focus === node ||
                     focus.neighbours.has(node.id)) &&
-                (query === '' || node.data.title.toLowerCase().includes(query));
+                (query === '' ||
+                    node.data.title.toLowerCase().includes(query)) &&
+                hasTag(node);
 
             context.lineWidth = 1 / transform.k;
 
@@ -203,7 +220,7 @@ export function GraphCanvas({
                     focus !== null && (source === focus || target === focus);
 
                 context.globalAlpha =
-                    focus === null && query === ''
+                    focus === null && query === '' && tag === ''
                         ? 0.7
                         : touchesFocus
                           ? 1
@@ -232,7 +249,11 @@ export function GraphCanvas({
                     context.fillStyle =
                         node === focus || node.id === active
                             ? palette.accent
-                            : folderColour(node.data.folder);
+                            : groupColour(
+                                  colourByRef.current === 'tag'
+                                      ? (node.data.tags?.[0] ?? '')
+                                      : node.data.folder,
+                              );
                     context.fill();
                 }
 
@@ -262,7 +283,7 @@ export function GraphCanvas({
                     node === focus ||
                     node.id === active ||
                     (focus !== null && focus.neighbours.has(node.id)) ||
-                    (query !== '' && isLit(node)) ||
+                    ((query !== '' || tag !== '') && isLit(node)) ||
                     transform.k * (1 + node.degree * 0.15) > 1.4;
 
                 if (!showLabel) {

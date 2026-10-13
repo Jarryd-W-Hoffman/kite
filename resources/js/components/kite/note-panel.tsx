@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { store as linkMention } from '@/routes/note-mentions';
 import { show, store } from '@/routes/notes';
+import { show as showTag } from '@/routes/vault-tags';
 import type {
     Backlink,
     NoteMeta,
@@ -331,13 +332,14 @@ export function NotePanel({
                 <Section title="Tags">
                     <div className="flex flex-wrap gap-1">
                         {note.tags.map((tag) => (
-                            <span
+                            <Link
                                 key={tag}
-                                className="inline-flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-xs"
+                                href={showTag({ vault: vault.id, tag })}
+                                className="inline-flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-xs hover:ring-1 hover:ring-ring"
                             >
                                 <Hash className="size-3" />
                                 {tag}
-                            </span>
+                            </Link>
                         ))}
                     </div>
                 </Section>

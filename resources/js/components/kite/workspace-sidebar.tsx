@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
 import { store } from '@/routes/notes';
 import { show as showGraph } from '@/routes/vault-graph';
+import { show as showTag } from '@/routes/vault-tags';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
 import type {
     IndexingProgress,
@@ -47,6 +48,7 @@ type Props = {
     activeNoteId: number | null;
     indexing?: IndexingProgress | null;
     graphActive?: boolean;
+    activeTag?: string | null;
     onSearch: () => void;
 };
 
@@ -66,6 +68,7 @@ export function WorkspaceSidebar({
     activeNoteId,
     indexing = null,
     graphActive = false,
+    activeTag = null,
     onSearch,
 }: Props) {
     const { kite } = usePage().props;
@@ -204,13 +207,24 @@ export function WorkspaceSidebar({
                         <ul className="flex flex-wrap gap-1 px-2">
                             {tags.map((tag) => (
                                 <li key={tag.name}>
-                                    <span className="inline-flex items-center gap-0.5 rounded-full bg-sidebar-accent px-2 py-0.5 text-xs">
+                                    <Link
+                                        href={showTag({
+                                            vault: vault.id,
+                                            tag: tag.name,
+                                        })}
+                                        data-test={`tag-${tag.name}`}
+                                        className={cn(
+                                            'inline-flex items-center gap-0.5 rounded-full bg-sidebar-accent px-2 py-0.5 text-xs hover:ring-1 hover:ring-ring',
+                                            tag.name === activeTag &&
+                                                'bg-primary text-primary-foreground',
+                                        )}
+                                    >
                                         <Hash className="size-3" />
                                         {tag.name}
-                                        <span className="text-muted-foreground tabular-nums">
+                                        <span className="tabular-nums opacity-60">
                                             {tag.count}
                                         </span>
-                                    </span>
+                                    </Link>
                                 </li>
                             ))}
                         </ul>

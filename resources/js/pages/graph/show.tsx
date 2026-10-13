@@ -33,6 +33,8 @@ export default function GraphShow({
     const [query, setQuery] = useState('');
     const [showGhosts, setShowGhosts] = useState(true);
     const [showOrphans, setShowOrphans] = useState(true);
+    const [colourBy, setColourBy] = useState<'folder' | 'tag'>('folder');
+    const [tagFilter, setTagFilter] = useState('');
     const [paletteOpen, setPaletteOpen] = useState(false);
 
     useVaultSync(
@@ -110,6 +112,43 @@ export default function GraphShow({
                         </span>
 
                         <div className="kite-no-drag ml-auto flex items-center gap-4">
+                            <label className="flex items-center gap-2 text-sm">
+                                <span className="text-muted-foreground">
+                                    Colour
+                                </span>
+                                <select
+                                    value={colourBy}
+                                    onChange={(event) =>
+                                        setColourBy(
+                                            event.target.value === 'tag'
+                                                ? 'tag'
+                                                : 'folder',
+                                        )
+                                    }
+                                    aria-label="Colour nodes by"
+                                    data-test="graph-colour"
+                                    className="rounded-md border bg-background px-2 py-1 text-sm"
+                                >
+                                    <option value="folder">by folder</option>
+                                    <option value="tag">by tag</option>
+                                </select>
+                            </label>
+                            <select
+                                value={tagFilter}
+                                onChange={(event) =>
+                                    setTagFilter(event.target.value)
+                                }
+                                aria-label="Highlight a tag"
+                                data-test="graph-tag"
+                                className="max-w-40 rounded-md border bg-background px-2 py-1 text-sm"
+                            >
+                                <option value="">All tags</option>
+                                {tags.map((tag) => (
+                                    <option key={tag.name} value={tag.name}>
+                                        #{tag.name} ({tag.count})
+                                    </option>
+                                ))}
+                            </select>
                             <div className="flex items-center gap-2 text-sm">
                                 <Checkbox
                                     id="show-ghosts"
@@ -156,6 +195,8 @@ export default function GraphShow({
                                 nodes={nodes}
                                 edges={edges}
                                 highlight={query}
+                                highlightTag={tagFilter}
+                                colourBy={colourBy}
                                 onOpen={open}
                             />
                         )}
