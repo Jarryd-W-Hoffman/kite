@@ -9,7 +9,6 @@ import {
     Plus,
     Search,
 } from 'lucide-react';
-import { useEffect } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { FileTree } from '@/components/kite/file-tree';
 import { IndexingStatus } from '@/components/kite/indexing-status';
@@ -27,6 +26,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useAppCommands } from '@/hooks/use-app-commands';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
 import { store } from '@/routes/notes';
@@ -74,23 +74,13 @@ export function WorkspaceSidebar({
     const { kite } = usePage().props;
     const insetTrafficLights = kite.native && kite.platform === 'darwin';
 
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            const modifier = event.metaKey || event.ctrlKey;
-
-            if (modifier && event.key === 'g') {
-                event.preventDefault();
-                router.visit(showGraph(vault.id));
-            } else if (modifier && event.key === 'd') {
-                event.preventDefault();
-                openDailyNote(vault);
-            }
-        };
-
-        window.addEventListener('keydown', onKeyDown);
-
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [vault]);
+    useAppCommands({
+        'new-note': () => createNote(vault),
+        'daily-note': () => openDailyNote(vault),
+        'open-vault': () => router.visit(vaultsIndex()),
+        search: onSearch,
+        graph: () => router.visit(showGraph(vault.id)),
+    });
 
     return (
         <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">

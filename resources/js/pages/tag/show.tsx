@@ -1,11 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { FileText, Hash } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CommandPalette } from '@/components/kite/command-palette';
-import {
-    WorkspaceSidebar,
-    createNote,
-} from '@/components/kite/workspace-sidebar';
+import { WorkspaceSidebar } from '@/components/kite/workspace-sidebar';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { show } from '@/routes/notes';
 import { show as showTag } from '@/routes/vault-tags';
@@ -41,24 +38,6 @@ export default function TagShow({
         () => router.reload({ only: ['notes', 'tree', 'tags'] }),
         watching,
     );
-
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            const modifier = event.metaKey || event.ctrlKey;
-
-            if (modifier && event.key === 'k') {
-                event.preventDefault();
-                setPaletteOpen((open) => !open);
-            } else if (modifier && event.key === 'n') {
-                event.preventDefault();
-                createNote(vault);
-            }
-        };
-
-        window.addEventListener('keydown', onKeyDown);
-
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [vault]);
 
     return (
         <>

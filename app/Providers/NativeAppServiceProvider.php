@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Events\QuickCaptureRequested;
+use App\Services\AppMenu;
 use Native\Desktop\Contracts\ProvidesPhpIni;
 use Native\Desktop\Facades\GlobalShortcut;
 use Native\Desktop\Facades\Menu;
@@ -32,6 +33,8 @@ final class NativeAppServiceProvider implements ProvidesPhpIni
         if (is_string($shortcut) && $shortcut !== '') {
             GlobalShortcut::key($shortcut)->event(QuickCaptureRequested::class)->register();
         }
+
+        resolve(AppMenu::class)->register();
 
         MenuBar::create()
             ->onlyShowContextMenu()

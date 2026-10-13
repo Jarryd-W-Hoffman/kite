@@ -30,6 +30,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useAppCommands } from '@/hooks/use-app-commands';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { requestJson, uploadFile } from '@/lib/kite-http';
 import { cn } from '@/lib/utils';
@@ -60,24 +61,6 @@ export default function NoteShow(props: WorkspaceProps) {
     const [panelOpen, setPanelOpen] = useState(
         () => localStorage.getItem('kite:panel') !== 'closed',
     );
-
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            const modifier = event.metaKey || event.ctrlKey;
-
-            if (modifier && event.key === 'k') {
-                event.preventDefault();
-                setPaletteOpen((open) => !open);
-            } else if (modifier && event.key === 'n') {
-                event.preventDefault();
-                createNote(vault);
-            }
-        };
-
-        window.addEventListener('keydown', onKeyDown);
-
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [vault]);
 
     const togglePanel = () => {
         setPanelOpen((open) => {
@@ -272,20 +255,10 @@ function NoteWorkspace({
         }
     };
 
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === 'e') {
-                event.preventDefault();
-                setViewMode((mode) =>
-                    mode === 'preview' ? 'edit' : 'preview',
-                );
-            }
-        };
-
-        window.addEventListener('keydown', onKeyDown);
-
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, []);
+    useAppCommands({
+        'toggle-preview': () =>
+            setViewMode((mode) => (mode === 'preview' ? 'edit' : 'preview')),
+    });
 
     const submitRename = (path: string) => {
         setRenaming(false);
