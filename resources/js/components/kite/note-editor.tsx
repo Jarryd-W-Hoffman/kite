@@ -1,11 +1,17 @@
 import { FileText } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useImperativeHandle, useRef, useState } from 'react';
+import type { Ref } from 'react';
 import { caretCoordinates } from '@/lib/caret';
 import { matchNotes, noteName } from '@/lib/note-tree';
 import { cn } from '@/lib/utils';
 import type { TreeNote } from '@/types';
 
+export type NoteEditorHandle = {
+    jumpToLine: (line: number) => void;
+};
+
 type Props = {
+    ref?: Ref<NoteEditorHandle>;
     value: string;
     onChange: (value: string) => void;
     onSave: () => void;
@@ -24,6 +30,7 @@ type Suggestion = {
 const LINK_TRIGGER = /\[\[([^[\]\n|#]*)$/;
 
 export function NoteEditor({
+    ref,
     value,
     onChange,
     onSave,
@@ -36,6 +43,27 @@ export function NoteEditor({
     const [activeIndex, setActiveIndex] = useState(0);
 
     const matches = suggestion ? matchNotes(notes, suggestion.query) : [];
+
+    useImperativeHandle(ref, () => ({
+        jumpToLine: (line: number) => {
+            const textarea = textareaRef.current;
+
+            if (!textarea) {
+                return;
+            }
+
+            const lines = textarea.value.split('\n');
+            const offset = lines
+                .slice(0, Math.max(0, line - 1))
+                .reduce((total, text) => total + text.length + 1, 0);
+            const lineHeight =
+                Number.parseFloat(getComputedStyle(textarea).lineHeight) || 28;
+
+            textarea.focus();
+            textarea.setSelectionRange(offset, offset);
+            textarea.scrollTop = Math.max(0, (line - 3) * lineHeight);
+        },
+    }));
 
     const updateSuggestion = (textarea: HTMLTextAreaElement) => {
         const caret = textarea.selectionStart;

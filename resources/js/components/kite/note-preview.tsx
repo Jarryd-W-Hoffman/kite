@@ -4,6 +4,17 @@ import { cn } from '@/lib/utils';
 import { store } from '@/routes/notes';
 import type { VaultSummary } from '@/types';
 
+/**
+ * Scroll the rendered preview to a heading anchor (ids are prefixed with "h-").
+ */
+export function scrollToHeading(slug: string): boolean {
+    const heading = document.getElementById(`h-${decodeURIComponent(slug)}`);
+
+    heading?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+
+    return heading !== null;
+}
+
 type Props = {
     vault: VaultSummary;
     html: string;
@@ -23,6 +34,13 @@ export function NotePreview({ vault, html, className }: Props) {
         }
 
         const href = anchor.getAttribute('href') ?? '';
+
+        if (anchor.classList.contains('heading-link')) {
+            event.preventDefault();
+            scrollToHeading(href.slice(1));
+
+            return;
+        }
 
         if (anchor.classList.contains('wiki-link')) {
             event.preventDefault();
