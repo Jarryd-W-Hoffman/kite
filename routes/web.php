@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\CaptureController;
+use App\Http\Controllers\DailyNoteController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NoteMentionController;
@@ -30,12 +32,17 @@ use Inertia\Inertia;
 
 Route::get('/', HomeController::class)->name('home');
 
+// Quick capture...
+Route::get('capture', [CaptureController::class, 'create'])->name('capture.create');
+Route::post('capture', [CaptureController::class, 'store'])->name('capture.store');
+
 // Vaults...
 Route::get('vaults', [VaultController::class, 'index'])->name('vaults.index');
 Route::post('vaults', [VaultController::class, 'store'])->name('vaults.store');
 Route::post('vaults/folder', [VaultFolderController::class, 'store'])->name('vault-folder.store');
 Route::get('vaults/{vault}', [VaultController::class, 'show'])->middleware(WatchVault::class)->name('vaults.show');
 Route::delete('vaults/{vault}', [VaultController::class, 'destroy'])->name('vaults.destroy');
+Route::post('vaults/{vault}/daily', [DailyNoteController::class, 'store'])->name('daily-notes.store');
 Route::get('vaults/{vault}/status', [VaultStatusController::class, 'show'])->name('vault-status.show');
 Route::post('vaults/{vault}/sync', [VaultSyncController::class, 'store'])->name('vault-sync.store');
 Route::get('vaults/{vault}/search', [VaultSearchController::class, 'index'])->name('vault-search.index');

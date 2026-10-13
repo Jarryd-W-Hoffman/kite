@@ -39,6 +39,30 @@ return [
         'batch_size' => (int) env('KITE_INDEXING_BATCH_SIZE', 200),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Daily Notes & Quick Capture
+    |--------------------------------------------------------------------------
+    |
+    | Daily notes live in the folder below, named with the PHP date format.
+    | The optional template is a vault-relative markdown file; {{date}},
+    | {{title}} and {{time}} placeholders are replaced when a note is made.
+    | Quick capture appends to today's note from a global shortcut.
+    |
+    */
+
+    'daily' => [
+        'folder' => env('KITE_DAILY_FOLDER', 'Daily'),
+
+        'format' => env('KITE_DAILY_FORMAT', 'Y-m-d'),
+
+        'template' => env('KITE_DAILY_TEMPLATE'),
+    ],
+
+    'capture' => [
+        'shortcut' => env('KITE_CAPTURE_SHORTCUT', 'CmdOrCtrl+Shift+Space'),
+    ],
+
     'attachments' => [
         'folder' => env('KITE_ATTACHMENTS_FOLDER', 'attachments'),
 
