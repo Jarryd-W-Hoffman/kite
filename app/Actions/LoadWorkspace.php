@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Models\Note;
 use App\Models\NoteLink;
 use App\Models\Vault;
+use App\Services\IndexingProgress;
 use App\Services\Row;
 use App\Services\VaultFilesystem;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ final readonly class LoadWorkspace
     public function __construct(
         private VaultFilesystem $files,
         private RenderMarkdown $renderMarkdown,
+        private IndexingProgress $progress,
     ) {
         //
     }
@@ -54,6 +56,7 @@ final readonly class LoadWorkspace
                     'count' => Row::int($row, 'count'),
                 ])
                 ->all(),
+            'indexing' => $this->progress->get($vault),
             'note' => $note instanceof Note ? $this->note($note) : null,
             'backlinks' => $note instanceof Note ? $this->backlinks($note) : [],
             'outgoing' => $note instanceof Note ? $this->outgoing($note) : [],
