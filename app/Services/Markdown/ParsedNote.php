@@ -18,6 +18,7 @@ final readonly class ParsedNote
         public array $links,
         public array $tags,
         public int $wordCount,
+        public int $bodyStartLine = 0,
     ) {
         //
     }

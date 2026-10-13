@@ -76,7 +76,8 @@ it('saves note contents and returns fresh metadata', function (): void {
         ->assertJsonPath('id', $note->id)
         ->assertJsonPath('title', 'New')
         ->assertJsonPath('tags', ['tag'])
-        ->assertJsonPath('html', "<h1>New</h1>\n<p>#tag</p>\n");
+        ->assertJsonPath('html', "<h1 id=\"h-new\">New</h1>\n<p>#tag</p>\n")
+        ->assertJsonPath('outline', [['level' => 1, 'text' => 'New', 'slug' => 'new', 'line' => 1]]);
 
     expect(file_get_contents($vault->path.'/Note.md'))->toBe("# New\n#tag");
 });

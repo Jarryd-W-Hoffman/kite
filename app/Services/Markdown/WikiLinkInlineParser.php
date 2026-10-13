@@ -43,15 +43,17 @@ final readonly class WikiLinkInlineParser implements InlineParserInterface
         $heading = isset($destination[1]) ? mb_trim($destination[1]) : '';
         $alias = isset($parts[1]) ? mb_trim($parts[1]) : '';
 
-        if ($target === '') {
+        if ($target === '' && $heading === '') {
             return false;
         }
 
-        $attachment = $this->attachmentFor instanceof Closure ? ($this->attachmentFor)($target) : null;
+        $attachment = $this->attachmentFor instanceof Closure && $target !== '' ? ($this->attachmentFor)($target) : null;
 
-        $node = $attachment === null
-            ? $this->noteLink($target, $heading, $alias, $isEmbed)
-            : $this->attachmentLink($target, $alias, $isEmbed, $attachment);
+        $node = match (true) {
+            $target === '' => $this->headingLink($heading, $alias),
+            $attachment === null => $this->noteLink($target, $heading, $alias, $isEmbed),
+            default => $this->attachmentLink($target, $alias, $isEmbed, $attachment),
+        };
 
         $inlineContext->getCursor()->advanceBy($inlineContext->getFullMatchLength());
         $inlineContext->getContainer()->appendChild($node);
@@ -59,9 +61,22 @@ final readonly class WikiLinkInlineParser implements InlineParserInterface
         return true;
     }
 
+    private function headingLink(string $heading, string $alias): Link
+    {
+        $link = new Link('#'.HeadingSlugger::slug($heading));
+        $link->appendChild(new Text($alias !== '' ? $alias : $heading));
+        $link->data->set('attributes/class', 'wiki-link heading-link');
+
+        return $link;
+    }
+
     private function noteLink(string $target, string $heading, string $alias, bool $isEmbed): Link
     {
         $url = ($this->urlForKey)(WikiLink::keyFor($target));
+
+        if ($url !== null && $heading !== '') {
+            $url .= '#'.HeadingSlugger::slug($heading);
+        }
 
         $label = $alias !== '' ? $alias : ($heading !== '' ? "{$target} › {$heading}" : $target);
 

@@ -13,7 +13,7 @@ it('renders github flavoured markdown without frontmatter', function (): void {
     $html = resolve(RenderMarkdown::class)->handle($vault, "---\ntitle: Hidden\n---\n# Hi\n\n- [x] done\n\n| a |\n|---|\n| b |\n\n~~gone~~");
 
     expect($html)->not->toContain('Hidden')
-        ->toContain('<h1>Hi</h1>')
+        ->toContain('<h1 id="h-hi">Hi</h1>')
         ->toContain('type="checkbox"')
         ->toContain('<table>')
         ->toContain('<del>gone</del>');
@@ -47,12 +47,12 @@ it('turns wiki links into note links and marks unresolved ones', function (): vo
 
     expect($html)
         ->toContain('<a class="wiki-link" data-wiki-target="Topic" href="'.$url.'">Topic</a>')
-        ->toContain('<a class="wiki-link" data-wiki-target="topic" href="'.$url.'" title="Intro">the intro</a>')
+        ->toContain('<a class="wiki-link" data-wiki-target="topic" href="'.$url.'#intro" title="Intro">the intro</a>')
         ->toContain('<a class="wiki-link is-unresolved" data-wiki-target="Nowhere &lt;b&gt;" href="#">Nowhere &lt;b&gt;</a>')
         ->toContain('>Topic › Part</a>')
         ->toContain('class="wiki-link is-embed"')
         ->toContain('<code>[[Code]]</code>')
-        ->toContain('[[#Only heading]]')
+        ->toContain('<a class="wiki-link heading-link" href="#only-heading">Only heading</a>')
         ->toContain('>aliased</a>');
 });
 
@@ -87,4 +87,28 @@ it('embeds images and links other attachments', function (): void {
         ->toContain('class="wiki-link" data-wiki-target="Trip" href="'.route('notes.show', ['vault' => $vault->id, 'note' => Note::query()->sole()->id], absolute: false).'">note</a>')
         ->toContain('class="wiki-link is-unresolved" data-wiki-target="Nope" href="#">ghost</a>')
         ->toContain('href="https://example.com">web</a>');
+});
+
+it('anchors headings and returns the outline with file line numbers', function (): void {
+    $rendered = resolve(RenderMarkdown::class)->render(vaultWithFiles(), implode("\n", [
+        '---',
+        'title: x',
+        '---',
+        '# Intro to **Kite**',
+        '',
+        '## Setup [[Guide]]',
+        '',
+        '## Setup [[Guide]]',
+        '',
+        '### `code` & more!',
+    ]));
+
+    expect($rendered->outline)->toBe([
+        ['level' => 1, 'text' => 'Intro to Kite', 'slug' => 'intro-to-kite', 'line' => 4],
+        ['level' => 2, 'text' => 'Setup Guide', 'slug' => 'setup-guide', 'line' => 6],
+        ['level' => 2, 'text' => 'Setup Guide', 'slug' => 'setup-guide-1', 'line' => 8],
+        ['level' => 3, 'text' => 'code & more!', 'slug' => 'code--more', 'line' => 10],
+    ])
+        ->and($rendered->html)->toContain('<h2 id="h-setup-guide-1">')
+        ->and(resolve(RenderMarkdown::class)->handle(vaultWithFiles(), '[[#Only|Jump]]'))->toContain('<a class="wiki-link heading-link" href="#only">Jump</a>');
 });
