@@ -31,6 +31,7 @@ export type NoteMeta = {
     hash: string;
     modified_at: number;
     tags: string[];
+    daily_date: string | null;
     html: string;
     outline: OutlineItem[];
 };

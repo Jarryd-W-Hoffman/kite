@@ -1,5 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import {
+    CalendarDays,
     Check,
     ChevronsUpDown,
     FolderOpen,
@@ -27,6 +28,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { store as openDaily } from '@/routes/daily-notes';
 import { store } from '@/routes/notes';
 import { show as showGraph } from '@/routes/vault-graph';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
@@ -52,6 +54,10 @@ export function createNote(vault: VaultSummary, title = 'Untitled'): void {
     router.post(store(vault.id).url, { title });
 }
 
+export function openDailyNote(vault: VaultSummary, date?: string): void {
+    router.post(openDaily(vault.id).url, date ? { date } : {});
+}
+
 export function WorkspaceSidebar({
     vault,
     vaults,
@@ -67,16 +73,21 @@ export function WorkspaceSidebar({
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === 'g') {
+            const modifier = event.metaKey || event.ctrlKey;
+
+            if (modifier && event.key === 'g') {
                 event.preventDefault();
                 router.visit(showGraph(vault.id));
+            } else if (modifier && event.key === 'd') {
+                event.preventDefault();
+                openDailyNote(vault);
             }
         };
 
         window.addEventListener('keydown', onKeyDown);
 
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [vault.id]);
+    }, [vault]);
 
     return (
         <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -147,6 +158,18 @@ export function WorkspaceSidebar({
                     Search
                     <kbd className="ml-auto rounded border px-1.5 text-[10px]">
                         ⌘K
+                    </kbd>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => openDailyNote(vault)}
+                    data-test="today-link"
+                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent"
+                >
+                    <CalendarDays className="size-4" />
+                    Today
+                    <kbd className="ml-auto rounded border px-1.5 text-[10px] text-muted-foreground">
+                        ⌘D
                     </kbd>
                 </button>
                 <Link
