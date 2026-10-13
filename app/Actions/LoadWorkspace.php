@@ -10,6 +10,7 @@ use App\Models\Vault;
 use App\Services\IndexingProgress;
 use App\Services\Row;
 use App\Services\VaultFilesystem;
+use App\Services\VaultWatcher;
 use Illuminate\Support\Facades\DB;
 
 final readonly class LoadWorkspace
@@ -20,6 +21,7 @@ final readonly class LoadWorkspace
         private VaultFilesystem $files,
         private RenderMarkdown $renderMarkdown,
         private IndexingProgress $progress,
+        private VaultWatcher $watcher,
     ) {
         //
     }
@@ -57,6 +59,7 @@ final readonly class LoadWorkspace
                 ])
                 ->all(),
             'indexing' => $this->progress->get($vault),
+            'watching' => $this->watcher->isWatching($vault),
             'note' => $note instanceof Note ? $this->note($note) : null,
             'backlinks' => $note instanceof Note ? $this->backlinks($note) : [],
             'outgoing' => $note instanceof Note ? $this->outgoing($note) : [],
