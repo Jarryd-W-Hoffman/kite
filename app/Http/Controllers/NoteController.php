@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateNote;
 use App\Actions\DeleteNote;
+use App\Actions\FindUnlinkedMentions;
 use App\Actions\LoadWorkspace;
 use App\Actions\RenderMarkdown;
 use App\Actions\SaveNote;
@@ -39,9 +40,12 @@ final readonly class NoteController
         return to_route('notes.show', [$vault, $note]);
     }
 
-    public function show(Vault $vault, Note $note, LoadWorkspace $action): Response
+    public function show(Vault $vault, Note $note, LoadWorkspace $action, FindUnlinkedMentions $mentions): Response
     {
-        return Inertia::render('note/show', $action->handle($vault, $note));
+        return Inertia::render('note/show', [
+            ...$action->handle($vault, $note),
+            'mentions' => Inertia::defer(fn (): array => $mentions->handle($note)),
+        ]);
     }
 
     public function update(UpdateNoteRequest $request, Vault $vault, Note $note, SaveNote $action, RenderMarkdown $renderMarkdown): JsonResponse
