@@ -16,10 +16,10 @@ final readonly class MentionMatcher
     public function find(string $contents, array $terms): ?array
     {
         foreach ($this->lines($contents) as $number => $line) {
-            $match = $this->matchIn($line, $terms);
+            $term = $this->matchIn($line, $terms);
 
-            if ($match !== null) {
-                return ['line' => $number, 'term' => $match[0], 'context' => mb_trim($line)];
+            if ($term !== null) {
+                return ['line' => $number, 'term' => $term, 'context' => mb_trim($line)];
             }
         }
 
@@ -40,20 +40,31 @@ final readonly class MentionMatcher
             return null;
         }
 
-        $match = $this->matchIn($line, $terms);
+        $pattern = $this->pattern($terms);
 
-        if ($match === null) {
+        if ($pattern === null || $this->matchIn($line, $terms) === null) {
             return null;
         }
 
-        [$text, $offset] = $match;
-        $link = mb_strtolower($text) === mb_strtolower($targetName) ? "[[{$text}]]" : "[[{$targetName}|{$text}]]";
+        $replaced = false;
+
+        $linked = (string) preg_replace_callback($pattern, function (array $match) use (&$replaced, $targetName): string {
+            $text = $match['term'] ?? null;
+
+            if ($replaced || $text === null) {
+                return $match[0];
+            }
+
+            $replaced = true;
+
+            return mb_strtolower($text) === mb_strtolower($targetName) ? "[[{$text}]]" : "[[{$targetName}|{$text}]]";
+        }, $line, flags: PREG_UNMATCHED_AS_NULL);
 
         $all = preg_split('/(?<=\n)/', $contents) ?: [];
         $index = $lineNumber - 1;
         $ending = str_ends_with($all[$index], "\r\n") ? "\r\n" : (str_ends_with($all[$index], "\n") ? "\n" : '');
 
-        $all[$index] = mb_substr($line, 0, $offset).$link.mb_substr($line, $offset + mb_strlen($text)).$ending;
+        $all[$index] = $linked.$ending;
 
         return implode('', $all);
     }
@@ -96,11 +107,34 @@ final readonly class MentionMatcher
      * Find the first term occurring outside wiki links, markdown links, inline code and URLs.
      *
      * @param  list<string>  $terms
-     * @return array{0: string, 1: int}|null The matched text and its byte offset.
      */
-    private function matchIn(string $line, array $terms): ?array
+    private function matchIn(string $line, array $terms): ?string
     {
-        $terms = array_values(array_filter($terms, fn (string $term): bool => mb_trim($term) !== ''));
+        $pattern = $this->pattern($terms);
+
+        if ($pattern === null) {
+            return null;
+        }
+
+        preg_match_all($pattern, $line, $matches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL);
+
+        foreach ($matches as $match) {
+            if (isset($match['term'])) {
+                return $match['term'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Protected spans (links, code, URLs) are matched first so terms inside them are skipped.
+     *
+     * @param  list<string>  $terms
+     */
+    private function pattern(array $terms): ?string
+    {
+        $terms = array_values(array_filter(array_map(mb_trim(...), $terms), fn (string $term): bool => $term !== ''));
 
         if ($terms === []) {
             return null;
@@ -108,17 +142,8 @@ final readonly class MentionMatcher
 
         usort($terms, fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
 
-        $alternatives = implode('|', array_map(fn (string $term): string => preg_quote(mb_trim($term), '/'), $terms));
-        $pattern = '/\[\[.*?\]\]|`[^`]*`|\[[^\]]*\]\([^)]*\)|https?:\/\/\S+|(?<![\p{L}\p{N}_])(?<term>'.$alternatives.')(?![\p{L}\p{N}_])/iu';
+        $alternatives = implode('|', array_map(fn (string $term): string => preg_quote($term, '/'), $terms));
 
-        preg_match_all($pattern, $line, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL);
-
-        foreach ($matches as $match) {
-            if (isset($match['term'][0])) {
-                return [$match['term'][0], $match['term'][1]];
-            }
-        }
-
-        return null;
+        return '/\[\[.*?\]\]|`[^`]*`|\[[^\]]*\]\([^)]*\)|https?:\/\/\S+|(?<![\p{L}\p{N}_])(?<term>'.$alternatives.')(?![\p{L}\p{N}_])/iu';
     }
 }

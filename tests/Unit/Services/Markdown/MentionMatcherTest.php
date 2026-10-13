@@ -45,3 +45,8 @@ it('closes fences only with a matching marker', function (): void {
 
     expect(new MentionMatcher()->find($contents, ['Kite']))->toMatchArray(['line' => 8]);
 });
+
+it('links mentions in lines with multibyte text', function (): void {
+    expect(new MentionMatcher()->link('Über café — Kite ✨ rocks', 1, ['Kite'], 'Kite'))->toBe('Über café — [[Kite]] ✨ rocks')
+        ->and(new MentionMatcher()->link('[[Café]] then café', 1, ['Café'], 'Café'))->toBe('[[Café]] then [[café]]');
+});
