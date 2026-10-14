@@ -60,6 +60,7 @@ final readonly class LoadWorkspace
             'folders' => fn (): array => $this->files->folders($vault),
             'colour_groups' => $this->colourGroups->summaries($vault),
             'templates' => fn (): array => $this->templates->all($vault),
+            'open_tasks' => fn (): int => DB::table('note_tasks')->where('vault_id', $vault->id)->where('done', false)->count(),
             'tags' => DB::table('note_tags')
                 ->where('vault_id', $vault->id)
                 ->groupBy('name')

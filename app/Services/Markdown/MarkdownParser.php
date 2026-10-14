@@ -14,6 +14,8 @@ final readonly class MarkdownParser
 
     private const string TAG_PATTERN = '/(?<![\p{L}\p{N}_&\/#\]\)(\'"`=])#([\p{L}\p{N}_\-\/]*[\p{L}_\-\/][\p{L}\p{N}_\-\/]*)/u';
 
+    private const string TASK_PATTERN = '/^\s*(?:[-*+]|\d+[.)])\s+\[([ xX])\]\s+(\S.*)$/u';
+
     public function parse(string $contents, string $path): ParsedNote
     {
         $contents = $this->normalise($contents);
@@ -32,7 +34,39 @@ final readonly class MarkdownParser
             tags: $this->tags($frontmatter, $searchable),
             wordCount: $this->wordCount($searchable),
             bodyStartLine: $frontmatterLines,
+            tasks: $this->tasks($lines, explode("\n", $searchable)),
         );
+    }
+
+    /**
+     * Checklist items (`- [ ] …`) outside code, with their 1-based line and an optional due date
+     * written as `due:2026-10-14` or `📅 2026-10-14`.
+     *
+     * @param  list<string>  $lines
+     * @param  list<string>  $masked  The same lines with code and frontmatter blanked out.
+     * @return list<array{line: int, text: string, done: bool, due: string|null}>
+     */
+    private function tasks(array $lines, array $masked): array
+    {
+        $tasks = [];
+
+        foreach ($masked as $index => $line) {
+            if (preg_match(self::TASK_PATTERN, $line) !== 1 || preg_match(self::TASK_PATTERN, $lines[$index] ?? '', $match) !== 1) {
+                continue;
+            }
+
+            $text = mb_trim($match[2]);
+            $due = preg_match('/(?:📅|\bdue::?)\s*(\d{4}-\d{2}-\d{2})\b/u', $text, $date) === 1 ? $date[1] : null;
+
+            $tasks[] = [
+                'line' => $index + 1,
+                'text' => mb_substr($text, 0, 1000),
+                'done' => mb_strtolower($match[1]) === 'x',
+                'due' => $due,
+            ];
+        }
+
+        return $tasks;
     }
 
     private function wordCount(string $searchable): int
