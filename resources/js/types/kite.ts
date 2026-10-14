@@ -15,6 +15,13 @@ export type TagCount = {
     count: number;
 };
 
+export type OutlineItem = {
+    level: number;
+    text: string;
+    slug: string;
+    line: number;
+};
+
 export type NoteMeta = {
     id: number;
     path: string;
@@ -25,6 +32,7 @@ export type NoteMeta = {
     modified_at: number;
     tags: string[];
     html: string;
+    outline: OutlineItem[];
 };
 
 export type NoteDetail = NoteMeta & {

@@ -31,6 +31,7 @@ final readonly class MarkdownParser
             links: $this->links($searchable),
             tags: $this->tags($frontmatter, $searchable),
             wordCount: $this->wordCount($searchable),
+            bodyStartLine: $frontmatterLines,
         );
     }
 

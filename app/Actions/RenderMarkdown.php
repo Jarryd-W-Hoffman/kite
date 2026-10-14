@@ -9,7 +9,9 @@ use App\Services\AttachmentResolver;
 use App\Services\AttachmentTypes;
 use App\Services\LinkResolver;
 use App\Services\Markdown\MarkdownParser;
+use App\Services\Markdown\OutlineCollector;
 use App\Services\Markdown\RelativeLinkRewriter;
+use App\Services\Markdown\RenderedMarkdown;
 use App\Services\Markdown\WikiLink;
 use App\Services\Markdown\WikiLinkInlineParser;
 use App\Services\Row;
@@ -37,6 +39,14 @@ final readonly class RenderMarkdown
      * Render a note's markdown to safe HTML, resolving wiki links, embeds and relative paths inside the vault.
      */
     public function handle(Vault $vault, string $markdown, ?string $notePath = null): string
+    {
+        return $this->render($vault, $markdown, $notePath)->html;
+    }
+
+    /**
+     * Render a note and also return its outline of anchored headings.
+     */
+    public function render(Vault $vault, string $markdown, ?string $notePath = null): RenderedMarkdown
     {
         $parsed = $this->parser->parse($markdown, $notePath ?? 'Untitled.md');
         $noteFolder = $notePath !== null && str_contains($notePath, '/') ? dirname($notePath) : '';
@@ -87,6 +97,11 @@ final readonly class RenderMarkdown
             $fileUrl,
         ));
 
-        return new MarkdownConverter($environment)->convert($parsed->body)->getContent();
+        $outline = new OutlineCollector($parsed->bodyStartLine);
+        $environment->addEventListener(DocumentParsedEvent::class, $outline);
+
+        $html = new MarkdownConverter($environment)->convert($parsed->body)->getContent();
+
+        return new RenderedMarkdown($html, $outline->outline());
     }
 }

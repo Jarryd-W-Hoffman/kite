@@ -55,7 +55,8 @@ it('loads the note with contents, html, backlinks and outgoing links', function 
         'tags' => ['idea'],
         'contents' => "---\ntags: [idea]\n---\n# Topic\nSee [[Other]], [[Other#Again]], [[Ghost]] and [[Topic]].",
     ])
-        ->and($workspace['note']['html'])->toContain('<h1>Topic</h1>')
+        ->and($workspace['note']['html'])->toContain('<h1 id="h-topic">Topic</h1>')
+        ->and($workspace['note']['outline'])->toBe([['level' => 1, 'text' => 'Topic', 'slug' => 'topic', 'line' => 4]])
         ->and($workspace['backlinks'])->toBe([
             ['id' => $gone->id, 'title' => 'Gone', 'path' => 'Gone.md', 'line' => 1, 'context' => ''],
             ['id' => $other->id, 'title' => 'Other', 'path' => 'Other.md', 'line' => 2, 'context' => 'Mentions [[Topic]] here'],

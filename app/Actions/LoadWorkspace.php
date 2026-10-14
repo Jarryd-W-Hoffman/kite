@@ -66,12 +66,14 @@ final readonly class LoadWorkspace
     private function note(Note $note): array
     {
         $contents = $this->files->read($note->vault, $note->path);
+        $rendered = $this->renderMarkdown->render($note->vault, $contents, $note->path);
 
         return [
             ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'hash', 'modified_at']),
             'contents' => $contents,
             'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
-            'html' => $this->renderMarkdown->handle($note->vault, $contents, $note->path),
+            'html' => $rendered->html,
+            'outline' => $rendered->outline,
         ];
     }
 

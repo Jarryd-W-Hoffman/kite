@@ -49,11 +49,13 @@ final readonly class NoteController
         $contents = $request->string('contents')->toString();
 
         $note = $action->handle($note, $contents);
+        $rendered = $renderMarkdown->render($vault, $contents, $note->path);
 
         return response()->json([
             ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'hash', 'modified_at']),
             'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
-            'html' => $renderMarkdown->handle($vault, $contents, $note->path),
+            'html' => $rendered->html,
+            'outline' => $rendered->outline,
         ]);
     }
 

@@ -4,14 +4,22 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { GraphCanvas } from '@/components/kite/graph-canvas';
 import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
+import { cn } from '@/lib/utils';
 import { show, store } from '@/routes/notes';
-import type { Backlink, NoteMeta, OutgoingLink, VaultSummary } from '@/types';
+import type {
+    Backlink,
+    NoteMeta,
+    OutgoingLink,
+    OutlineItem,
+    VaultSummary,
+} from '@/types';
 
 type Props = {
     vault: VaultSummary;
     note: NoteMeta;
     backlinks: Backlink[];
     outgoing: OutgoingLink[];
+    onSelectHeading?: (item: OutlineItem) => void;
     children?: ReactNode;
 };
 
@@ -56,6 +64,7 @@ export function NotePanel({
     note,
     backlinks,
     outgoing,
+    onSelectHeading,
     children,
 }: Props) {
     const localGraph = useMemo(() => {
@@ -141,6 +150,34 @@ export function NotePanel({
                             }}
                         />
                     </div>
+                </Section>
+            )}
+
+            {note.outline.length > 1 && (
+                <Section title="Outline">
+                    <nav aria-label="Outline">
+                        <ul className="space-y-0.5">
+                            {note.outline.map((item) => (
+                                <li key={`${item.slug}:${item.line}`}>
+                                    <button
+                                        type="button"
+                                        onClick={() => onSelectHeading?.(item)}
+                                        data-test={`outline-${item.slug}`}
+                                        className={cn(
+                                            'block w-full truncate rounded-md px-2 py-1 text-left hover:bg-accent',
+                                            item.level > 1 &&
+                                                'text-muted-foreground',
+                                        )}
+                                        style={{
+                                            paddingLeft: `${(item.level - 1) * 12 + 8}px`,
+                                        }}
+                                    >
+                                        {item.text}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </nav>
                 </Section>
             )}
 

@@ -12,8 +12,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CommandPalette } from '@/components/kite/command-palette';
 import { NoteEditor } from '@/components/kite/note-editor';
+import type { NoteEditorHandle } from '@/components/kite/note-editor';
 import { NotePanel } from '@/components/kite/note-panel';
-import { NotePreview } from '@/components/kite/note-preview';
+import { NotePreview, scrollToHeading } from '@/components/kite/note-preview';
 import {
     WorkspaceSidebar,
     createNote,
@@ -32,7 +33,12 @@ import { cn } from '@/lib/utils';
 import { update as updatePath } from '@/routes/note-path';
 import { destroy, update } from '@/routes/notes';
 import { store as storeAttachment } from '@/routes/vault-attachments';
-import type { NoteDetail, NoteMeta, WorkspaceProps } from '@/types';
+import type {
+    NoteDetail,
+    NoteMeta,
+    OutlineItem,
+    WorkspaceProps,
+} from '@/types';
 
 type ViewMode = 'edit' | 'split' | 'preview';
 type SaveState = 'saved' | 'unsaved' | 'saving' | 'error';
@@ -162,6 +168,7 @@ function NoteWorkspace({
     const [savedText, setSavedText] = useState(note.contents);
     const [serverHash, setServerHash] = useState(note.hash);
     const savedContents = useRef(note.contents);
+    const editorRef = useRef<NoteEditorHandle>(null);
     const latestContents = useRef(contents);
 
     if (note.hash !== serverHash) {
@@ -228,6 +235,23 @@ function NoteWorkspace({
                 : undefined,
         });
     });
+
+    useEffect(() => {
+        const slug = window.location.hash.slice(1);
+        const line = note.outline.find(
+            (item) => item.slug === decodeURIComponent(slug),
+        )?.line;
+
+        if (slug !== '' && !scrollToHeading(slug) && line !== undefined) {
+            editorRef.current?.jumpToLine(line);
+        }
+    }, [note.outline]);
+
+    const selectHeading = (item: OutlineItem) => {
+        scrollToHeading(item.slug);
+        editorRef.current?.jumpToLine(item.line);
+        window.history.replaceState(window.history.state, '', `#${item.slug}`);
+    };
 
     const changeViewMode = (mode: string) => {
         if (mode === 'edit' || mode === 'split' || mode === 'preview') {
@@ -420,6 +444,7 @@ function NoteWorkspace({
                 <div className="flex min-h-0 flex-1">
                     {viewMode !== 'preview' && (
                         <NoteEditor
+                            ref={editorRef}
                             value={contents}
                             onChange={(value) => {
                                 setContents(value);
@@ -453,6 +478,7 @@ function NoteWorkspace({
                         note={meta}
                         backlinks={backlinks}
                         outgoing={outgoing}
+                        onSelectHeading={selectHeading}
                     />
                 </aside>
             )}
