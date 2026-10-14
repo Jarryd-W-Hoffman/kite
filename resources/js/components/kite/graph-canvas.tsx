@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { readGroupColours } from '@/lib/colour-groups';
+import type { ColourGroup, GroupColour } from '@/lib/colour-groups';
 import { ForceSimulation, seedPositions } from '@/lib/force-graph';
 import type { SimEdge, SimNode } from '@/lib/force-graph';
 import { WebGLGraphRenderer } from '@/lib/graph-webgl';
@@ -9,6 +11,8 @@ export type GraphNode = {
     title: string;
     folder: string;
     tags?: string[];
+    /** Colour group id from the server, when the note matches one. */
+    group?: number | null;
     degree: number;
     ghost: boolean;
 };
@@ -24,7 +28,9 @@ type Props = {
     activeId?: string | null;
     highlight?: string;
     highlightTag?: string;
-    colourBy?: 'folder' | 'tag';
+    colourBy?: 'folder' | 'tag' | 'group';
+    /** The vault's colour groups, used when colouring by group. */
+    groups?: ColourGroup[];
     renderer?: 'auto' | 'webgl' | 'canvas';
     webglThreshold?: number;
     onOpen: (node: GraphNode) => void;
@@ -44,6 +50,7 @@ type Palette = {
     edge: string;
     background: string;
     accent: string;
+    groups: Record<GroupColour, string>;
 };
 
 function readPalette(element: HTMLElement): Palette {
@@ -57,6 +64,7 @@ function readPalette(element: HTMLElement): Palette {
         edge: read('--border', '#ddd'),
         background: read('--background', '#fff'),
         accent: 'oklch(0.62 0.19 260)',
+        groups: readGroupColours(element),
     };
 }
 
@@ -92,6 +100,7 @@ export function GraphCanvas({
     highlight = '',
     highlightTag = '',
     colourBy = 'folder',
+    groups = [],
     renderer = 'auto',
     webglThreshold = 1000,
     onOpen,
@@ -104,6 +113,7 @@ export function GraphCanvas({
     const highlightRef = useRef(highlight);
     const highlightTagRef = useRef(highlightTag);
     const colourByRef = useRef(colourBy);
+    const groupsRef = useRef(new Map<number, ColourGroup>());
     const activeRef = useRef(activeId);
     const redrawRef = useRef<() => void>(() => undefined);
 
@@ -112,6 +122,7 @@ export function GraphCanvas({
         highlightRef.current = highlight.trim().toLowerCase();
         highlightTagRef.current = highlightTag;
         colourByRef.current = colourBy;
+        groupsRef.current = new Map(groups.map((group) => [group.id, group]));
         activeRef.current = activeId;
         redrawRef.current();
     });
@@ -244,14 +255,23 @@ export function GraphCanvas({
                     : touchesFocus
                       ? 1
                       : 0.12;
-            const nodeColour = (node: RenderNode) =>
-                node === focus || node.id === active
-                    ? palette.accent
-                    : groupColour(
-                          colourByRef.current === 'tag'
-                              ? (node.data.tags?.[0] ?? '')
-                              : node.data.folder,
-                      );
+            const nodeColour = (node: RenderNode) => {
+                if (node === focus || node.id === active) {
+                    return palette.accent;
+                }
+
+                if (colourByRef.current === 'group') {
+                    const group = groupsRef.current.get(node.data.group ?? -1);
+
+                    return group ? palette.groups[group.colour] : palette.muted;
+                }
+
+                return groupColour(
+                    colourByRef.current === 'tag'
+                        ? (node.data.tags?.[0] ?? '')
+                        : node.data.folder,
+                );
+            };
 
             if (gl) {
                 const glNodes = [];
@@ -338,14 +358,7 @@ export function GraphCanvas({
                         context.lineWidth = 1.2 / transform.k;
                         context.stroke();
                     } else {
-                        context.fillStyle =
-                            node === focus || node.id === active
-                                ? palette.accent
-                                : groupColour(
-                                      colourByRef.current === 'tag'
-                                          ? (node.data.tags?.[0] ?? '')
-                                          : node.data.folder,
-                                  );
+                        context.fillStyle = nodeColour(node);
                         context.fill();
                     }
 

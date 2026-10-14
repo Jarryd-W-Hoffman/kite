@@ -1,3 +1,5 @@
+import type { ColourGroup } from '@/lib/colour-groups';
+
 export type VaultSummary = {
     id: number;
     name: string;
@@ -8,6 +10,8 @@ export type TreeNote = {
     id: number;
     path: string;
     title: string;
+    /** First colour group the note matches, if any. */
+    group?: number | null;
 };
 
 export type TagCount = {
@@ -67,6 +71,7 @@ export type WorkspaceProps = {
     vaults: VaultSummary[];
     tree: TreeNote[];
     folders: string[];
+    colour_groups: ColourGroup[];
     tags: TagCount[];
     note: NoteDetail | null;
     backlinks: Backlink[];
