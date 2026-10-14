@@ -216,6 +216,7 @@ function NoteWorkspace({
     outgoing,
     mentions,
     comments: initialComments = [],
+    comments_error: commentsError,
     panelOpen,
     onTogglePanel,
 }: NoteWorkspaceProps) {
@@ -237,7 +238,7 @@ function NoteWorkspace({
     const [commentsOpen, setCommentsOpen] = useState(
         () => localStorage.getItem('kite:comments-open') === 'true',
     );
-    const pendingReveal = useRef<number | null>(null);
+    const pendingReveal = useRef<string | null>(null);
     const noteComments = useNoteComments({
         vault,
         noteId: note.id,
@@ -254,12 +255,12 @@ function NoteWorkspace({
         localStorage.setItem('kite:comments-open', String(open));
     };
 
-    const selectComment = (id: number) => {
+    const selectComment = (id: string) => {
         noteComments.setActiveId(id);
         toggleComments(true);
     };
 
-    const revealComment = (id: number) => {
+    const revealComment = (id: string) => {
         noteComments.setActiveId(id);
 
         if (viewMode === 'preview') {
@@ -610,6 +611,7 @@ function NoteWorkspace({
             {commentsOpen && (
                 <CommentRail
                     notes={noteComments}
+                    error={commentsError}
                     onSelect={revealComment}
                     onClose={() => toggleComments(false)}
                 />

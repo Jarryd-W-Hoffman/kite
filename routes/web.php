@@ -83,8 +83,8 @@ Route::scopeBindings()->group(function (): void {
     Route::put('vaults/{vault}/notes/{note}/path', [NotePathController::class, 'update'])->name('note-path.update');
     Route::delete('vaults/{vault}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
     Route::post('vaults/{vault}/notes/{note}/comments', [NoteCommentController::class, 'store'])->name('note-comments.store');
-    Route::put('vaults/{vault}/notes/{note}/comments/{comment}', [NoteCommentController::class, 'update'])->whereNumber('comment')->name('note-comments.update');
-    Route::delete('vaults/{vault}/notes/{note}/comments/{comment}', [NoteCommentController::class, 'destroy'])->whereNumber('comment')->name('note-comments.destroy');
+    Route::put('vaults/{vault}/notes/{note}/comments/{comment}', [NoteCommentController::class, 'update'])->where('comment', '[0-9a-z]{26}')->name('note-comments.update');
+    Route::delete('vaults/{vault}/notes/{note}/comments/{comment}', [NoteCommentController::class, 'destroy'])->where('comment', '[0-9a-z]{26}')->name('note-comments.destroy');
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {

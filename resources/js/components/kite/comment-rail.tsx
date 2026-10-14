@@ -17,7 +17,9 @@ import type { NoteComment } from '@/types';
 
 type Props = {
     notes: NoteComments;
-    onSelect: (id: number) => void;
+    /** Why comments are unavailable, e.g. the note's comments file is damaged. */
+    error?: string;
+    onSelect: (id: string) => void;
     onClose: () => void;
 };
 
@@ -28,7 +30,7 @@ const textareaClass =
  * Comments beside the note, in the order their passages appear. Comments whose text can no longer
  * be found are listed as orphaned, and resolved ones are tucked away until asked for.
  */
-export function CommentRail({ notes, onSelect, onClose }: Props) {
+export function CommentRail({ notes, error, onSelect, onClose }: Props) {
     const [showResolved, setShowResolved] = useState(false);
     const { comments, ranges, draft } = notes;
     const open = comments.filter((comment) => !comment.resolved);
@@ -68,6 +70,15 @@ export function CommentRail({ notes, onSelect, onClose }: Props) {
             </div>
 
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+                {error && (
+                    <p
+                        className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive"
+                        role="alert"
+                        data-test="comments-error"
+                    >
+                        {error}
+                    </p>
+                )}
                 {draft && <DraftCard notes={notes} quote={draft.quote} />}
 
                 {anchored.map((comment) => (
@@ -79,7 +90,7 @@ export function CommentRail({ notes, onSelect, onClose }: Props) {
                     />
                 ))}
 
-                {!draft && open.length === 0 && (
+                {!draft && !error && open.length === 0 && (
                     <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-muted-foreground">
                         <MessageSquare className="size-6" />
                         <p>
@@ -252,7 +263,7 @@ function CommentCard({
 }: {
     comment: NoteComment;
     notes: NoteComments;
-    onSelect: (id: number) => void;
+    onSelect: (id: string) => void;
     orphaned?: boolean;
 }) {
     const [editing, setEditing] = useState(false);
