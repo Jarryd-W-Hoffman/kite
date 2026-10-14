@@ -1,6 +1,6 @@
 import { Link, router } from '@inertiajs/react';
-import { ArrowUpRight, Hash, Link2, Plus } from 'lucide-react';
-import { useMemo } from 'react';
+import { ArrowUpRight, ChevronRight, Hash, Link2, Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { GraphCanvas } from '@/components/kite/graph-canvas';
 import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
@@ -26,6 +26,8 @@ type Props = {
     outgoing: OutgoingLink[];
     mentions?: UnlinkedMention[];
     onSelectHeading?: (item: OutlineItem) => void;
+    /** The editor's cursor line, to highlight the section being edited. */
+    cursorLine?: number | null;
     children?: ReactNode;
 };
 
@@ -41,6 +43,21 @@ function formatValue(value: unknown): string {
     return String(value);
 }
 
+const COLLAPSED_KEY = 'kite:panel-collapsed';
+
+function readCollapsed(): string[] {
+    try {
+        return JSON.parse(
+            localStorage.getItem(COLLAPSED_KEY) ?? '[]',
+        ) as string[];
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * A panel section that can be folded away; which ones are folded is remembered across notes.
+ */
 function Section({
     title,
     count,
@@ -50,18 +67,178 @@ function Section({
     count?: number;
     children: ReactNode;
 }) {
+    const [collapsed, setCollapsed] = useState(() =>
+        readCollapsed().includes(title),
+    );
+
+    const toggle = () => {
+        const next = !collapsed;
+        const stored = readCollapsed().filter((item) => item !== title);
+
+        localStorage.setItem(
+            COLLAPSED_KEY,
+            JSON.stringify(next ? [...stored, title] : stored),
+        );
+        setCollapsed(next);
+    };
+
     return (
         <section className="space-y-2">
-            <h2 className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                {title}
-                {count !== undefined && (
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] tabular-nums">
-                        {count}
-                    </span>
-                )}
+            <h2>
+                <button
+                    type="button"
+                    onClick={toggle}
+                    aria-expanded={!collapsed}
+                    data-test={`panel-section-${title.toLowerCase().replace(/\s+/g, '-')}`}
+                    className="flex w-full items-center gap-2 rounded text-xs font-medium tracking-wide text-muted-foreground uppercase hover:text-foreground"
+                >
+                    <ChevronRight
+                        className={cn(
+                            'size-3 shrink-0 transition-transform',
+                            !collapsed && 'rotate-90',
+                        )}
+                    />
+                    {title}
+                    {count !== undefined && (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] tabular-nums">
+                            {count}
+                        </span>
+                    )}
+                </button>
             </h2>
-            {children}
+            {!collapsed && children}
         </section>
+    );
+}
+
+/**
+ * The line's text with wiki links to this note emphasised.
+ */
+function LinkContext({ text }: { text: string }) {
+    const parts = text.split(/(!?\[\[[^[\]\n]*\]\])/);
+
+    return (
+        <>
+            {parts.map((part, index) =>
+                index % 2 === 1 ? (
+                    <mark
+                        key={index}
+                        className="rounded bg-transparent font-medium text-[var(--kite-link)]"
+                    >
+                        {part}
+                    </mark>
+                ) : (
+                    part
+                ),
+            )}
+        </>
+    );
+}
+
+type BacklinkGroup = {
+    id: number;
+    title: string;
+    path: string;
+    lines: Backlink[];
+};
+
+function groupBacklinks(backlinks: Backlink[]): BacklinkGroup[] {
+    const groups = new Map<number, BacklinkGroup>();
+
+    for (const backlink of backlinks) {
+        const group = groups.get(backlink.id) ?? {
+            id: backlink.id,
+            title: backlink.title,
+            path: backlink.path,
+            lines: [],
+        };
+
+        group.lines.push(backlink);
+        groups.set(backlink.id, group);
+    }
+
+    return [...groups.values()];
+}
+
+/** Show a filter box once there are this many linking notes. */
+const BACKLINK_FILTER_THRESHOLD = 6;
+
+function Backlinks({
+    vault,
+    backlinks,
+}: {
+    vault: VaultSummary;
+    backlinks: Backlink[];
+}) {
+    const [filter, setFilter] = useState('');
+    const groups = groupBacklinks(backlinks);
+    const needle = filter.trim().toLowerCase();
+    const visible =
+        needle === ''
+            ? groups
+            : groups.filter(
+                  (group) =>
+                      group.title.toLowerCase().includes(needle) ||
+                      group.lines.some((line) =>
+                          line.context.toLowerCase().includes(needle),
+                      ),
+              );
+
+    if (groups.length === 0) {
+        return <p className="text-muted-foreground">No notes link here yet.</p>;
+    }
+
+    return (
+        <div className="space-y-2">
+            {groups.length >= BACKLINK_FILTER_THRESHOLD && (
+                <input
+                    value={filter}
+                    onChange={(event) => setFilter(event.target.value)}
+                    placeholder="Filter backlinks…"
+                    aria-label="Filter backlinks"
+                    className="h-7 w-full rounded-md border bg-background px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+            )}
+            <ul className="space-y-1" data-test="backlinks">
+                {visible.map((group) => (
+                    <li key={group.id} data-test="backlink-group">
+                        <Link
+                            href={show({ vault: vault.id, note: group.id })}
+                            className="block truncate rounded-md px-2 py-1 font-medium hover:bg-accent"
+                            title={group.path}
+                        >
+                            {group.title}
+                            {group.lines.length > 1 && (
+                                <span className="ml-1.5 text-xs font-normal text-muted-foreground tabular-nums">
+                                    {group.lines.length}
+                                </span>
+                            )}
+                        </Link>
+                        <ul className="ml-2 border-l pl-2">
+                            {group.lines
+                                .filter((line) => line.context !== '')
+                                .map((line) => (
+                                    <li key={line.line}>
+                                        <Link
+                                            href={`${show({ vault: vault.id, note: group.id }).url}#L${line.line}`}
+                                            className="line-clamp-2 rounded px-1.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                                            title={`Line ${line.line}`}
+                                            data-test="backlink-line"
+                                        >
+                                            <LinkContext text={line.context} />
+                                        </Link>
+                                    </li>
+                                ))}
+                        </ul>
+                    </li>
+                ))}
+                {visible.length === 0 && (
+                    <li className="px-2 py-1 text-xs text-muted-foreground">
+                        No backlinks match.
+                    </li>
+                )}
+            </ul>
+        </div>
     );
 }
 
@@ -72,8 +249,14 @@ export function NotePanel({
     outgoing,
     mentions,
     onSelectHeading,
+    cursorLine = null,
     children,
 }: Props) {
+    const currentHeading =
+        cursorLine === null
+            ? -1
+            : note.outline.findLastIndex((item) => item.line <= cursorLine);
+
     const localGraph = useMemo(() => {
         const nodes = new Map<string, GraphNode & { noteId: number | null }>();
         const center = `n${note.id}`;
@@ -160,20 +343,27 @@ export function NotePanel({
                 </Section>
             )}
 
-            {note.outline.length > 1 && (
+            {note.outline.length > 0 && (
                 <Section title="Outline">
                     <nav aria-label="Outline">
                         <ul className="space-y-0.5">
-                            {note.outline.map((item) => (
+                            {note.outline.map((item, index) => (
                                 <li key={`${item.slug}:${item.line}`}>
                                     <button
                                         type="button"
                                         onClick={() => onSelectHeading?.(item)}
                                         data-test={`outline-${item.slug}`}
+                                        aria-current={
+                                            index === currentHeading
+                                                ? 'location'
+                                                : undefined
+                                        }
                                         className={cn(
                                             'block w-full truncate rounded-md px-2 py-1 text-left hover:bg-accent',
                                             item.level > 1 &&
                                                 'text-muted-foreground',
+                                            index === currentHeading &&
+                                                'bg-accent font-medium text-foreground',
                                         )}
                                         style={{
                                             paddingLeft: `${(item.level - 1) * 12 + 8}px`,
@@ -188,35 +378,11 @@ export function NotePanel({
                 </Section>
             )}
 
-            <Section title="Backlinks" count={backlinks.length}>
-                {backlinks.length === 0 ? (
-                    <p className="text-muted-foreground">
-                        No notes link here yet.
-                    </p>
-                ) : (
-                    <ul className="space-y-1">
-                        {backlinks.map((backlink) => (
-                            <li key={`${backlink.id}:${backlink.line}`}>
-                                <Link
-                                    href={show({
-                                        vault: vault.id,
-                                        note: backlink.id,
-                                    })}
-                                    className="block rounded-md px-2 py-1.5 hover:bg-accent"
-                                >
-                                    <span className="font-medium">
-                                        {backlink.title}
-                                    </span>
-                                    {backlink.context !== '' && (
-                                        <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">
-                                            {backlink.context}
-                                        </span>
-                                    )}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+            <Section
+                title="Backlinks"
+                count={new Set(backlinks.map((backlink) => backlink.id)).size}
+            >
+                <Backlinks vault={vault} backlinks={backlinks} />
             </Section>
 
             <Section title="Unlinked mentions" count={mentions?.length}>
