@@ -125,10 +125,6 @@ final readonly class SearchNotes
      */
     private function withoutTitle(string $snippet, string $title): string
     {
-        if ($title === '') {
-            return $snippet;
-        }
-
         $marks = '['.preg_quote(self::MARK_START.self::MARK_END, '/').']*';
         $pattern = '/^'.$marks.implode($marks, array_map(
             fn (string $character): string => preg_quote($character, '/'),
