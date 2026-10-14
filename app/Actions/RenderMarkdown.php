@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Models\Note;
 use App\Models\Vault;
 use App\Services\AttachmentResolver;
 use App\Services\AttachmentTypes;
 use App\Services\LinkResolver;
+use App\Services\Markdown\HeadingSlugger;
 use App\Services\Markdown\MarkdownParser;
+use App\Services\Markdown\MarkdownSection;
+use App\Services\Markdown\NoteEmbed;
+use App\Services\Markdown\NoteEmbedRenderer;
+use App\Services\Markdown\NoteEmbedTransformer;
 use App\Services\Markdown\OutlineCollector;
 use App\Services\Markdown\RelativeLinkRewriter;
 use App\Services\Markdown\RenderedMarkdown;
@@ -16,6 +22,7 @@ use App\Services\Markdown\TagInlineParser;
 use App\Services\Markdown\WikiLink;
 use App\Services\Markdown\WikiLinkInlineParser;
 use App\Services\Row;
+use App\Services\VaultFilesystem;
 use Illuminate\Support\Facades\DB;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Event\DocumentParsedEvent;
@@ -27,11 +34,15 @@ final readonly class RenderMarkdown
 {
     private const string EMBED_TARGETS = '/\[\[([^\[\]\n|#]+)/u';
 
+    private const int MAX_EMBED_DEPTH = 3;
+
     public function __construct(
         private MarkdownParser $parser,
         private LinkResolver $resolver,
         private AttachmentResolver $attachments,
         private AttachmentTypes $types,
+        private VaultFilesystem $files,
+        private MarkdownSection $sections,
     ) {
         //
     }
@@ -48,6 +59,16 @@ final readonly class RenderMarkdown
      * Render a note and also return its outline of anchored headings.
      */
     public function render(Vault $vault, string $markdown, ?string $notePath = null): RenderedMarkdown
+    {
+        $selfId = $notePath === null ? null : DB::table('notes')->where('vault_id', $vault->id)->where('path', $notePath)->value('id');
+
+        return $this->renderDocument($vault, $markdown, $notePath, 0, is_int($selfId) ? [$selfId] : []);
+    }
+
+    /**
+     * @param  list<int>  $embedding  Notes already being rendered further up, to stop embed loops.
+     */
+    private function renderDocument(Vault $vault, string $markdown, ?string $notePath, int $depth, array $embedding): RenderedMarkdown
     {
         $parsed = $this->parser->parse($markdown, $notePath ?? 'Untitled.md');
         $noteFolder = $notePath !== null && str_contains($notePath, '/') ? dirname($notePath) : '';
@@ -101,11 +122,54 @@ final readonly class RenderMarkdown
             $fileUrl,
         ));
 
-        $outline = new OutlineCollector($parsed->bodyStartLine);
+        $environment->addRenderer(NoteEmbed::class, new NoteEmbedRenderer());
+        $environment->addEventListener(DocumentParsedEvent::class, new NoteEmbedTransformer(
+            fn (string $target, ?string $heading): ?NoteEmbed => $this->embed($vault, $resolvedNotes[WikiLink::keyFor($target)] ?? null, $heading, $depth, $embedding),
+        ), 10);
+
+        $outline = new OutlineCollector($parsed->bodyStartLine, assignIds: $depth === 0);
         $environment->addEventListener(DocumentParsedEvent::class, $outline);
 
         $html = new MarkdownConverter($environment)->convert($parsed->body)->getContent();
 
         return new RenderedMarkdown($html, $outline->outline());
+    }
+
+    /**
+     * @param  list<int>  $embedding
+     */
+    private function embed(Vault $vault, ?int $noteId, ?string $heading, int $depth, array $embedding): ?NoteEmbed
+    {
+        $note = $noteId === null ? null : Note::query()->where('vault_id', $vault->id)->find($noteId, ['id', 'path', 'title']);
+
+        if (! $note instanceof Note || ! $this->files->exists($vault, $note->path)) {
+            return null;
+        }
+
+        $title = $heading === null || $heading === '' ? $note->title : "{$note->title} › {$heading}";
+        $url = route('notes.show', ['vault' => $vault->id, 'note' => $note->id], absolute: false)
+            .($heading === null || $heading === '' ? '' : '#'.HeadingSlugger::slug($heading));
+
+        if (in_array($note->id, $embedding, true)) {
+            return new NoteEmbed($title, $url, '', NoteEmbed::LOOP);
+        }
+
+        if ($depth >= self::MAX_EMBED_DEPTH) {
+            return new NoteEmbed($title, $url, '', NoteEmbed::TOO_DEEP);
+        }
+
+        $contents = $this->files->read($vault, $note->path);
+
+        if ($heading !== null && $heading !== '') {
+            $contents = $this->sections->extract($contents, $heading);
+
+            if ($contents === null) {
+                return new NoteEmbed($title, $url, '', NoteEmbed::MISSING_SECTION);
+            }
+        }
+
+        $html = $this->renderDocument($vault, $contents, $note->path, $depth + 1, [...$embedding, $note->id])->html;
+
+        return new NoteEmbed($title, $url, $html);
     }
 }
