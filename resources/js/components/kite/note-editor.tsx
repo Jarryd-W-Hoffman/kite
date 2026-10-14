@@ -358,7 +358,8 @@ export function NoteEditor({
                 ...searchKeymap,
                 ...historyKeymap,
                 indentWithTab,
-                ...defaultKeymap,
+                // Mod-/ opens the shortcuts sheet instead of toggling an HTML comment.
+                ...defaultKeymap.filter((binding) => binding.key !== 'Mod-/'),
             ]),
             EditorView.domEventHandlers({
                 paste: (event, view) => {

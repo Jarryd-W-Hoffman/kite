@@ -140,6 +140,18 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* One visible focus ring for keyboard users; components with their own ring opt out with outline-none. */
+    :where(
+        a,
+        button,
+        summary,
+        [role='button'],
+        [tabindex]:not([tabindex='-1'])
+    ):focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 1px;
+    }
 }
 
 /* Kite: window chrome */

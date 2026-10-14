@@ -10,7 +10,8 @@ export type AppCommand =
     | 'search'
     | 'graph'
     | 'toggle-preview'
-    | 'toggle-theme';
+    | 'toggle-theme'
+    | 'shortcuts';
 
 /**
  * Keyboard equivalents of the native menu. In the desktop app the menu owns these accelerators,
@@ -26,6 +27,7 @@ const SHORTCUTS: Record<string, AppCommand> = {
     g: 'graph',
     e: 'toggle-preview',
     'shift+l': 'toggle-theme',
+    '/': 'shortcuts',
 };
 
 type Handlers = Partial<Record<AppCommand, () => void>>;
