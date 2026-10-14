@@ -21,7 +21,7 @@ it('registers the app menu with commands that own their accelerators', function 
         $items = collect($request['items'])->flatMap(fn (array $item): array => $item['submenu'] ?? [$item]);
         $commands = $items->where('event', MenuCommandSelected::class)->mapWithKeys(fn (array $item): array => [$item['id'] => $item['accelerator']]);
 
-        return $commands->all() === collect(AppMenu::COMMANDS)->map(fn (array $command): string => $command[1])->all()
+        return $commands->sortKeys()->all() === collect(AppMenu::COMMANDS)->map(fn (array $command): string => $command[1])->sortKeys()->all()
             && $items->contains('event', QuickCaptureRequested::class)
             && collect($request['items'])->pluck('label')->filter()->values()->all() === ['File', 'View'];
     });

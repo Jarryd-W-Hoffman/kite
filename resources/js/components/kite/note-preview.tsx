@@ -19,9 +19,15 @@ type Props = {
     vault: VaultSummary;
     html: string;
     className?: string;
+    testId?: string;
 };
 
-export function NotePreview({ vault, html, className }: Props) {
+export function NotePreview({
+    vault,
+    html,
+    className,
+    testId = 'note-preview',
+}: Props) {
     const onClick = (event: React.MouseEvent<HTMLDivElement>) => {
         if (!(event.target instanceof Element)) {
             return;
@@ -87,7 +93,7 @@ export function NotePreview({ vault, html, className }: Props) {
         <div
             className={cn('kite-prose px-10 py-8', className)}
             onClick={onClick}
-            data-test="note-preview"
+            data-test={testId}
             dangerouslySetInnerHTML={{ __html: html }}
         />
     );

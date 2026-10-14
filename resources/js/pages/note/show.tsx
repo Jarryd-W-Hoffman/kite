@@ -17,6 +17,8 @@ import { NoteEditor } from '@/components/kite/note-editor';
 import type { NoteEditorHandle } from '@/components/kite/note-editor';
 import { NotePanel } from '@/components/kite/note-panel';
 import { NotePreview, scrollToHeading } from '@/components/kite/note-preview';
+import { SplitPane } from '@/components/kite/split-pane';
+import { TabBar } from '@/components/kite/tab-bar';
 import {
     WorkspaceSidebar,
     createNote,
@@ -31,27 +33,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAppCommands } from '@/hooks/use-app-commands';
+import { useNoteDocument } from '@/hooks/use-note-document';
+import { useNoteLinkModifiers } from '@/hooks/use-note-link-modifiers';
 import { useVaultSync } from '@/hooks/use-vault-sync';
-import { requestJson, uploadFile } from '@/lib/kite-http';
-import { noteName } from '@/lib/note-tree';
+import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
 import { cn, editorWidthClass } from '@/lib/utils';
 import { update as updatePath } from '@/routes/note-path';
-import {
-    destroy,
-    show as showNote,
-    store as storeNote,
-    update,
-} from '@/routes/notes';
-import { store as storeAttachment } from '@/routes/vault-attachments';
-import type {
-    NoteDetail,
-    NoteMeta,
-    OutlineItem,
-    WorkspaceProps,
-} from '@/types';
+import { destroy } from '@/routes/notes';
+import type { NoteDetail, OutlineItem, WorkspaceProps } from '@/types';
 
 type ViewMode = 'edit' | 'split' | 'preview';
-type SaveState = 'saved' | 'unsaved' | 'saving' | 'error';
+
+function storedSplit(vaultId: number): number | null {
+    const stored = Number(localStorage.getItem(`kite:split:${vaultId}`));
+
+    return Number.isInteger(stored) && stored > 0 ? stored : null;
+}
 
 function storedViewMode(): ViewMode {
     const stored = localStorage.getItem('kite:view-mode');
@@ -156,74 +153,45 @@ function NoteWorkspace({
     onTogglePanel,
 }: NoteWorkspaceProps) {
     const { editor } = usePage().props.kite;
-    const autosaveMs = editor.autosave_ms;
-    const [contents, setContents] = useState(note.contents);
-    const [meta, setMeta] = useState<NoteMeta>(note);
-    const [saveState, setSaveState] = useState<SaveState>('saved');
     const [viewMode, setViewMode] = useState<ViewMode>(storedViewMode);
     const [renaming, setRenaming] = useState(false);
-    const [savedText, setSavedText] = useState(note.contents);
-    const [serverHash, setServerHash] = useState(note.hash);
-    const savedContents = useRef(note.contents);
+    const [splitNoteId, setSplitNoteId] = useState<number | null>(() =>
+        storedSplit(vault.id),
+    );
     const editorRef = useRef<NoteEditorHandle>(null);
-    const latestContents = useRef(contents);
+    const { contents, setContents, meta, saveState, save, isDirty } =
+        useNoteDocument(vault, note, {
+            autosaveMs: editor.autosave_ms,
+            onSaved: () =>
+                router.reload({ only: ['tree', 'tags', 'outgoing'] }),
+        });
 
-    if (note.hash !== serverHash) {
-        setServerHash(note.hash);
+    const openSplit = useCallback(
+        (id: number | null) => {
+            setSplitNoteId(id);
 
-        if (contents === savedText) {
-            setContents(note.contents);
-            setSavedText(note.contents);
-            setMeta(note);
-        }
-    }
+            if (id === null) {
+                localStorage.removeItem(`kite:split:${vault.id}`);
+            } else {
+                localStorage.setItem(`kite:split:${vault.id}`, String(id));
+            }
+        },
+        [vault.id],
+    );
 
-    useEffect(() => {
-        latestContents.current = contents;
-        savedContents.current = savedText;
-    });
+    const closeSplit = useCallback(() => openSplit(null), [openSplit]);
 
-    const isDirty = () => latestContents.current !== savedContents.current;
-
-    const save = useCallback(async () => {
-        const pending = latestContents.current;
-
-        if (pending === savedContents.current) {
-            return;
-        }
-
-        setSaveState('saving');
-
-        try {
-            const saved = await requestJson<NoteMeta>(
-                update({ vault: vault.id, note: note.id }),
-                { contents: pending },
-            );
-
-            savedContents.current = pending;
-            setSavedText(pending);
-            setMeta(saved);
-            setSaveState(
-                latestContents.current === pending ? 'saved' : 'unsaved',
-            );
-            router.reload({ only: ['tree', 'tags', 'outgoing'] });
-        } catch {
-            setSaveState('error');
-            toast.error('Could not save the note.');
-        }
-    }, [vault.id, note.id]);
+    useNoteLinkModifiers(vault.id, openSplit);
 
     useEffect(() => {
-        if (contents === savedText) {
-            return;
-        }
+        const onOpenSplit = (event: Event) => {
+            openSplit((event as CustomEvent<number>).detail);
+        };
 
-        const timeout = window.setTimeout(() => void save(), autosaveMs);
+        window.addEventListener('kite:open-split', onOpenSplit);
 
-        return () => window.clearTimeout(timeout);
-    }, [contents, savedText, save, autosaveMs]);
-
-    useEffect(() => () => void save(), [save]);
+        return () => window.removeEventListener('kite:open-split', onOpenSplit);
+    }, [openSplit]);
 
     useVaultSync(
         vault,
@@ -287,39 +255,9 @@ function NoteWorkspace({
         );
     };
 
-    const followLink = (target: string) => {
-        const key = target.trim().toLowerCase().replace(/\.md$/, '');
-        const match =
-            tree.find((item) => noteName(item.path).toLowerCase() === key) ??
-            tree.find((item) =>
-                item.path.toLowerCase().replace(/\.md$/, '').endsWith(key),
-            );
+    const followLink = (target: string) => followWikiLink(vault, tree, target);
 
-        if (match) {
-            router.visit(showNote({ vault: vault.id, note: match.id }));
-        } else {
-            router.post(storeNote(vault.id).url, { title: target });
-        }
-    };
-
-    const upload = async (files: File[]): Promise<string[]> => {
-        const embeds: string[] = [];
-
-        for (const file of files) {
-            try {
-                const result = await uploadFile<{ embed: string }>(
-                    storeAttachment(vault.id),
-                    file,
-                );
-
-                embeds.push(result.embed);
-            } catch {
-                toast.error(`Could not attach “${file.name}”.`);
-            }
-        }
-
-        return embeds;
-    };
+    const upload = (files: File[]) => uploadAttachments(vault, files);
 
     const shiftDay = (days: number) => {
         if (!meta.daily_date) {
@@ -345,6 +283,10 @@ function NoteWorkspace({
     return (
         <>
             <main className="flex min-w-0 flex-1 flex-col">
+                <TabBar
+                    vault={vault}
+                    note={{ id: note.id, title: meta.title }}
+                />
                 <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b px-4">
                     {renaming ? (
                         <input
@@ -491,10 +433,7 @@ function NoteWorkspace({
                         <NoteEditor
                             ref={editorRef}
                             value={contents}
-                            onChange={(value) => {
-                                setContents(value);
-                                setSaveState('unsaved');
-                            }}
+                            onChange={setContents}
                             onSave={() => void save()}
                             onUpload={upload}
                             onFollowLink={followLink}
@@ -516,6 +455,14 @@ function NoteWorkspace({
                                 )}
                             />
                         </div>
+                    )}
+                    {splitNoteId !== null && splitNoteId !== note.id && (
+                        <SplitPane
+                            vault={vault}
+                            noteId={splitNoteId}
+                            tree={tree}
+                            onClose={closeSplit}
+                        />
                     )}
                 </div>
             </main>

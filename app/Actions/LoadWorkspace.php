@@ -62,16 +62,18 @@ final readonly class LoadWorkspace
                 ->all(),
             'indexing' => $this->progress->get($vault),
             'watching' => $this->watcher->isWatching($vault),
-            'note' => $note instanceof Note ? $this->note($note) : null,
+            'note' => $note instanceof Note ? $this->noteDetail($note) : null,
             'backlinks' => $note instanceof Note ? $this->backlinks($note) : [],
             'outgoing' => $note instanceof Note ? $this->outgoing($note) : [],
         ];
     }
 
     /**
+     * Everything needed to edit and preview a single note.
+     *
      * @return array<string, mixed>
      */
-    private function note(Note $note): array
+    public function noteDetail(Note $note): array
     {
         $contents = $this->files->read($note->vault, $note->path);
         $rendered = $this->renderMarkdown->render($note->vault, $contents, $note->path);

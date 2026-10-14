@@ -78,14 +78,18 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
         setResultsQuery(null);
     };
 
-    const choose = (item: Item | undefined) => {
+    const choose = (item: Item | undefined, inSplit = false) => {
         if (!item) {
             return;
         }
 
         close();
 
-        if (item.type === 'note') {
+        if (item.type === 'note' && inSplit) {
+            window.dispatchEvent(
+                new CustomEvent('kite:open-split', { detail: item.result.id }),
+            );
+        } else if (item.type === 'note') {
             router.visit(show({ vault: vault.id, note: item.result.id }));
         } else {
             router.post(store(vault.id).url, { title: item.title });
@@ -113,7 +117,7 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
             if ((event.metaKey || event.ctrlKey) && trimmed !== '') {
                 choose({ type: 'create', title: trimmed });
             } else {
-                choose(items[activeIndex]);
+                choose(items[activeIndex], event.shiftKey);
             }
         }
     };
@@ -127,7 +131,8 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                 <DialogTitle className="sr-only">Search notes</DialogTitle>
                 <DialogDescription className="sr-only">
                     Type to search every note in {vault.name}. Press Enter to
-                    open, or Cmd+Enter to create a note.
+                    open, Shift+Enter to open beside the current note, or
+                    Cmd+Enter to create a note.
                 </DialogDescription>
                 <div className="flex items-center gap-2 border-b px-4">
                     <Search className="size-4 shrink-0 text-muted-foreground" />
