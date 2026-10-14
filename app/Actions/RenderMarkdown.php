@@ -9,9 +9,15 @@ use App\Models\Vault;
 use App\Services\AttachmentResolver;
 use App\Services\AttachmentTypes;
 use App\Services\LinkResolver;
+use App\Services\Markdown\CalloutTransformer;
 use App\Services\Markdown\HeadingSlugger;
 use App\Services\Markdown\MarkdownParser;
 use App\Services\Markdown\MarkdownSection;
+use App\Services\Markdown\MathBlock;
+use App\Services\Markdown\MathBlockParser;
+use App\Services\Markdown\MathInline;
+use App\Services\Markdown\MathInlineParser;
+use App\Services\Markdown\MathRenderer;
 use App\Services\Markdown\NoteEmbed;
 use App\Services\Markdown\NoteEmbedRenderer;
 use App\Services\Markdown\NoteEmbedTransformer;
@@ -121,6 +127,12 @@ final readonly class RenderMarkdown
                 ->all(),
             $fileUrl,
         ));
+
+        $environment->addBlockStartParser(MathBlockParser::startParser(), 80);
+        $environment->addInlineParser(new MathInlineParser(), 150);
+        $environment->addRenderer(MathInline::class, new MathRenderer());
+        $environment->addRenderer(MathBlock::class, new MathRenderer());
+        $environment->addEventListener(DocumentParsedEvent::class, new CalloutTransformer(), 5);
 
         $environment->addRenderer(NoteEmbed::class, new NoteEmbedRenderer());
         $environment->addEventListener(DocumentParsedEvent::class, new NoteEmbedTransformer(

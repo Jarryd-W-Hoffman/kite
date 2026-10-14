@@ -1,5 +1,8 @@
 import { router } from '@inertiajs/react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { useAppearance } from '@/hooks/use-appearance';
+import { enhanceRichBlocks } from '@/lib/rich-blocks';
 import { cn } from '@/lib/utils';
 import { store } from '@/routes/notes';
 import type { VaultSummary } from '@/types';
@@ -28,8 +31,31 @@ export function NotePreview({
     className,
     testId = 'note-preview',
 }: Props) {
+    const container = useRef<HTMLDivElement>(null);
+    const { resolvedAppearance } = useAppearance();
+
+    useEffect(() => {
+        if (container.current) {
+            void enhanceRichBlocks(
+                container.current,
+                resolvedAppearance === 'dark',
+            );
+        }
+    }, [html, resolvedAppearance]);
+
     const onClick = (event: React.MouseEvent<HTMLDivElement>) => {
         if (!(event.target instanceof Element)) {
+            return;
+        }
+
+        const calloutTitle = event.target.closest('.callout-title');
+        const callout = calloutTitle?.parentElement;
+
+        // Foldable callouts ([!note]- / [!note]+) open and close from their title.
+        if (callout?.dataset.fold) {
+            callout.dataset.fold =
+                callout.dataset.fold === 'closed' ? 'open' : 'closed';
+
             return;
         }
 
@@ -91,6 +117,7 @@ export function NotePreview({
 
     return (
         <div
+            ref={container}
             className={cn('kite-prose px-12 pt-14 pb-24', className)}
             onClick={onClick}
             data-test={testId}

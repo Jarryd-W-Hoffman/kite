@@ -11,6 +11,25 @@ const BLOCKS: Record<string, string> = {
     Frontmatter: 'cm-kite-frontmatter',
 };
 
+const CALLOUT = /^>\s*\[!([A-Za-z][\w-]*)\]/;
+
+const TONES: Record<string, string[]> = {
+    green: ['tip', 'hint', 'success', 'check', 'done'],
+    violet: ['question', 'help', 'faq', 'example', 'abstract', 'summary'],
+    amber: ['warning', 'caution', 'attention'],
+    red: ['important', 'danger', 'error', 'bug', 'failure', 'fail'],
+    grey: ['quote', 'cite'],
+};
+
+function calloutTone(type: string): string {
+    const lower = type.toLowerCase();
+
+    return (
+        Object.entries(TONES).find(([, types]) => types.includes(lower))?.[0] ??
+        'blue'
+    );
+}
+
 function build(view: EditorView): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>();
     const { doc } = view.state;
@@ -21,10 +40,19 @@ function build(view: EditorView): DecorationSet {
             from,
             to,
             enter: (node) => {
-                const block = BLOCKS[node.name];
+                let block = BLOCKS[node.name];
 
                 if (!block) {
                     return;
+                }
+
+                const callout =
+                    node.name === 'Blockquote'
+                        ? CALLOUT.exec(doc.lineAt(node.from).text)
+                        : null;
+
+                if (callout) {
+                    block = `cm-kite-callout cm-kite-callout-${calloutTone(callout[1])}`;
                 }
 
                 const first = doc.lineAt(node.from).number;
@@ -124,6 +152,18 @@ export const markdownBlocksTheme = EditorView.theme({
         paddingLeft: '14px !important',
         color: 'color-mix(in oklch, var(--foreground) 72%, transparent)',
     },
+    '.cm-kite-callout': {
+        borderLeft: '3px solid var(--kite-callout)',
+        backgroundColor:
+            'color-mix(in oklch, var(--kite-callout) 7%, transparent)',
+        paddingLeft: '14px !important',
+    },
+    '.cm-kite-callout-blue': { '--kite-callout': 'oklch(0.6 0.15 250)' },
+    '.cm-kite-callout-green': { '--kite-callout': 'oklch(0.62 0.15 155)' },
+    '.cm-kite-callout-violet': { '--kite-callout': 'oklch(0.6 0.17 300)' },
+    '.cm-kite-callout-amber': { '--kite-callout': 'oklch(0.7 0.15 65)' },
+    '.cm-kite-callout-red': { '--kite-callout': 'oklch(0.6 0.2 25)' },
+    '.cm-kite-callout-grey': { '--kite-callout': 'oklch(0.6 0.01 85)' },
     '.cm-kite-frontmatter': {
         fontFamily: 'var(--font-mono)',
         fontSize: '0.82em',
