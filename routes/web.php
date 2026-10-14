@@ -13,6 +13,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NoteCommentController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NoteExportController;
+use App\Http\Controllers\NoteFrontmatterController;
 use App\Http\Controllers\NoteMentionController;
 use App\Http\Controllers\NotePaneController;
 use App\Http\Controllers\NotePathController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\NoteVersionController;
 use App\Http\Controllers\NoteVersionRestoreController;
 use App\Http\Controllers\PreferencesController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\TableViewController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\UserController;
@@ -79,6 +81,7 @@ Route::post('vaults/{vault}/attachments', [VaultAttachmentController::class, 'st
 Route::get('vaults/{vault}/colour-groups/preview', [ColourGroupPreviewController::class, 'show'])->name('colour-group-previews.show');
 Route::post('vaults/{vault}/colour-groups', [ColourGroupController::class, 'store'])->name('colour-groups.store');
 Route::put('vaults/{vault}/colour-groups/order', [ColourGroupOrderController::class, 'update'])->name('colour-group-order.update');
+Route::post('vaults/{vault}/views', [TableViewController::class, 'store'])->name('table-views.store');
 Route::get('vaults/{vault}/tasks', [TaskController::class, 'index'])->middleware(WatchVault::class)->name('tasks.index');
 Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->middleware(WatchVault::class)->name('vault-graph.show');
 
@@ -92,6 +95,10 @@ Route::scopeBindings()->group(function (): void {
     Route::get('vaults/{vault}/notes/{note}/pane', [NotePaneController::class, 'show'])->name('note-panes.show');
     Route::post('vaults/{vault}/notes/{note}/mentions', [NoteMentionController::class, 'store'])->name('note-mentions.store');
     Route::put('vaults/{vault}/notes/{note}/path', [NotePathController::class, 'update'])->name('note-path.update');
+    Route::get('vaults/{vault}/views/{tableView}', [TableViewController::class, 'show'])->whereNumber('tableView')->middleware(WatchVault::class)->name('table-views.show');
+    Route::put('vaults/{vault}/views/{tableView}', [TableViewController::class, 'update'])->whereNumber('tableView')->name('table-views.update');
+    Route::delete('vaults/{vault}/views/{tableView}', [TableViewController::class, 'destroy'])->whereNumber('tableView')->name('table-views.destroy');
+    Route::put('vaults/{vault}/notes/{note}/frontmatter', [NoteFrontmatterController::class, 'update'])->name('note-frontmatter.update');
     Route::put('vaults/{vault}/notes/{note}/tasks/{line}', [NoteTaskController::class, 'update'])->whereNumber('line')->name('note-tasks.update');
     Route::put('vaults/{vault}/notes/{note}/properties', [NotePropertiesController::class, 'update'])->name('note-properties.update');
     Route::delete('vaults/{vault}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');

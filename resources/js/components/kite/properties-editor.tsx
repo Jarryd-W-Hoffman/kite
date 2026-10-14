@@ -14,20 +14,27 @@ import { cn } from '@/lib/utils';
 
 export type Properties = Record<string, unknown>;
 
-type PropertyType = 'text' | 'number' | 'date' | 'checkbox' | 'list' | 'other';
+export type PropertyType =
+    | 'text'
+    | 'number'
+    | 'date'
+    | 'checkbox'
+    | 'list'
+    | 'other';
 
-const TYPES: Record<PropertyType, { label: string; icon: LucideIcon }> = {
-    text: { label: 'Text', icon: Type },
-    number: { label: 'Number', icon: Hash },
-    date: { label: 'Date', icon: CalendarDays },
-    checkbox: { label: 'Checkbox', icon: CheckSquare },
-    list: { label: 'List', icon: List },
-    other: { label: 'Other', icon: Type },
-};
+export const TYPES: Record<PropertyType, { label: string; icon: LucideIcon }> =
+    {
+        text: { label: 'Text', icon: Type },
+        number: { label: 'Number', icon: Hash },
+        date: { label: 'Date', icon: CalendarDays },
+        checkbox: { label: 'Checkbox', icon: CheckSquare },
+        list: { label: 'List', icon: List },
+        other: { label: 'Other', icon: Type },
+    };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-function typeOf(value: unknown): PropertyType {
+export function typeOf(value: unknown): PropertyType {
     if (typeof value === 'boolean') {
         return 'checkbox';
     }

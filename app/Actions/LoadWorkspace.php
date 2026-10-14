@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Note;
 use App\Models\NoteLink;
+use App\Models\TableView;
 use App\Models\Vault;
 use App\Services\ColourGroups;
 use App\Services\DailyNotes;
@@ -60,6 +61,7 @@ final readonly class LoadWorkspace
             'folders' => fn (): array => $this->files->folders($vault),
             'colour_groups' => $this->colourGroups->summaries($vault),
             'templates' => fn (): array => $this->templates->all($vault),
+            'table_views' => fn (): array => $vault->tableViews()->orderBy('name')->get(['id', 'name'])->map(fn (TableView $view): array => ['id' => $view->id, 'name' => $view->name])->all(),
             'open_tasks' => fn (): int => DB::table('note_tasks')->where('vault_id', $vault->id)->where('done', false)->count(),
             'tags' => DB::table('note_tags')
                 ->where('vault_id', $vault->id)

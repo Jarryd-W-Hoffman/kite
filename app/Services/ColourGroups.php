@@ -78,7 +78,7 @@ final readonly class ColourGroups
     /**
      * @return Generator<int, array{title: string, path: string, tags: list<string>, frontmatter: array<mixed>}>
      */
-    private function notes(Vault $vault): Generator
+    public function notes(Vault $vault): Generator
     {
         $tags = [];
 
