@@ -10,9 +10,11 @@ import {
     Search,
     Settings2,
 } from 'lucide-react';
+import { useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { FileTree } from '@/components/kite/file-tree';
 import { IndexingStatus } from '@/components/kite/indexing-status';
+import { PreferencesDialog } from '@/components/kite/preferences-dialog';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -31,7 +33,6 @@ import { useAppCommands } from '@/hooks/use-app-commands';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
 import { store } from '@/routes/notes';
-import { edit as editPreferences } from '@/routes/preferences';
 import { show as showGraph } from '@/routes/vault-graph';
 import { show as showTag } from '@/routes/vault-tags';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
@@ -74,13 +75,14 @@ export function WorkspaceSidebar({
     onSearch,
 }: Props) {
     const { kite } = usePage().props;
+    const [preferencesOpen, setPreferencesOpen] = useState(false);
     const insetTrafficLights = kite.native && kite.platform === 'darwin';
 
     useAppCommands({
         'new-note': () => createNote(vault),
         'daily-note': () => openDailyNote(vault),
         'open-vault': () => router.visit(vaultsIndex()),
-        preferences: () => router.visit(editPreferences()),
+        preferences: () => setPreferencesOpen(true),
         search: onSearch,
         graph: () => router.visit(showGraph(vault.id)),
     });
@@ -225,15 +227,20 @@ export function WorkspaceSidebar({
                 )}
             </div>
             <div className="border-t p-2">
-                <Link
-                    href={editPreferences()}
+                <button
+                    type="button"
+                    onClick={() => setPreferencesOpen(true)}
                     data-test="preferences-link"
-                    className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 >
                     <Settings2 className="size-4" />
                     Preferences
-                </Link>
+                </button>
             </div>
+            <PreferencesDialog
+                open={preferencesOpen}
+                onOpenChange={setPreferencesOpen}
+            />
             <IndexingStatus vault={vault} indexing={indexing} />
         </aside>
     );
