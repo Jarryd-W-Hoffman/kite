@@ -36,7 +36,6 @@ use Inertia\Inertia;
 Route::get('/', HomeController::class)->name('home');
 
 // Preferences...
-Route::get('preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');
 Route::put('preferences', [PreferencesController::class, 'update'])->name('preferences.update');
 
 // Quick capture...

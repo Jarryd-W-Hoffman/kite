@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Services\Settings;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 final class HandleInertiaRequests extends Middleware
@@ -46,6 +47,7 @@ final class HandleInertiaRequests extends Middleware
                     array_flip(['editor_font', 'editor_font_size', 'editor_width', 'autosave_ms']),
                 ),
             ],
+            'preferences' => Inertia::optional(fn (): array => resolve(Settings::class)->all()),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
