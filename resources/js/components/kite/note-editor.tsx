@@ -172,7 +172,7 @@ const markdownHighlighting = HighlightStyle.define([
     { tag: [tags.link, tags.url], color: 'var(--kite-link)' },
     {
         tag: tags.monospace,
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+        fontFamily: 'var(--font-mono)',
         fontSize: '0.92em',
     },
     { tag: tags.quote, color: 'var(--muted-foreground)', fontStyle: 'italic' },

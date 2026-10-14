@@ -32,7 +32,7 @@ it('shares preferences only when a page asks for them', function (): void {
         ->assertInertia(fn ($page) => $page
             ->missing('preferences')
             ->reloadOnly('preferences', fn ($reload) => $reload
-                ->where('preferences.editor_font', 'mono')
+                ->where('preferences.editor_font', 'sans')
                 ->where('preferences.daily_folder', 'Daily')));
 });
 

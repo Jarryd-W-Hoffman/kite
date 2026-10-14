@@ -22,8 +22,8 @@ final readonly class Settings
     {
         return [
             'appearance' => ['config' => null, 'default' => 'system', 'rules' => ['required', Rule::enum(SystemThemesEnum::class)]],
-            'editor_font' => ['config' => null, 'default' => 'mono', 'rules' => ['required', Rule::in(['sans', 'serif', 'mono'])]],
-            'editor_font_size' => ['config' => null, 'default' => 14, 'rules' => ['required', 'integer', 'between:12,22']],
+            'editor_font' => ['config' => null, 'default' => 'sans', 'rules' => ['required', Rule::in(['sans', 'serif', 'mono'])]],
+            'editor_font_size' => ['config' => null, 'default' => 16, 'rules' => ['required', 'integer', 'between:12,22']],
             'editor_width' => ['config' => null, 'default' => 'normal', 'rules' => ['required', Rule::in(['narrow', 'normal', 'wide', 'full'])]],
             'autosave_ms' => ['config' => null, 'default' => 400, 'rules' => ['required', 'integer', 'between:200,10000']],
             'ignored_folders' => ['config' => 'kite.ignored_folders', 'default' => ['node_modules'], 'rules' => ['present', 'array', 'max:50']],
