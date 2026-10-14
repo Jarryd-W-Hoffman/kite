@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Events\QuickCaptureRequested;
 use App\Providers\NativeAppServiceProvider;
+use App\Services\Settings;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Http;
+use Native\Desktop\Enums\SystemThemesEnum;
 use Native\Desktop\Facades\Window;
 use Native\Desktop\Windows\Window as NativeWindow;
 
@@ -53,6 +55,19 @@ it('skips the shortcut when it is disabled', function (): void {
     new NativeAppServiceProvider()->boot();
 
     Http::assertNotSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), 'global-shortcuts'));
+});
+
+it('applies the stored appearance to the native theme in the desktop app', function (): void {
+    config(['nativephp-internal.running' => true]);
+    resolve(Settings::class)->update(['appearance' => 'dark']);
+    Http::fake(['*' => ['result' => 'dark']]);
+
+    Window::fake()->alwaysReturnWindows([new NativeWindow('main')]);
+
+    new NativeAppServiceProvider()->boot();
+
+    Http::assertSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), 'system/theme')
+        && $request['theme'] === SystemThemesEnum::DARK);
 });
 
 it('provides php ini directives for the native runtime', function (): void {

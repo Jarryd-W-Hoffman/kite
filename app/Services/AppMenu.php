@@ -23,6 +23,7 @@ final readonly class AppMenu
         'search' => ['Search…', 'CmdOrCtrl+K'],
         'graph' => ['Graph view', 'CmdOrCtrl+G'],
         'toggle-preview' => ['Toggle preview', 'CmdOrCtrl+E'],
+        'toggle-theme' => ['Toggle dark mode', 'CmdOrCtrl+Shift+L'],
     ];
 
     public function register(): void
@@ -45,6 +46,7 @@ final readonly class AppMenu
                 $this->command('search'),
                 $this->command('graph'),
                 $this->command('toggle-preview'),
+                $this->command('toggle-theme'),
                 Menu::separator(),
                 Menu::reload(),
                 Menu::devTools(),

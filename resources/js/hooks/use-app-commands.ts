@@ -9,7 +9,8 @@ export type AppCommand =
     | 'preferences'
     | 'search'
     | 'graph'
-    | 'toggle-preview';
+    | 'toggle-preview'
+    | 'toggle-theme';
 
 /**
  * Keyboard equivalents of the native menu. In the desktop app the menu owns these accelerators,
@@ -24,6 +25,7 @@ const SHORTCUTS: Record<string, AppCommand> = {
     k: 'search',
     g: 'graph',
     e: 'toggle-preview',
+    'shift+l': 'toggle-theme',
 };
 
 type Handlers = Partial<Record<AppCommand, () => void>>;
@@ -54,11 +56,13 @@ export function useAppCommands(handlers: Handlers): void {
         }
 
         const onKeyDown = (event: KeyboardEvent) => {
-            const command = SHORTCUTS[event.key.toLowerCase()];
+            const command =
+                SHORTCUTS[
+                    `${event.shiftKey ? 'shift+' : ''}${event.key.toLowerCase()}`
+                ];
 
             if (
                 (event.metaKey || event.ctrlKey) &&
-                !event.shiftKey &&
                 !event.altKey &&
                 command &&
                 run(command)

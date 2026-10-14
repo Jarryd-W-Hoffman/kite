@@ -6,10 +6,13 @@ import {
     FolderOpen,
     FolderPlus,
     Hash,
+    Monitor,
+    Moon,
     Network,
     Plus,
     Search,
     Settings2,
+    Sun,
 } from 'lucide-react';
 import { useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
@@ -33,6 +36,8 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useAppCommands } from '@/hooks/use-app-commands';
+import { useAppearance } from '@/hooks/use-appearance';
+import type { Appearance } from '@/hooks/use-appearance';
 import type { ColourGroup } from '@/lib/colour-groups';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
@@ -88,6 +93,8 @@ export function WorkspaceSidebar({
 }: Props) {
     const { kite } = usePage().props;
     const [preferencesOpen, setPreferencesOpen] = useState(false);
+    const { appearance, resolvedAppearance, updateAppearance } =
+        useAppearance();
     const [folderDialog, setFolderDialog] = useState<FolderDialogState>(null);
     const notesIn = (folder: string) =>
         tree.filter((note) => note.path.startsWith(`${folder}/`));
@@ -100,6 +107,8 @@ export function WorkspaceSidebar({
         preferences: () => setPreferencesOpen(true),
         search: onSearch,
         graph: () => router.visit(showGraph(vault.id)),
+        'toggle-theme': () =>
+            updateAppearance(resolvedAppearance === 'dark' ? 'light' : 'dark'),
     });
 
     return (
@@ -272,16 +281,20 @@ export function WorkspaceSidebar({
                     </div>
                 )}
             </div>
-            <div className="border-t p-2">
+            <div className="flex items-center gap-1 border-t p-2">
                 <button
                     type="button"
                     onClick={() => setPreferencesOpen(true)}
                     data-test="preferences-link"
-                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 >
                     <Settings2 className="size-4" />
                     Preferences
                 </button>
+                <ThemeButton
+                    appearance={appearance}
+                    onChange={updateAppearance}
+                />
             </div>
             <FolderDialogs
                 vault={vault}
@@ -298,5 +311,46 @@ export function WorkspaceSidebar({
             />
             <IndexingStatus vault={vault} indexing={indexing} />
         </aside>
+    );
+}
+
+const THEMES: Record<
+    Appearance,
+    { label: string; icon: typeof Sun; next: Appearance }
+> = {
+    light: { label: 'Light', icon: Sun, next: 'dark' },
+    dark: { label: 'Dark', icon: Moon, next: 'system' },
+    system: { label: 'System', icon: Monitor, next: 'light' },
+};
+
+/**
+ * Cycles light, dark and system themes from the sidebar footer.
+ */
+function ThemeButton({
+    appearance,
+    onChange,
+}: {
+    appearance: Appearance;
+    onChange: (appearance: Appearance) => void;
+}) {
+    const { label, icon: Icon, next } = THEMES[appearance];
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 shrink-0 text-muted-foreground"
+                    aria-label={`Theme: ${label}. Switch to ${THEMES[next].label.toLowerCase()}`}
+                    data-test="theme-toggle"
+                    data-appearance={appearance}
+                    onClick={() => onChange(next)}
+                >
+                    <Icon className="size-4" />
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Theme: {label}</TooltipContent>
+        </Tooltip>
     );
 }

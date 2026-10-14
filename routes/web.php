@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AppearanceController;
 use App\Http\Controllers\CaptureController;
 use App\Http\Controllers\ColourGroupController;
 use App\Http\Controllers\ColourGroupOrderController;
@@ -41,6 +42,7 @@ Route::get('/', HomeController::class)->name('home');
 
 // Preferences...
 Route::put('preferences', [PreferencesController::class, 'update'])->name('preferences.update');
+Route::put('appearance', [AppearanceController::class, 'update'])->name('appearance.update');
 
 // Quick capture...
 Route::get('capture', [CaptureController::class, 'create'])->name('capture.create');

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Actions\ApplyAppearance;
 use App\Events\QuickCaptureRequested;
 use App\Services\AppMenu;
+use App\Services\Settings;
 use Native\Desktop\Contracts\ProvidesPhpIni;
 use Native\Desktop\Facades\GlobalShortcut;
 use Native\Desktop\Facades\Menu;
@@ -27,6 +29,9 @@ final class NativeAppServiceProvider implements ProvidesPhpIni
             ->minHeight(600)
             ->titleBarHiddenInset()
             ->rememberState();
+
+        $appearance = resolve(Settings::class)->all()['appearance'];
+        resolve(ApplyAppearance::class)->handle(is_string($appearance) ? $appearance : 'system');
 
         $shortcut = config('kite.capture.shortcut');
 

@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from 'react';
+import { requestJson } from '@/lib/kite-http';
+import { update as updateAppearanceRoute } from '@/routes/appearance';
 
 export type ResolvedAppearance = 'light' | 'dark';
 export type Appearance = ResolvedAppearance | 'system';
@@ -109,6 +111,11 @@ export function useAppearance(): UseAppearanceReturn {
 
         applyTheme(mode);
         notify();
+
+        // ...and on the server, so the desktop window's native theme follows.
+        requestJson(updateAppearanceRoute(), { appearance: mode }).catch(
+            () => undefined,
+        );
     };
 
     return { appearance, resolvedAppearance, updateAppearance } as const;

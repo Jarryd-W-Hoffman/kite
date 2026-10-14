@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Events\QuickCaptureRequested;
+use App\Services\Settings;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Http;
 use Native\Desktop\Http\Middleware\PreventRegularBrowserAccess;
@@ -96,4 +97,12 @@ it('can disable the capture shortcut and leaves it alone when unchanged', functi
         ->put(route('preferences.update'), validPreferences(['capture_shortcut' => '']));
 
     Http::assertSentCount(1);
+});
+
+it('leaves the appearance out of the preferences form', function (): void {
+    $this->fromRoute('vaults.index')
+        ->put(route('preferences.update'), validPreferences(['appearance' => 'dark']))
+        ->assertRedirectToRoute('vaults.index');
+
+    expect(resolve(Settings::class)->all()['appearance'])->toBe('system');
 });
