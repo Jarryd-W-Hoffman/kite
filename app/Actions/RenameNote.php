@@ -8,21 +8,19 @@ use App\Models\Note;
 use App\Models\NoteLink;
 use App\Services\CommentStore;
 use App\Services\LinkResolver;
-use App\Services\Markdown\WikiLink;
 use App\Services\VaultFilesystem;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 final readonly class RenameNote
 {
-    private const string LINK_PATTERN = '/(!?)\[\[([^\[\]\n]+?)\]\]/u';
-
     public function __construct(
         private VaultFilesystem $files,
         private IndexNote $indexNote,
         private ResolveLinks $resolveLinks,
         private LinkResolver $resolver,
         private CommentStore $comments,
+        private RewriteLinks $rewriteLinks,
     ) {
         //
     }
@@ -66,47 +64,17 @@ final readonly class RenameNote
                 $source = $links->first()?->source;
 
                 if ($source instanceof Note) {
-                    $this->rewriteLinks($source, $links->pluck('target_key')->unique()->all(), $path);
+                    $this->rewriteLinks->handle($source, $links->pluck('target_key')->unique()->all(), $path);
                 }
             }
 
             if ($selfLinkKeys !== []) {
-                $this->rewriteLinks($renamed, $selfLinkKeys, $path);
+                $this->rewriteLinks->handle($renamed, $selfLinkKeys, $path);
             }
 
             $this->resolveLinks->handle($vault, $this->resolver->keysFor($renamed->path_key));
 
             return $renamed->refresh();
         });
-    }
-
-    /**
-     * @param  array<mixed>  $keys
-     */
-    private function rewriteLinks(Note $source, array $keys, string $path): void
-    {
-        $vault = $source->vault;
-        $contents = $this->files->read($vault, $source->path);
-        $pathWithoutExtension = (string) preg_replace('/\.md$/i', '', $path);
-        $name = basename($pathWithoutExtension);
-
-        $rewritten = (string) preg_replace_callback(self::LINK_PATTERN, function (array $match) use ($keys, $pathWithoutExtension, $name): string {
-            $inner = $match[2];
-            $targetEnd = strcspn($inner, '#|');
-            $target = mb_substr($inner, 0, $targetEnd);
-
-            if (! in_array(WikiLink::keyFor($target), $keys, true)) {
-                return $match[0];
-            }
-
-            $replacement = str_contains(WikiLink::keyFor($target), '/') ? $pathWithoutExtension : $name;
-
-            return $match[1].'[['.$replacement.mb_substr($inner, $targetEnd).']]';
-        }, $contents);
-
-        if ($rewritten !== $contents) {
-            $this->files->write($vault, $source->path, $rewritten);
-            $this->indexNote->handle($vault, $source->path, resolveDanglingLinks: false);
-        }
     }
 }

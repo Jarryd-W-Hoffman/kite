@@ -94,10 +94,16 @@ export function commentAt(state: EditorState, position: number): string | null {
     return null;
 }
 
+export type SelectionAction = {
+    label: string;
+    testId: string;
+    run: (view: EditorView) => void;
+};
+
 /**
- * A small "Comment" button above a non-empty selection.
+ * Small buttons above a non-empty selection, such as Comment and Extract.
  */
-export function commentButton(onClick: (view: EditorView) => void): Extension {
+export function selectionButtons(actions: SelectionAction[]): Extension {
     const tooltip = (state: EditorState): Tooltip | null => {
         const range = state.selection.main;
 
@@ -111,18 +117,22 @@ export function commentButton(onClick: (view: EditorView) => void): Extension {
             arrow: false,
             create: (view) => {
                 const dom = document.createElement('div');
-                const button = document.createElement('button');
+                dom.className = 'cm-selection-buttons';
 
-                button.type = 'button';
-                button.className = 'cm-comment-button';
-                button.textContent = 'Comment';
-                button.dataset.test = 'add-comment';
-                // Keep the selection: clicking must not move the cursor first.
-                button.addEventListener('mousedown', (event) =>
-                    event.preventDefault(),
-                );
-                button.addEventListener('click', () => onClick(view));
-                dom.append(button);
+                for (const action of actions) {
+                    const button = document.createElement('button');
+
+                    button.type = 'button';
+                    button.className = 'cm-comment-button';
+                    button.textContent = action.label;
+                    button.dataset.test = action.testId;
+                    // Keep the selection: clicking must not move the cursor first.
+                    button.addEventListener('mousedown', (event) =>
+                        event.preventDefault(),
+                    );
+                    button.addEventListener('click', () => action.run(view));
+                    dom.append(button);
+                }
 
                 return { dom };
             },
@@ -151,7 +161,8 @@ export const commentTheme = EditorView.theme({
         backgroundColor:
             'color-mix(in oklch, var(--kite-comment) 45%, transparent)',
     },
-    '.cm-tooltip:has(> .cm-comment-button)': {
+    '.cm-selection-buttons': { display: 'flex', gap: '4px' },
+    '.cm-tooltip:has(> .cm-selection-buttons)': {
         border: 'none',
         background: 'transparent',
         boxShadow: 'none',

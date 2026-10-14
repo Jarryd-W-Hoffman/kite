@@ -19,7 +19,7 @@ import type { VaultSummary } from '@/types';
 
 type VersionSummary = {
     id: number;
-    source: 'edit' | 'external' | 'restore';
+    source: 'edit' | 'external' | 'restore' | 'merge';
     size: number;
     saved_at: string;
 };
@@ -43,6 +43,7 @@ const SOURCES: Record<VersionSummary['source'], string> = {
     edit: 'Edited in Kite',
     external: 'Changed outside Kite',
     restore: 'Restored',
+    merge: 'Merged',
 };
 
 /**

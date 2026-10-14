@@ -17,4 +17,7 @@ enum VersionSource: string
 
     /** Written back from an older version. */
     case Restore = 'restore';
+
+    /** Another note was merged into this one. */
+    case Merge = 'merge';
 }
