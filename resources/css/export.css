@@ -1,0 +1,281 @@
+/*
+ * Styles for notes exported or published from Kite: a standalone page with no app around it.
+ * The prose rules mirror resources/css/app.css; keep them in step.
+ */
+
+:root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --border: oklch(0.922 0 0);
+    --primary: oklch(0.205 0 0);
+    --kite-link: oklch(0.55 0.17 260);
+    color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --accent: oklch(0.269 0 0);
+        --border: oklch(0.269 0 0);
+        --primary: oklch(0.985 0 0);
+        --kite-link: oklch(0.75 0.13 260);
+    }
+}
+
+@media print {
+    :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --accent: oklch(0.97 0 0);
+        --border: oklch(0.922 0 0);
+        --primary: oklch(0.205 0 0);
+        --kite-link: oklch(0.55 0.17 260);
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+main {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+}
+
+nav.kite-published {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 1rem 1.5rem 0;
+    font-size: 0.85rem;
+}
+
+nav.kite-published a {
+    color: var(--kite-link);
+}
+
+.kite-prose span.wiki-link,
+.kite-prose span.tag-link {
+    color: var(--muted-foreground);
+}
+
+/* Kite: rendered markdown */
+.kite-prose {
+    color: var(--foreground);
+    font-size: 15px;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+}
+
+.kite-prose > * + * {
+    margin-top: 0.9em;
+}
+
+.kite-prose :where(h1, h2, h3, h4, h5, h6) {
+    font-weight: 600;
+    line-height: 1.3;
+    margin-top: 1.6em;
+    letter-spacing: -0.01em;
+}
+
+.kite-prose > :first-child {
+    margin-top: 0;
+}
+
+.kite-prose h1 {
+    font-size: 1.9em;
+}
+
+.kite-prose h2 {
+    font-size: 1.45em;
+    padding-bottom: 0.2em;
+    border-bottom: 1px solid var(--border);
+}
+
+.kite-prose h3 {
+    font-size: 1.2em;
+}
+
+.kite-prose a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklch, var(--primary) 35%, transparent);
+    text-underline-offset: 3px;
+}
+
+.kite-prose a.wiki-link {
+    text-decoration: none;
+    font-weight: 500;
+    color: oklch(0.55 0.17 260);
+}
+
+.dark .kite-prose a.wiki-link {
+    color: oklch(0.75 0.13 260);
+}
+
+.kite-prose a.wiki-link:hover {
+    text-decoration: underline;
+}
+
+.kite-prose a.wiki-link.is-unresolved {
+    color: var(--muted-foreground);
+    border-bottom: 1px dashed currentColor;
+}
+
+.kite-prose a.wiki-link.is-embed::before {
+    content: '↳ ';
+    color: var(--muted-foreground);
+}
+
+.kite-prose :where(ul, ol) {
+    padding-left: 1.5em;
+}
+
+.kite-prose ul {
+    list-style: disc;
+}
+
+.kite-prose ol {
+    list-style: decimal;
+}
+
+.kite-prose li + li {
+    margin-top: 0.25em;
+}
+
+.kite-prose li:has(> input[type='checkbox']) {
+    list-style: none;
+    margin-left: -1.5em;
+}
+
+.kite-prose input[type='checkbox'] {
+    margin-right: 0.5em;
+    vertical-align: middle;
+}
+
+.kite-prose blockquote {
+    border-left: 3px solid var(--border);
+    padding-left: 1em;
+    color: var(--muted-foreground);
+}
+
+.kite-prose code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.875em;
+    background: var(--muted);
+    padding: 0.15em 0.35em;
+    border-radius: 4px;
+}
+
+.kite-prose pre {
+    background: var(--muted);
+    padding: 1em;
+    border-radius: 8px;
+    overflow-x: auto;
+    line-height: 1.6;
+}
+
+.kite-prose pre code {
+    background: transparent;
+    padding: 0;
+}
+
+.kite-prose hr {
+    border-color: var(--border);
+    margin: 2em 0;
+}
+
+.kite-prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.925em;
+}
+
+.kite-prose :where(th, td) {
+    border: 1px solid var(--border);
+    padding: 0.4em 0.75em;
+    text-align: left;
+}
+
+.kite-prose th {
+    background: var(--muted);
+    font-weight: 600;
+}
+
+.kite-prose img {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+.kite-prose img.attachment-embed {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+    vertical-align: middle;
+}
+
+.kite-prose a.attachment-link::before {
+    content: '📎 ';
+}
+
+.kite-prose a.attachment-link.is-unresolved {
+    color: var(--muted-foreground);
+    text-decoration-style: dashed;
+}
+
+.kite-prose a.tag-link {
+    text-decoration: none;
+    border-radius: 9999px;
+    padding: 0.05em 0.45em;
+    background: var(--muted);
+    color: var(--foreground);
+    font-size: 0.9em;
+}
+
+.kite-prose a.tag-link:hover {
+    background: var(--accent);
+}
+
+/* Kite: embedded notes */
+.kite-prose .note-embed {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--kite-link);
+    border-radius: 8px;
+    padding: 0.75em 1em;
+    background: color-mix(in oklch, var(--muted) 35%, transparent);
+}
+
+.kite-prose .note-embed > .note-embed-title {
+    display: inline-block;
+    margin-bottom: 0.5em;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.kite-prose .note-embed-body > :first-child {
+    margin-top: 0;
+}
+
+.kite-prose .note-embed-body > * + * {
+    margin-top: 0.75em;
+}
+
+.kite-prose .note-embed-notice {
+    color: var(--muted-foreground);
+    font-style: italic;
+}

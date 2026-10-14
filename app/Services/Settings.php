@@ -33,6 +33,7 @@ final readonly class Settings
             'daily_format' => ['config' => 'kite.daily.format', 'default' => 'Y-m-d', 'rules' => ['required', 'string', 'max:50', 'regex:/^[dDjlNSwzWFmMntLoYyaABgGhHisuv\-_. ]+$/']],
             'daily_template' => ['config' => 'kite.daily.template', 'default' => null, 'rules' => ['nullable', 'string', 'max:200']],
             'templates_folder' => ['config' => 'kite.templates.folder', 'default' => 'Templates', 'rules' => ['nullable', 'string', 'max:200', 'not_regex:/(^|\/)\.\.(\/|$)/']],
+            'publish_folder' => ['config' => 'kite.publish.folder', 'default' => null, 'rules' => ['nullable', 'string', 'max:1024', 'regex:/^(\/|[A-Za-z]:[\\\/])/', 'not_regex:/(^|[\\\/])\.\.([\\\/]|$)/']],
             'tree_group_colours' => ['config' => null, 'default' => true, 'rules' => ['required', 'boolean']],
             'capture_shortcut' => ['config' => 'kite.capture.shortcut', 'default' => 'CmdOrCtrl+Shift+Space', 'rules' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9+ ]*$/']],
         ];

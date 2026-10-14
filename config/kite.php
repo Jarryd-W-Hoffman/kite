@@ -86,6 +86,21 @@ return [
         'folder' => env('KITE_TEMPLATES_FOLDER', 'Templates'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Publishing
+    |--------------------------------------------------------------------------
+    |
+    | Published notes are written as small static sites under this absolute
+    | folder, one subfolder per vault and note. Empty means "Kite Published"
+    | in the home folder.
+    |
+    */
+
+    'publish' => [
+        'folder' => env('KITE_PUBLISH_FOLDER'),
+    ],
+
     'capture' => [
         'shortcut' => env('KITE_CAPTURE_SHORTCUT', 'CmdOrCtrl+Shift+Space'),
     ],
