@@ -1,6 +1,12 @@
 import { Head, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { ColourGroupEditor } from '@/components/kite/colour-group-editor';
+import {
+    ColourGroupLegend,
+    UNGROUPED,
+} from '@/components/kite/colour-group-legend';
+import type { LegendKey } from '@/components/kite/colour-group-legend';
 import { CommandPalette } from '@/components/kite/command-palette';
 import { GraphCanvas } from '@/components/kite/graph-canvas';
 import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
@@ -25,27 +31,52 @@ export default function GraphShow({
     folders,
     tags,
     graph,
+    colour_groups: colourGroups,
     indexing,
     watching,
 }: Props) {
     const [query, setQuery] = useState('');
     const [showGhosts, setShowGhosts] = useState(true);
     const [showOrphans, setShowOrphans] = useState(true);
-    const [colourBy, setColourBy] = useState<'folder' | 'tag'>('folder');
+    const [colourBy, setColourBy] = useState<'folder' | 'tag' | 'group'>(() =>
+        colourGroups.length > 0 ? 'group' : 'folder',
+    );
+    const [hiddenGroups, setHiddenGroups] = useState<Set<LegendKey>>(
+        () => new Set(),
+    );
+    const [editingGroups, setEditingGroups] = useState(false);
     const [tagFilter, setTagFilter] = useState('');
     const [paletteOpen, setPaletteOpen] = useState(false);
 
     useVaultSync(
         vault,
-        () => router.reload({ only: ['graph', 'tree', 'folders', 'tags'] }),
+        () =>
+            router.reload({
+                only: ['graph', 'tree', 'folders', 'tags', 'colour_groups'],
+            }),
         watching,
     );
 
-    const { nodes, edges } = useMemo(() => {
+    const legendKey = (node: { group?: number | null }): LegendKey =>
+        node.group ?? UNGROUPED;
+
+    const { nodes, edges, groupCounts } = useMemo(() => {
         const visible = graph.nodes.filter(
             (node) =>
-                (showGhosts || !node.ghost) && (showOrphans || node.degree > 0),
+                (showGhosts || !node.ghost) &&
+                (showOrphans || node.degree > 0) &&
+                (colourBy !== 'group' || !hiddenGroups.has(legendKey(node))),
         );
+        const counts = new Map<LegendKey, number>();
+
+        for (const node of graph.nodes) {
+            if (!node.ghost) {
+                counts.set(
+                    legendKey(node),
+                    (counts.get(legendKey(node)) ?? 0) + 1,
+                );
+            }
+        }
         const ids = new Set(visible.map((node) => node.id));
 
         return {
@@ -53,8 +84,22 @@ export default function GraphShow({
             edges: graph.edges.filter(
                 (edge) => ids.has(edge.source) && ids.has(edge.target),
             ),
+            groupCounts: counts,
         };
-    }, [graph, showGhosts, showOrphans]);
+    }, [graph, showGhosts, showOrphans, colourBy, hiddenGroups]);
+
+    const toggleGroup = (key: LegendKey) =>
+        setHiddenGroups((current) => {
+            const next = new Set(current);
+
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+
+            return next;
+        });
 
     const noteCount = graph.nodes.filter((node) => !node.ghost).length;
 
@@ -101,8 +146,9 @@ export default function GraphShow({
                                     value={colourBy}
                                     onChange={(event) =>
                                         setColourBy(
-                                            event.target.value === 'tag'
-                                                ? 'tag'
+                                            event.target.value === 'tag' ||
+                                                event.target.value === 'group'
+                                                ? event.target.value
                                                 : 'folder',
                                         )
                                     }
@@ -112,6 +158,7 @@ export default function GraphShow({
                                 >
                                     <option value="folder">by folder</option>
                                     <option value="tag">by tag</option>
+                                    <option value="group">by group</option>
                                 </select>
                             </label>
                             <select
@@ -178,7 +225,17 @@ export default function GraphShow({
                                 highlight={query}
                                 highlightTag={tagFilter}
                                 colourBy={colourBy}
+                                groups={colourGroups}
                                 onOpen={open}
+                            />
+                        )}
+                        {colourBy === 'group' && (
+                            <ColourGroupLegend
+                                groups={colourGroups}
+                                counts={groupCounts}
+                                hidden={hiddenGroups}
+                                onToggle={toggleGroup}
+                                onEdit={() => setEditingGroups(true)}
                             />
                         )}
                         <p className="pointer-events-none absolute bottom-3 left-4 text-xs text-muted-foreground">
@@ -187,6 +244,14 @@ export default function GraphShow({
                     </div>
                 </main>
             </div>
+
+            <ColourGroupEditor
+                vault={vault}
+                groups={colourGroups}
+                open={editingGroups}
+                onOpenChange={setEditingGroups}
+                reload={['graph', 'tree', 'colour_groups']}
+            />
 
             <CommandPalette
                 vault={vault}
