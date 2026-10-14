@@ -14,6 +14,7 @@ use App\Http\Requests\StoreNoteRequest;
 use App\Http\Requests\UpdateNoteRequest;
 use App\Models\Note;
 use App\Models\Vault;
+use App\Services\DailyNotes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
@@ -48,7 +49,7 @@ final readonly class NoteController
         ]);
     }
 
-    public function update(UpdateNoteRequest $request, Vault $vault, Note $note, SaveNote $action, RenderMarkdown $renderMarkdown): JsonResponse
+    public function update(UpdateNoteRequest $request, Vault $vault, Note $note, SaveNote $action, RenderMarkdown $renderMarkdown, DailyNotes $daily): JsonResponse
     {
         $contents = $request->string('contents')->toString();
 
@@ -58,6 +59,7 @@ final readonly class NoteController
         return response()->json([
             ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'hash', 'modified_at']),
             'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
+            'daily_date' => $daily->dateOf($note->path)?->toDateString(),
             'html' => $rendered->html,
             'outline' => $rendered->outline,
         ]);

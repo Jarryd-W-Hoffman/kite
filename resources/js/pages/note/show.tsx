@@ -1,5 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    ChevronLeft,
+    ChevronRight,
     Columns2,
     Eye,
     FilePlus2,
@@ -18,6 +20,7 @@ import { NotePreview, scrollToHeading } from '@/components/kite/note-preview';
 import {
     WorkspaceSidebar,
     createNote,
+    openDailyNote,
 } from '@/components/kite/workspace-sidebar';
 import { Button } from '@/components/ui/button';
 import {
@@ -324,6 +327,21 @@ function NoteWorkspace({
         return embeds;
     };
 
+    const shiftDay = (days: number) => {
+        if (!meta.daily_date) {
+            return;
+        }
+
+        const [year, month, day] = meta.daily_date.split('-').map(Number);
+        const date = new Date(year, month - 1, day + days);
+        const pad = (value: number) => String(value).padStart(2, '0');
+
+        openDailyNote(
+            vault,
+            `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+        );
+    };
+
     const deleteNote = () => {
         if (window.confirm(`Delete “${meta.title}”? This removes the file.`)) {
             router.delete(destroy({ vault: vault.id, note: note.id }).url);
@@ -388,6 +406,30 @@ function NoteWorkspace({
                     </span>
 
                     <div className="kite-no-drag ml-auto flex items-center gap-1">
+                        {meta.daily_date && (
+                            <div className="mr-1 flex items-center">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8"
+                                    aria-label="Previous day"
+                                    data-test="previous-day"
+                                    onClick={() => shiftDay(-1)}
+                                >
+                                    <ChevronLeft />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8"
+                                    aria-label="Next day"
+                                    data-test="next-day"
+                                    onClick={() => shiftDay(1)}
+                                >
+                                    <ChevronRight />
+                                </Button>
+                            </div>
+                        )}
                         <ToggleGroup
                             type="single"
                             size="sm"

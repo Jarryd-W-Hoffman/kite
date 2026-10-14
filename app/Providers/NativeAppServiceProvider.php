@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Events\QuickCaptureRequested;
 use Native\Desktop\Contracts\ProvidesPhpIni;
+use Native\Desktop\Facades\GlobalShortcut;
+use Native\Desktop\Facades\Menu;
+use Native\Desktop\Facades\MenuBar;
 use Native\Desktop\Facades\Window;
 
 final class NativeAppServiceProvider implements ProvidesPhpIni
@@ -22,6 +26,22 @@ final class NativeAppServiceProvider implements ProvidesPhpIni
             ->minHeight(600)
             ->titleBarHiddenInset()
             ->rememberState();
+
+        $shortcut = config('kite.capture.shortcut');
+
+        if (is_string($shortcut) && $shortcut !== '') {
+            GlobalShortcut::key($shortcut)->event(QuickCaptureRequested::class)->register();
+        }
+
+        MenuBar::create()
+            ->onlyShowContextMenu()
+            ->showDockIcon()
+            ->tooltip('Kite')
+            ->withContextMenu(Menu::make(
+                Menu::label('Quick capture…')->event(QuickCaptureRequested::class),
+                Menu::separator(),
+                Menu::quit('Quit Kite'),
+            ));
     }
 
     /**

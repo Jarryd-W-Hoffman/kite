@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Models\Note;
 use App\Models\NoteLink;
 use App\Models\Vault;
+use App\Services\DailyNotes;
 use App\Services\IndexingProgress;
 use App\Services\Row;
 use App\Services\VaultFilesystem;
@@ -22,6 +23,7 @@ final readonly class LoadWorkspace
         private RenderMarkdown $renderMarkdown,
         private IndexingProgress $progress,
         private VaultWatcher $watcher,
+        private DailyNotes $daily,
     ) {
         //
     }
@@ -78,6 +80,7 @@ final readonly class LoadWorkspace
             ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'hash', 'modified_at']),
             'contents' => $contents,
             'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
+            'daily_date' => $this->daily->dateOf($note->path)?->toDateString(),
             'html' => $rendered->html,
             'outline' => $rendered->outline,
         ];
