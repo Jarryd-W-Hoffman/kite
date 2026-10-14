@@ -1,13 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CommandPalette } from '@/components/kite/command-palette';
 import { GraphCanvas } from '@/components/kite/graph-canvas';
 import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
-import {
-    WorkspaceSidebar,
-    createNote,
-} from '@/components/kite/workspace-sidebar';
+import { WorkspaceSidebar } from '@/components/kite/workspace-sidebar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useVaultSync } from '@/hooks/use-vault-sync';
@@ -42,24 +39,6 @@ export default function GraphShow({
         () => router.reload({ only: ['graph', 'tree', 'tags'] }),
         watching,
     );
-
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            const modifier = event.metaKey || event.ctrlKey;
-
-            if (modifier && event.key === 'k') {
-                event.preventDefault();
-                setPaletteOpen((open) => !open);
-            } else if (modifier && event.key === 'n') {
-                event.preventDefault();
-                createNote(vault);
-            }
-        };
-
-        window.addEventListener('keydown', onKeyDown);
-
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [vault]);
 
     const { nodes, edges } = useMemo(() => {
         const visible = graph.nodes.filter(

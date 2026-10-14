@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Events\QuickCaptureRequested;
 use App\Providers\NativeAppServiceProvider;
+use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Http;
 use Native\Desktop\Facades\Window;
 use Native\Desktop\Windows\Window as NativeWindow;
@@ -38,7 +39,7 @@ it('registers the quick capture shortcut and tray menu', function (): void {
 
     new NativeAppServiceProvider()->boot();
 
-    Http::assertSent(fn ($request): bool => str_ends_with($request->url(), 'global-shortcuts')
+    Http::assertSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), 'global-shortcuts')
         && $request['key'] === 'CmdOrCtrl+Shift+Space'
         && $request['event'] === QuickCaptureRequested::class);
 });
@@ -51,7 +52,7 @@ it('skips the shortcut when it is disabled', function (): void {
 
     new NativeAppServiceProvider()->boot();
 
-    Http::assertNotSent(fn ($request): bool => str_ends_with($request->url(), 'global-shortcuts'));
+    Http::assertNotSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), 'global-shortcuts'));
 });
 
 it('provides php ini directives for the native runtime', function (): void {

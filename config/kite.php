@@ -31,6 +31,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Ignored Folders
+    |--------------------------------------------------------------------------
+    |
+    | Folder names (or vault-relative paths) that are never indexed or watched.
+    | Dot-folders such as .git and .obsidian are always ignored.
+    |
+    */
+
+    'ignored_folders' => ['node_modules'],
+
+    /*
+    |--------------------------------------------------------------------------
     | Indexing
     |--------------------------------------------------------------------------
     */

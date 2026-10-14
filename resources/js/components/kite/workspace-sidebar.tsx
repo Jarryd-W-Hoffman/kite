@@ -8,8 +8,8 @@ import {
     Network,
     Plus,
     Search,
+    Settings2,
 } from 'lucide-react';
-import { useEffect } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { FileTree } from '@/components/kite/file-tree';
 import { IndexingStatus } from '@/components/kite/indexing-status';
@@ -27,9 +27,11 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useAppCommands } from '@/hooks/use-app-commands';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
 import { store } from '@/routes/notes';
+import { edit as editPreferences } from '@/routes/preferences';
 import { show as showGraph } from '@/routes/vault-graph';
 import { show as showTag } from '@/routes/vault-tags';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
@@ -74,23 +76,14 @@ export function WorkspaceSidebar({
     const { kite } = usePage().props;
     const insetTrafficLights = kite.native && kite.platform === 'darwin';
 
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            const modifier = event.metaKey || event.ctrlKey;
-
-            if (modifier && event.key === 'g') {
-                event.preventDefault();
-                router.visit(showGraph(vault.id));
-            } else if (modifier && event.key === 'd') {
-                event.preventDefault();
-                openDailyNote(vault);
-            }
-        };
-
-        window.addEventListener('keydown', onKeyDown);
-
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [vault]);
+    useAppCommands({
+        'new-note': () => createNote(vault),
+        'daily-note': () => openDailyNote(vault),
+        'open-vault': () => router.visit(vaultsIndex()),
+        preferences: () => router.visit(editPreferences()),
+        search: onSearch,
+        graph: () => router.visit(showGraph(vault.id)),
+    });
 
     return (
         <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -230,6 +223,16 @@ export function WorkspaceSidebar({
                         </ul>
                     </div>
                 )}
+            </div>
+            <div className="border-t p-2">
+                <Link
+                    href={editPreferences()}
+                    data-test="preferences-link"
+                    className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                >
+                    <Settings2 className="size-4" />
+                    Preferences
+                </Link>
             </div>
             <IndexingStatus vault={vault} indexing={indexing} />
         </aside>

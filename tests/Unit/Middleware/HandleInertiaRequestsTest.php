@@ -97,8 +97,14 @@ it('shares whether kite is running as a desktop app', function (bool $native): v
 
     $shared = new HandleInertiaRequests()->share(Request::create('/', 'GET'));
 
-    expect($shared['kite'])->toBe([
+    expect(($shared['kite'])())->toBe([
         'native' => $native,
         'platform' => mb_strtolower(PHP_OS_FAMILY),
+        'editor' => [
+            'editor_font' => 'mono',
+            'editor_font_size' => 14,
+            'editor_width' => 'normal',
+            'autosave_ms' => 400,
+        ],
     ]);
 })->with([true, false]);

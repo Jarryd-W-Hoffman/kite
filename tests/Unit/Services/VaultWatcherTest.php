@@ -31,7 +31,8 @@ it('starts a persistent node watcher for the vault', function (): void {
         && $persistent
         && $cmd[0] === resource_path('watcher/vault-watcher.mjs')
         && $cmd[1] === '/notes/kite'
-        && str_starts_with((string) $cmd[2], 'md,'));
+        && str_starts_with((string) $cmd[2], 'md,')
+        && $cmd[3] === 'node_modules');
 
     $watcher->markReady($vault);
 

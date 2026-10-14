@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     ChevronLeft,
     ChevronRight,
@@ -30,9 +30,10 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useAppCommands } from '@/hooks/use-app-commands';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { requestJson, uploadFile } from '@/lib/kite-http';
-import { cn } from '@/lib/utils';
+import { cn, editorWidthClass } from '@/lib/utils';
 import { update as updatePath } from '@/routes/note-path';
 import { destroy, update } from '@/routes/notes';
 import { store as storeAttachment } from '@/routes/vault-attachments';
@@ -46,8 +47,6 @@ import type {
 type ViewMode = 'edit' | 'split' | 'preview';
 type SaveState = 'saved' | 'unsaved' | 'saving' | 'error';
 
-const AUTOSAVE_DELAY_MS = 400;
-
 function storedViewMode(): ViewMode {
     const stored = localStorage.getItem('kite:view-mode');
 
@@ -60,24 +59,6 @@ export default function NoteShow(props: WorkspaceProps) {
     const [panelOpen, setPanelOpen] = useState(
         () => localStorage.getItem('kite:panel') !== 'closed',
     );
-
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            const modifier = event.metaKey || event.ctrlKey;
-
-            if (modifier && event.key === 'k') {
-                event.preventDefault();
-                setPaletteOpen((open) => !open);
-            } else if (modifier && event.key === 'n') {
-                event.preventDefault();
-                createNote(vault);
-            }
-        };
-
-        window.addEventListener('keydown', onKeyDown);
-
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [vault]);
 
     const togglePanel = () => {
         setPanelOpen((open) => {
@@ -168,6 +149,8 @@ function NoteWorkspace({
     panelOpen,
     onTogglePanel,
 }: NoteWorkspaceProps) {
+    const { editor } = usePage().props.kite;
+    const autosaveMs = editor.autosave_ms;
     const [contents, setContents] = useState(note.contents);
     const [meta, setMeta] = useState<NoteMeta>(note);
     const [saveState, setSaveState] = useState<SaveState>('saved');
@@ -229,10 +212,10 @@ function NoteWorkspace({
             return;
         }
 
-        const timeout = window.setTimeout(() => void save(), AUTOSAVE_DELAY_MS);
+        const timeout = window.setTimeout(() => void save(), autosaveMs);
 
         return () => window.clearTimeout(timeout);
-    }, [contents, savedText, save]);
+    }, [contents, savedText, save, autosaveMs]);
 
     useEffect(() => () => void save(), [save]);
 
@@ -272,20 +255,10 @@ function NoteWorkspace({
         }
     };
 
-    useEffect(() => {
-        const onKeyDown = (event: KeyboardEvent) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === 'e') {
-                event.preventDefault();
-                setViewMode((mode) =>
-                    mode === 'preview' ? 'edit' : 'preview',
-                );
-            }
-        };
-
-        window.addEventListener('keydown', onKeyDown);
-
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, []);
+    useAppCommands({
+        'toggle-preview': () =>
+            setViewMode((mode) => (mode === 'preview' ? 'edit' : 'preview')),
+    });
 
     const submitRename = (path: string) => {
         setRenaming(false);
@@ -515,7 +488,10 @@ function NoteWorkspace({
                             <NotePreview
                                 vault={vault}
                                 html={meta.html}
-                                className="mx-auto max-w-3xl"
+                                className={cn(
+                                    'mx-auto',
+                                    editorWidthClass[editor.editor_width],
+                                )}
                             />
                         </div>
                     )}

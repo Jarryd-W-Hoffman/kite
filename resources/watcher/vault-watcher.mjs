@@ -5,7 +5,8 @@
  * vault folder with native OS file events. Changes are debounced and written
  * to stdout as one JSON line per batch, which NativePHP forwards to Laravel.
  *
- * Usage: node vault-watcher.mjs <vault-path> [comma-separated-extensions]
+ * Usage: node vault-watcher.mjs <vault-path> [extensions] [ignored-folders]
+ * (extensions and ignored folders are comma-separated)
  */
 import { watch } from 'node:fs';
 import { extname, sep } from 'node:path';
@@ -21,6 +22,11 @@ const extensions = new Set(
         .filter(Boolean),
 );
 
+const ignoredFolders = (process.argv[4] ?? 'node_modules')
+    .split(',')
+    .map((folder) => folder.trim().replace(/^\/+|\/+$/g, ''))
+    .filter(Boolean);
+
 if (!root) {
     process.stderr.write(
         'Usage: vault-watcher.mjs <vault-path> [extensions]\n',
@@ -31,12 +37,21 @@ if (!root) {
 const pending = new Set();
 let timer = null;
 
-const isIgnored = (relativePath) =>
-    relativePath
-        .split(sep)
-        .some(
-            (segment) => segment.startsWith('.') || segment === 'node_modules',
-        );
+// Dot-folders are always ignored; configured folders match by name or vault-relative path.
+const isIgnored = (relativePath) => {
+    const path = relativePath.split(sep).join('/');
+    const segments = path.split('/');
+
+    return (
+        segments.some((segment) => segment.startsWith('.')) ||
+        ignoredFolders.some(
+            (folder) =>
+                segments.includes(folder) ||
+                path === folder ||
+                path.startsWith(`${folder}/`),
+        )
+    );
+};
 
 // Paths without an extension may be folders being created, renamed or removed.
 const isRelevant = (relativePath) => {

@@ -97,3 +97,19 @@ export type SyncSummary = {
     changed: boolean;
     indexing: IndexingProgress | null;
 };
+
+export type EditorPreferences = {
+    editor_font: 'sans' | 'serif' | 'mono';
+    editor_font_size: number;
+    editor_width: 'narrow' | 'normal' | 'wide' | 'full';
+    autosave_ms: number;
+};
+
+export type Preferences = EditorPreferences & {
+    ignored_folders: string[];
+    attachments_folder: string | null;
+    daily_folder: string | null;
+    daily_format: string;
+    daily_template: string | null;
+    capture_shortcut: string | null;
+};
