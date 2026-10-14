@@ -266,7 +266,7 @@ export function WorkspaceSidebar({
                                         })}
                                         data-test={`tag-${tag.name}`}
                                         className={cn(
-                                            'inline-flex items-center gap-0.5 rounded-full bg-sidebar-accent px-2 py-0.5 text-xs hover:ring-1 hover:ring-ring',
+                                            'inline-flex items-center gap-1 rounded-full bg-sidebar-accent px-2 py-0.5 text-xs hover:ring-1 hover:ring-ring',
                                             tag.name === activeTag &&
                                                 'bg-primary text-primary-foreground',
                                         )}

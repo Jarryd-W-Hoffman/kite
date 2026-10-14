@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Actions\IndexVault;
 use App\Models\Note;
 use App\Models\Vault;
+use Native\Desktop\Facades\Shell;
+use Native\Desktop\Http\Middleware\PreventRegularBrowserAccess;
 
 function indexedVault(array $files): Vault
 {
@@ -105,8 +107,20 @@ it('deletes a note', function (): void {
 
     $this->delete(route('notes.destroy', [$vault, Note::query()->sole()]))
         ->assertRedirectToRoute('vaults.show', $vault)
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => __('Note deleted.')]);
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Deleted “A”.']);
 
     expect(Note::query()->count())->toBe(0)
         ->and(file_exists($vault->path.'/A.md'))->toBeFalse();
+});
+
+it('says a deleted note went to the trash in the desktop app', function (): void {
+    $vault = indexedVault(['A.md' => 'a']);
+    config(['nativephp-internal.running' => true]);
+    Shell::fake();
+
+    $this->withoutMiddleware(PreventRegularBrowserAccess::class)
+        ->delete(route('notes.destroy', [$vault, Note::query()->sole()]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Moved “A” to the trash.']);
+
+    Shell::assertTrashedFile($vault->path.'/A.md');
 });

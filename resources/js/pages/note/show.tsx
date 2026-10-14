@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { CommandPalette } from '@/components/kite/command-palette';
+import { DeleteNoteDialog } from '@/components/kite/delete-note-dialog';
 import { EmptyState } from '@/components/kite/empty-state';
 import { Kbd } from '@/components/kite/kbd';
 import { NoteEditor } from '@/components/kite/note-editor';
@@ -44,7 +45,6 @@ import { useVaultSync } from '@/hooks/use-vault-sync';
 import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
 import { cn, editorWidthClass } from '@/lib/utils';
 import { update as updatePath } from '@/routes/note-path';
-import { destroy } from '@/routes/notes';
 import type { NoteDetail, OutlineItem, WorkspaceProps } from '@/types';
 
 type ViewMode = 'edit' | 'split' | 'preview';
@@ -218,6 +218,7 @@ function NoteWorkspace({
     const { editor } = usePage().props.kite;
     const [viewMode, setViewMode] = useState<ViewMode>(storedViewMode);
     const [renaming, setRenaming] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [splitNoteId, setSplitNoteId] = useState<number | null>(() =>
         storedSplit(vault.id),
     );
@@ -342,12 +343,6 @@ function NoteWorkspace({
             vault,
             `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
         );
-    };
-
-    const deleteNote = () => {
-        if (window.confirm(`Delete “${meta.title}”? This removes the file.`)) {
-            router.delete(destroy({ vault: vault.id, note: note.id }).url);
-        }
     };
 
     return (
@@ -475,6 +470,7 @@ function NoteWorkspace({
                                     size="icon"
                                     className="size-8"
                                     aria-label="Note actions"
+                                    data-test="note-actions"
                                 >
                                     <MoreHorizontal />
                                 </Button>
@@ -488,7 +484,8 @@ function NoteWorkspace({
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     variant="destructive"
-                                    onSelect={deleteNote}
+                                    onSelect={() => setDeleting(true)}
+                                    data-test="delete-note"
                                 >
                                     <Trash2 />
                                     Delete note
@@ -549,6 +546,13 @@ function NoteWorkspace({
                     />
                 </aside>
             )}
+
+            <DeleteNoteDialog
+                vault={vault}
+                note={{ id: note.id, title: meta.title }}
+                open={deleting}
+                onOpenChange={setDeleting}
+            />
         </>
     );
 }

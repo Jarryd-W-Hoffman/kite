@@ -70,6 +70,44 @@ const External = Annotation.define<boolean>();
 
 const WIKI_LINK = /!?\[\[([^[\]\n|#]*)[^[\]\n]*\]\]/g;
 
+const FENCE = /^---\s*$/;
+
+/**
+ * Parse a leading `---` block as frontmatter, so its last line and closing fence are not read as
+ * a setext heading. Unclosed frontmatter runs to the end, as it does while it is being typed.
+ */
+const frontmatter: NonNullable<
+    NonNullable<Parameters<typeof markdown>[0]>['extensions']
+> = {
+    defineNodes: [{ name: 'Frontmatter', block: true, style: tags.meta }],
+    parseBlock: [
+        {
+            name: 'Frontmatter',
+            before: 'HorizontalRule',
+            parse(cx, line) {
+                if (cx.lineStart !== 0 || !FENCE.test(line.text)) {
+                    return false;
+                }
+
+                let end = line.text.length;
+
+                while (cx.nextLine()) {
+                    end = cx.lineStart + line.text.length;
+
+                    if (FENCE.test(line.text) || line.text === '...') {
+                        cx.nextLine();
+                        break;
+                    }
+                }
+
+                cx.addElement(cx.elt('Frontmatter', 0, end));
+
+                return true;
+            },
+        },
+    ],
+};
+
 const markdownHighlighting = HighlightStyle.define([
     { tag: tags.heading1, fontSize: '1.6em', fontWeight: '700' },
     { tag: tags.heading2, fontSize: '1.35em', fontWeight: '700' },
@@ -339,7 +377,7 @@ export function NoteEditor({
             search({ top: true }),
             EditorView.lineWrapping,
             EditorState.allowMultipleSelections.of(true),
-            markdown({ base: markdownLanguage }),
+            markdown({ base: markdownLanguage, extensions: [frontmatter] }),
             syntaxHighlighting(markdownHighlighting),
             wikiLinks,
             autocompletion({
