@@ -13,8 +13,8 @@ use App\Actions\SaveNote;
 use App\Http\Requests\StoreNoteRequest;
 use App\Http\Requests\UpdateNoteRequest;
 use App\Models\Note;
-use App\Models\NoteComment;
 use App\Models\Vault;
+use App\Services\CommentStore;
 use App\Services\DailyNotes;
 use App\Services\Templates;
 use App\Services\VaultFilesystem;
@@ -24,6 +24,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use InvalidArgumentException;
+use RuntimeException;
 
 final readonly class NoteController
 {
@@ -64,12 +65,12 @@ final readonly class NoteController
         return to_route('notes.show', [$vault, $note]);
     }
 
-    public function show(Vault $vault, Note $note, LoadWorkspace $action, FindUnlinkedMentions $mentions): Response
+    public function show(Vault $vault, Note $note, LoadWorkspace $action, FindUnlinkedMentions $mentions, CommentStore $comments): Response
     {
         return Inertia::render('note/show', [
             ...$action->handle($vault, $note),
             'mentions' => Inertia::defer(fn (): array => $mentions->handle($note)),
-            'comments' => $note->comments()->oldest()->oldest('id')->get()->map(fn (NoteComment $comment): array => $comment->toSummary())->all(),
+            ...$this->comments($vault, $note, $comments),
         ]);
     }
 
@@ -101,5 +102,24 @@ final readonly class NoteController
         ]);
 
         return to_route('vaults.show', $vault);
+    }
+
+    /**
+     * The note's comments, or an explanation when its comments file can't be read.
+     *
+     * @return array{comments: list<array<string, mixed>>, comments_error?: string}
+     */
+    private function comments(Vault $vault, Note $note, CommentStore $comments): array
+    {
+        try {
+            return ['comments' => $comments->all($vault, $note->path)];
+        } catch (RuntimeException) {
+            return [
+                'comments' => [],
+                'comments_error' => __('This note’s comments file (:file) could not be read, so comments are unavailable until it is fixed.', [
+                    'file' => CommentStore::FOLDER.'/'.$note->path.'.json',
+                ]),
+            ];
+        }
     }
 }

@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Note;
 use App\Models\Vault;
+use App\Services\CommentStore;
 use App\Services\VaultFilesystem;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -16,6 +17,7 @@ final readonly class DeleteFolder
         private VaultFilesystem $files,
         private ResolveLinks $resolveLinks,
         private IndexAttachments $indexAttachments,
+        private CommentStore $comments,
     ) {
         //
     }
@@ -31,6 +33,7 @@ final readonly class DeleteFolder
         throw_unless($this->files->folderExists($vault, $path), InvalidArgumentException::class, "The folder [{$path}] does not exist.");
 
         $this->files->trash($vault, $path);
+        $this->comments->trash($vault, $path, folder: true);
 
         DB::transaction(function () use ($vault, $path): void {
             Note::query()
