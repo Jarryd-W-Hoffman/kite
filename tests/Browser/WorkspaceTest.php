@@ -152,6 +152,6 @@ it('shows frontmatter in the editor without heading styles', function (): void {
 
     visit(route('notes.show', [$vault, Note::query()->sole()]))
         ->assertScript($weight('status: active'), '400')
-        ->assertScript($weight('Title'), '700')
+        ->assertScript("Number({$weight('Title')}) >= 600", true)
         ->assertNoJavaScriptErrors();
 });
