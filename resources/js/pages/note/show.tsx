@@ -52,7 +52,7 @@ function storedViewMode(): ViewMode {
 }
 
 export default function NoteShow(props: WorkspaceProps) {
-    const { vault, vaults, tree, tags, note } = props;
+    const { vault, vaults, tree, tags, note, indexing } = props;
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [panelOpen, setPanelOpen] = useState(
         () => localStorage.getItem('kite:panel') !== 'closed',
@@ -95,6 +95,7 @@ export default function NoteShow(props: WorkspaceProps) {
                     tree={tree}
                     tags={tags}
                     activeNoteId={note?.id ?? null}
+                    indexing={indexing}
                     onSearch={() => setPaletteOpen(true)}
                 />
 
@@ -120,7 +121,7 @@ export default function NoteShow(props: WorkspaceProps) {
     );
 }
 
-function EmptyWorkspace({ vault }: WorkspaceProps) {
+function EmptyWorkspace({ vault, indexing }: WorkspaceProps) {
     useVaultSync(vault, () => router.reload());
 
     return (
@@ -130,7 +131,9 @@ function EmptyWorkspace({ vault }: WorkspaceProps) {
                 <FilePlus2 className="size-10 text-muted-foreground" />
                 <div className="space-y-1">
                     <h1 className="text-lg font-semibold">
-                        {vault.name} is empty
+                        {indexing
+                            ? `Indexing ${vault.name}…`
+                            : `${vault.name} is empty`}
                     </h1>
                     <p className="text-sm text-muted-foreground">
                         Create your first note, or add .md files to{' '}

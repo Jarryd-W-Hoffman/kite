@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\IndexVault;
 use App\Models\Note;
 use App\Models\NoteLink;
+use App\Services\IndexingProgress;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
@@ -76,4 +77,47 @@ it('removes large numbers of deleted notes in chunks', function (): void {
 
     expect($indexVault->handle($vault))->toBe(['added' => 0, 'updated' => 0, 'removed' => 520])
         ->and(DB::table('notes_fts')->count())->toBe(0);
+});
+
+it('reports progress and commits in batches', function (): void {
+    config(['kite.indexing.batch_size' => 2]);
+
+    $files = [];
+
+    foreach (range(1, 120) as $number) {
+        $files["Note {$number}.md"] = "[[Note 1]] {$number}";
+    }
+
+    $vault = vaultWithFiles($files);
+    $reports = [];
+
+    $summary = resolve(IndexVault::class)->handle($vault, function (int $done, int $total) use (&$reports): void {
+        $reports[] = [$done, $total];
+    });
+
+    expect($summary['added'])->toBe(120)
+        ->and($reports)->toBe([[0, 120], [50, 120], [100, 120], [120, 120]])
+        ->and(NoteLink::query()->whereNull('target_note_id')->count())->toBe(0);
+});
+
+it('skips indexing while another run holds the vault lock', function (): void {
+    $vault = vaultWithFiles(['A.md' => 'a']);
+
+    $lock = resolve(IndexingProgress::class)->lock($vault);
+    $lock->get();
+
+    expect(resolve(IndexVault::class)->handle($vault))->toBe(['added' => 0, 'updated' => 0, 'removed' => 0])
+        ->and(Note::query()->count())->toBe(0);
+
+    $lock->release();
+
+    expect(resolve(IndexVault::class)->handle($vault)['added'])->toBe(1);
+});
+
+it('falls back to the default batch size for invalid config', function (): void {
+    config(['kite.indexing.batch_size' => 0]);
+
+    $vault = vaultWithFiles(['A.md' => 'a']);
+
+    expect(resolve(IndexVault::class)->handle($vault)['added'])->toBe(1);
 });

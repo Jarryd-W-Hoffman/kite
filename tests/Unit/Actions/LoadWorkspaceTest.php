@@ -26,6 +26,7 @@ it('loads the vault tree, tags and vault list without a note', function (): void
             ['name' => 'shared', 'count' => 2],
             ['name' => 'solo', 'count' => 1],
         ])
+        ->and($workspace['indexing'])->toBeNull()
         ->and($workspace['note'])->toBeNull()
         ->and($workspace['backlinks'])->toBe([])
         ->and($workspace['outgoing'])->toBe([]);

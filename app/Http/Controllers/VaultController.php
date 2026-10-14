@@ -37,7 +37,7 @@ final readonly class VaultController
     public function store(StoreVaultRequest $request, OpenVault $action): RedirectResponse
     {
         try {
-            $vault = $action->handle($request->string('path')->toString());
+            $vault = $action->handle($request->string('path')->toString(), inBackground: true);
         } catch (InvalidArgumentException) {
             throw ValidationException::withMessages([
                 'path' => __('That folder does not exist.'),

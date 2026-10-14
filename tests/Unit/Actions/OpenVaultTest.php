@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use App\Actions\OpenVault;
+use App\Jobs\IndexVaultInBackground;
 use App\Models\Vault;
+use App\Services\IndexingProgress;
+use Illuminate\Support\Facades\Queue;
 
 it('registers a folder as a vault and indexes it', function (): void {
     $folder = vaultWithFiles(['Note.md' => '# Hello']);
@@ -38,3 +41,17 @@ it('rejects files', function (): void {
 
     resolve(OpenVault::class)->handle($vault->path.'/Note.md');
 })->throws(InvalidArgumentException::class, 'does not exist');
+
+it('queues indexing in the background and marks the vault as indexing', function (): void {
+    Queue::fake();
+
+    $folder = vaultWithFiles(['Note.md' => '# Hello']);
+    $folder->delete();
+
+    $vault = resolve(OpenVault::class)->handle($folder->path, inBackground: true);
+
+    Queue::assertPushed(IndexVaultInBackground::class, fn ($job): bool => $job->vault->is($vault));
+
+    expect($vault->notes()->count())->toBe(0)
+        ->and(resolve(IndexingProgress::class)->get($vault))->toBe(['done' => 0, 'total' => 0]);
+});

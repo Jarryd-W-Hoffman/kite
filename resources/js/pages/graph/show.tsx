@@ -21,7 +21,14 @@ type Props = WorkspaceProps & {
     };
 };
 
-export default function GraphShow({ vault, vaults, tree, tags, graph }: Props) {
+export default function GraphShow({
+    vault,
+    vaults,
+    tree,
+    tags,
+    graph,
+    indexing,
+}: Props) {
     const [query, setQuery] = useState('');
     const [showGhosts, setShowGhosts] = useState(true);
     const [showOrphans, setShowOrphans] = useState(true);
@@ -87,6 +94,7 @@ export default function GraphShow({ vault, vaults, tree, tags, graph }: Props) {
                     tree={tree}
                     tags={tags}
                     activeNoteId={null}
+                    indexing={indexing}
                     graphActive
                     onSearch={() => setPaletteOpen(true)}
                 />

@@ -15,6 +15,23 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Indexing
+    |--------------------------------------------------------------------------
+    |
+    | Progress and locks are shared between the queue worker and the app, so
+    | they need a cache store that is visible across processes and not tied
+    | to an open database transaction.
+    |
+    */
+
+    'indexing' => [
+        'cache_store' => env('KITE_INDEXING_CACHE_STORE', 'file'),
+
+        'batch_size' => (int) env('KITE_INDEXING_BATCH_SIZE', 200),
+    ],
+
     'attachments' => [
         'folder' => env('KITE_ATTACHMENTS_FOLDER', 'attachments'),
 
