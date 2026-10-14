@@ -17,6 +17,8 @@ const HIDDEN_MARKS = new Set([
 
 const WIKI_LINK = /!?\[\[([^[\]\n]+?)\]\]/g;
 
+const CALLOUT_MARKER = /^(>\s*)\[![\w-]+\][+-]?\s*/;
+
 class CheckboxWidget extends WidgetType {
     constructor(
         private readonly checked: boolean,
@@ -126,6 +128,23 @@ function build(view: EditorView): DecorationSet {
                 }
 
                 const parent = node.node.parent?.name;
+
+                if (node.name === 'Blockquote') {
+                    // A callout's [!type] marker reads as its tinted title row instead.
+                    const line = state.doc.lineAt(node.from);
+                    const marker = CALLOUT_MARKER.exec(line.text);
+
+                    if (marker) {
+                        decorations.push(
+                            hide.range(
+                                line.from + marker[1].length,
+                                line.from + marker[0].length,
+                            ),
+                        );
+                    }
+
+                    return;
+                }
 
                 if (
                     node.name === 'HeaderMark' &&

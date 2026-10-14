@@ -611,3 +611,200 @@
     --group-violet: oklch(0.72 0.17 295);
     --group-pink: oklch(0.76 0.16 350);
 }
+
+/* Kite: callouts, diagrams and math */
+.kite-prose .callout {
+    --callout: oklch(0.6 0.15 250);
+    border: 1px solid color-mix(in oklch, var(--callout) 25%, transparent);
+    border-left: 3px solid var(--callout);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--callout) 7%, transparent);
+    padding: 0.75em 1em;
+    color: var(--foreground);
+}
+
+.kite-prose .callout > * + * {
+    margin-top: 0.5em;
+}
+
+.kite-prose .callout-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 650;
+    color: var(--callout);
+}
+
+.kite-prose .callout-title::before {
+    content: 'ℹ';
+    display: inline-grid;
+    place-content: center;
+    width: 1.35em;
+    height: 1.35em;
+    border-radius: 999px;
+    font-size: 0.8em;
+    font-weight: 700;
+    color: var(--background);
+    background: var(--callout);
+}
+
+.kite-prose .callout[data-callout='tip'],
+.kite-prose .callout[data-callout='hint'],
+.kite-prose .callout[data-callout='success'],
+.kite-prose .callout[data-callout='check'],
+.kite-prose .callout[data-callout='done'] {
+    --callout: oklch(0.62 0.15 155);
+}
+
+.kite-prose
+    .callout:is([data-callout='tip'], [data-callout='hint'])
+    .callout-title::before {
+    content: '✦';
+}
+
+.kite-prose
+    .callout:is(
+        [data-callout='success'],
+        [data-callout='check'],
+        [data-callout='done']
+    )
+    .callout-title::before {
+    content: '✓';
+}
+
+.kite-prose
+    .callout:is(
+        [data-callout='question'],
+        [data-callout='help'],
+        [data-callout='faq']
+    ) {
+    --callout: oklch(0.6 0.17 300);
+}
+
+.kite-prose
+    .callout:is(
+        [data-callout='question'],
+        [data-callout='help'],
+        [data-callout='faq']
+    )
+    .callout-title::before {
+    content: '?';
+}
+
+.kite-prose
+    .callout:is(
+        [data-callout='warning'],
+        [data-callout='caution'],
+        [data-callout='attention']
+    ) {
+    --callout: oklch(0.7 0.15 65);
+}
+
+.kite-prose
+    .callout:is(
+        [data-callout='warning'],
+        [data-callout='caution'],
+        [data-callout='attention']
+    )
+    .callout-title::before {
+    content: '!';
+}
+
+.kite-prose
+    .callout:is(
+        [data-callout='important'],
+        [data-callout='danger'],
+        [data-callout='error'],
+        [data-callout='bug'],
+        [data-callout='failure'],
+        [data-callout='fail']
+    ) {
+    --callout: oklch(0.6 0.2 25);
+}
+
+.kite-prose
+    .callout:is(
+        [data-callout='important'],
+        [data-callout='danger'],
+        [data-callout='error'],
+        [data-callout='bug'],
+        [data-callout='failure'],
+        [data-callout='fail']
+    )
+    .callout-title::before {
+    content: '!';
+}
+
+.kite-prose
+    .callout:is(
+        [data-callout='example'],
+        [data-callout='abstract'],
+        [data-callout='summary']
+    ) {
+    --callout: oklch(0.58 0.16 285);
+}
+
+.kite-prose .callout:is([data-callout='quote'], [data-callout='cite']) {
+    --callout: oklch(0.6 0.01 85);
+}
+
+.kite-prose
+    .callout:is([data-callout='quote'], [data-callout='cite'])
+    .callout-title::before {
+    content: '❝';
+}
+
+.kite-prose .callout[data-fold] > .callout-title {
+    cursor: pointer;
+    user-select: none;
+}
+
+.kite-prose .callout[data-fold] > .callout-title::after {
+    content: '›';
+    margin-left: auto;
+    transition: transform 150ms;
+    transform: rotate(90deg);
+}
+
+.kite-prose .callout[data-fold='closed'] > .callout-title::after {
+    transform: none;
+}
+
+.kite-prose .callout[data-fold='closed'] > :not(.callout-title) {
+    display: none;
+}
+
+.kite-prose .math-block {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.35em 0;
+    text-align: center;
+}
+
+.kite-prose .math:not([data-typeset]) {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    color: var(--muted-foreground);
+    white-space: pre-wrap;
+}
+
+.kite-prose .mermaid-diagram {
+    margin-inline: 0;
+    padding: 1em;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--muted) 35%, transparent);
+    overflow-x: auto;
+    text-align: center;
+}
+
+.kite-prose .mermaid-diagram svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.kite-prose .mermaid-diagram.is-invalid {
+    font-size: 0.9em;
+    color: var(--destructive-foreground);
+    text-align: left;
+}
