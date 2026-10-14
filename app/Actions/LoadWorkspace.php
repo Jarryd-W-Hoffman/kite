@@ -50,6 +50,7 @@ final readonly class LoadWorkspace
                     'title' => Row::string($row, 'title'),
                 ])
                 ->all(),
+            'folders' => fn (): array => $this->files->folders($vault),
             'tags' => DB::table('note_tags')
                 ->where('vault_id', $vault->id)
                 ->groupBy('name')

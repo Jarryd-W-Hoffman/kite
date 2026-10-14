@@ -66,6 +66,7 @@ export type WorkspaceProps = {
     vault: VaultSummary;
     vaults: VaultSummary[];
     tree: TreeNote[];
+    folders: string[];
     tags: TagCount[];
     note: NoteDetail | null;
     backlinks: Backlink[];

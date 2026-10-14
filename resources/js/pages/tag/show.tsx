@@ -25,6 +25,7 @@ export default function TagShow({
     vault,
     vaults,
     tree,
+    folders,
     tags,
     indexing,
     watching,
@@ -35,7 +36,7 @@ export default function TagShow({
 
     useVaultSync(
         vault,
-        () => router.reload({ only: ['notes', 'tree', 'tags'] }),
+        () => router.reload({ only: ['notes', 'tree', 'folders', 'tags'] }),
         watching,
     );
 
@@ -48,6 +49,7 @@ export default function TagShow({
                     vault={vault}
                     vaults={vaults}
                     tree={tree}
+                    folders={folders}
                     tags={tags}
                     activeNoteId={null}
                     activeTag={tag}

@@ -79,6 +79,50 @@ final readonly class VaultFilesystem
             : [];
     }
 
+    /**
+     * Whether a vault-relative path falls inside one of the ignored folders.
+     */
+    public function isIgnored(string $path): bool
+    {
+        return array_any($this->ignoredFolders(), fn (string $folder): bool => $path === $folder || str_starts_with($path, $folder.'/') || in_array($folder, explode('/', $path), true));
+    }
+
+    /**
+     * Every folder in the vault, including empty ones, skipping dot-folders and ignored folders.
+     *
+     * @return list<string>
+     */
+    public function folders(Vault $vault): array
+    {
+        $finder = Finder::create()
+            ->directories()
+            ->in($vault->path)
+            ->ignoreDotFiles(true)
+            ->ignoreVCS(true)
+            ->ignoreUnreadableDirs()
+            ->exclude($this->ignoredFolders());
+
+        $folders = [];
+
+        foreach ($finder as $directory) {
+            $folders[] = str_replace('\\', '/', $directory->getRelativePathname());
+        }
+
+        natcasesort($folders);
+
+        return array_values($folders);
+    }
+
+    public function folderExists(Vault $vault, string $path): bool
+    {
+        return File::isDirectory($this->absolutePath($vault, $path));
+    }
+
+    public function makeFolder(Vault $vault, string $path): void
+    {
+        File::ensureDirectoryExists($this->absolutePath($vault, $path));
+    }
+
     public function exists(Vault $vault, string $path): bool
     {
         return File::isFile($this->absolutePath($vault, $path));

@@ -73,3 +73,21 @@ it('skips ignored folders when listing files', function (): void {
 
     expect(new VaultFilesystem()->ignoredFolders())->toBe([]);
 });
+
+it('lists every folder including empty ones, skipping dot and ignored folders', function (): void {
+    config(['kite.ignored_folders' => ['node_modules', 'Archive/Old']]);
+
+    $vault = vaultWithFiles(['b/Note.md' => '# Note', 'node_modules/pkg/x.md' => 'x', '.obsidian/app.json' => '{}']);
+
+    $files = resolve(VaultFilesystem::class);
+    $files->makeFolder($vault, 'A/Empty');
+    $files->makeFolder($vault, 'Archive/Old/Deep');
+
+    expect($files->folders($vault))->toBe(['A', 'A/Empty', 'Archive', 'b'])
+        ->and($files->folderExists($vault, 'A/Empty'))->toBeTrue()
+        ->and($files->folderExists($vault, 'b/Note.md'))->toBeFalse()
+        ->and($files->isIgnored('node_modules'))->toBeTrue()
+        ->and($files->isIgnored('src/node_modules/x'))->toBeTrue()
+        ->and($files->isIgnored('Archive/Old/Deep'))->toBeTrue()
+        ->and($files->isIgnored('Archive'))->toBeFalse();
+});

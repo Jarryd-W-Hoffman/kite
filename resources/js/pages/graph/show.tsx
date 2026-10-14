@@ -22,6 +22,7 @@ export default function GraphShow({
     vault,
     vaults,
     tree,
+    folders,
     tags,
     graph,
     indexing,
@@ -36,7 +37,7 @@ export default function GraphShow({
 
     useVaultSync(
         vault,
-        () => router.reload({ only: ['graph', 'tree', 'tags'] }),
+        () => router.reload({ only: ['graph', 'tree', 'folders', 'tags'] }),
         watching,
     );
 
@@ -76,6 +77,7 @@ export default function GraphShow({
                     vault={vault}
                     vaults={vaults}
                     tree={tree}
+                    folders={folders}
                     tags={tags}
                     activeNoteId={null}
                     indexing={indexing}

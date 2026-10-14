@@ -4,6 +4,7 @@ import {
     Check,
     ChevronsUpDown,
     FolderOpen,
+    FolderPlus,
     Hash,
     Network,
     Plus,
@@ -14,6 +15,7 @@ import { useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { FileTree } from '@/components/kite/file-tree';
 import { IndexingStatus } from '@/components/kite/indexing-status';
+import { NewFolderDialog } from '@/components/kite/new-folder-dialog';
 import { PreferencesDialog } from '@/components/kite/preferences-dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,6 +49,7 @@ type Props = {
     vault: VaultSummary;
     vaults: VaultSummary[];
     tree: TreeNote[];
+    folders: string[];
     tags: TagCount[];
     activeNoteId: number | null;
     indexing?: IndexingProgress | null;
@@ -55,8 +58,12 @@ type Props = {
     onSearch: () => void;
 };
 
-export function createNote(vault: VaultSummary, title = 'Untitled'): void {
-    router.post(store(vault.id).url, { title });
+export function createNote(
+    vault: VaultSummary,
+    title = 'Untitled',
+    folder?: string,
+): void {
+    router.post(store(vault.id).url, folder ? { title, folder } : { title });
 }
 
 export function openDailyNote(vault: VaultSummary, date?: string): void {
@@ -67,6 +74,7 @@ export function WorkspaceSidebar({
     vault,
     vaults,
     tree,
+    folders,
     tags,
     activeNoteId,
     indexing = null,
@@ -76,6 +84,7 @@ export function WorkspaceSidebar({
 }: Props) {
     const { kite } = usePage().props;
     const [preferencesOpen, setPreferencesOpen] = useState(false);
+    const [newFolderParent, setNewFolderParent] = useState<string | null>(null);
     const insetTrafficLights = kite.native && kite.platform === 'darwin';
 
     useAppCommands({
@@ -144,6 +153,21 @@ export function WorkspaceSidebar({
                     </TooltipTrigger>
                     <TooltipContent>New note (⌘N)</TooltipContent>
                 </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="kite-no-drag size-8"
+                            aria-label="New folder"
+                            data-test="new-folder"
+                            onClick={() => setNewFolderParent('')}
+                        >
+                            <FolderPlus />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>New folder</TooltipContent>
+                </Tooltip>
             </div>
 
             <div className="space-y-1 p-2">
@@ -191,7 +215,12 @@ export function WorkspaceSidebar({
                 <FileTree
                     vault={vault}
                     notes={tree}
+                    folders={folders}
                     activeNoteId={activeNoteId}
+                    onNewNote={(folder) =>
+                        createNote(vault, 'Untitled', folder)
+                    }
+                    onNewFolder={setNewFolderParent}
                 />
 
                 {tags.length > 0 && (
@@ -237,6 +266,11 @@ export function WorkspaceSidebar({
                     Preferences
                 </button>
             </div>
+            <NewFolderDialog
+                vault={vault}
+                parent={newFolderParent}
+                onClose={() => setNewFolderParent(null)}
+            />
             <PreferencesDialog
                 open={preferencesOpen}
                 onOpenChange={setPreferencesOpen}
