@@ -16,6 +16,7 @@ import {
     Search,
     Settings2,
     Sun,
+    Table2,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -49,6 +50,7 @@ import { formatShortcut } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
 import { store } from '@/routes/notes';
+import { show as showView, store as storeView } from '@/routes/table-views';
 import { index as tasksIndex } from '@/routes/tasks';
 import { show as showGraph } from '@/routes/vault-graph';
 import { show as showTag } from '@/routes/vault-tags';
@@ -72,6 +74,7 @@ type Props = {
     indexing?: IndexingProgress | null;
     graphActive?: boolean;
     tasksActive?: boolean;
+    activeViewId?: number | null;
     activeTag?: string | null;
     onSearch: () => void;
 };
@@ -99,6 +102,7 @@ export function WorkspaceSidebar({
     indexing = null,
     graphActive = false,
     tasksActive = false,
+    activeViewId = null,
     activeTag = null,
     onSearch,
 }: Props) {
@@ -106,9 +110,14 @@ export function WorkspaceSidebar({
     const [preferencesOpen, setPreferencesOpen] = useState(false);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const [templateFolder, setTemplateFolder] = useState<string | null>(null);
-    const { templates = [], open_tasks: openTasks = 0 } = usePage().props as {
+    const {
+        templates = [],
+        open_tasks: openTasks = 0,
+        table_views: tableViews = [],
+    } = usePage().props as {
         templates?: NoteTemplate[];
         open_tasks?: number;
+        table_views?: { id: number; name: string }[];
     };
     const { appearance, resolvedAppearance, updateAppearance } =
         useAppearance();
@@ -258,6 +267,33 @@ export function WorkspaceSidebar({
                         setFolderDialog({ kind: 'delete', path })
                     }
                 />
+
+                <div className="mt-5">
+                    <SectionHeading title="Views">
+                        <SectionAction
+                            label="New view"
+                            onClick={() => router.post(storeView(vault.id).url)}
+                            testId="new-view"
+                        >
+                            <Plus />
+                        </SectionAction>
+                    </SectionHeading>
+                    {tableViews.map((view) => (
+                        <NavItem
+                            key={view.id}
+                            icon={Table2}
+                            label={view.name}
+                            href={
+                                showView({
+                                    vault: vault.id,
+                                    tableView: view.id,
+                                }).url
+                            }
+                            active={view.id === activeViewId}
+                            testId="view-link"
+                        />
+                    ))}
+                </div>
 
                 {tags.length > 0 && (
                     <div className="mt-5">

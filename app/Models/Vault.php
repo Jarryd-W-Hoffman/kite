@@ -41,6 +41,14 @@ final class Vault extends Model
     }
 
     /**
+     * @return HasMany<TableView, $this>
+     */
+    public function tableViews(): HasMany
+    {
+        return $this->hasMany(TableView::class);
+    }
+
+    /**
      * @return HasMany<Note, $this>
      */
     public function notes(): HasMany
