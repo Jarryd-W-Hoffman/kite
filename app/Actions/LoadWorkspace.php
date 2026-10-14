@@ -11,6 +11,7 @@ use App\Services\ColourGroups;
 use App\Services\DailyNotes;
 use App\Services\IndexingProgress;
 use App\Services\Row;
+use App\Services\Templates;
 use App\Services\VaultFilesystem;
 use App\Services\VaultWatcher;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,7 @@ final readonly class LoadWorkspace
         private VaultWatcher $watcher,
         private DailyNotes $daily,
         private ColourGroups $colourGroups,
+        private Templates $templates,
     ) {
         //
     }
@@ -57,6 +59,7 @@ final readonly class LoadWorkspace
                 ->all(),
             'folders' => fn (): array => $this->files->folders($vault),
             'colour_groups' => $this->colourGroups->summaries($vault),
+            'templates' => fn (): array => $this->templates->all($vault),
             'tags' => DB::table('note_tags')
                 ->where('vault_id', $vault->id)
                 ->groupBy('name')

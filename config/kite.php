@@ -71,6 +71,21 @@ return [
         'template' => env('KITE_DAILY_TEMPLATE'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Templates
+    |--------------------------------------------------------------------------
+    |
+    | Every note in this vault-relative folder is offered by "New note from
+    | template". Placeholders such as {{title}}, {{date}} and {{date:D j M}}
+    | are filled in when a note is made from one.
+    |
+    */
+
+    'templates' => [
+        'folder' => env('KITE_TEMPLATES_FOLDER', 'Templates'),
+    ],
+
     'capture' => [
         'shortcut' => env('KITE_CAPTURE_SHORTCUT', 'CmdOrCtrl+Shift+Space'),
     ],

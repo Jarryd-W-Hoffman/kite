@@ -16,6 +16,7 @@ use App\Models\Note;
 use App\Models\NoteComment;
 use App\Models\Vault;
 use App\Services\DailyNotes;
+use App\Services\Templates;
 use App\Services\VaultFilesystem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,14 +27,34 @@ use InvalidArgumentException;
 
 final readonly class NoteController
 {
-    public function store(StoreNoteRequest $request, Vault $vault, CreateNote $action): RedirectResponse
+    public function store(StoreNoteRequest $request, Vault $vault, CreateNote $action, VaultFilesystem $files, Templates $templates): RedirectResponse
     {
+        $title = $request->string('title')->toString();
+        $folder = $request->filled('folder') ? $request->string('folder')->toString() : null;
+        $contents = null;
+
+        if ($request->filled('template')) {
+            $template = $request->string('template')->toString();
+
+            try {
+                $found = $files->exists($vault, $template);
+            } catch (InvalidArgumentException) {
+                $found = false;
+            }
+
+            throw_unless($found, ValidationException::withMessages([
+                'template' => __('That template could not be found.'),
+            ]));
+
+            $contents = $templates->render($files->read($vault, $template), [
+                'title' => $title,
+                'folder' => $folder === null ? '' : mb_trim($folder, '/'),
+                'vault' => $vault->name,
+            ]);
+        }
+
         try {
-            $note = $action->handle(
-                $vault,
-                $request->string('title')->toString(),
-                $request->filled('folder') ? $request->string('folder')->toString() : null,
-            );
+            $note = $action->handle($vault, $title, $folder, $contents);
         } catch (InvalidArgumentException) {
             throw ValidationException::withMessages([
                 'folder' => __('That folder is not inside this vault.'),
