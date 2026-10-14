@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\CaptureController;
+use App\Http\Controllers\ColourGroupController;
+use App\Http\Controllers\ColourGroupOrderController;
+use App\Http\Controllers\ColourGroupPreviewController;
 use App\Http\Controllers\DailyNoteController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\HomeController;
@@ -60,10 +63,15 @@ Route::post('vaults/{vault}/folders', [FolderController::class, 'store'])->name(
 Route::put('vaults/{vault}/folders', [FolderController::class, 'update'])->name('folders.update');
 Route::delete('vaults/{vault}/folders', [FolderController::class, 'destroy'])->name('folders.destroy');
 Route::post('vaults/{vault}/attachments', [VaultAttachmentController::class, 'store'])->name('vault-attachments.store');
+Route::get('vaults/{vault}/colour-groups/preview', [ColourGroupPreviewController::class, 'show'])->name('colour-group-previews.show');
+Route::post('vaults/{vault}/colour-groups', [ColourGroupController::class, 'store'])->name('colour-groups.store');
+Route::put('vaults/{vault}/colour-groups/order', [ColourGroupOrderController::class, 'update'])->name('colour-group-order.update');
 Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->middleware(WatchVault::class)->name('vault-graph.show');
 
 // Notes...
 Route::scopeBindings()->group(function (): void {
+    Route::put('vaults/{vault}/colour-groups/{colourGroup}', [ColourGroupController::class, 'update'])->whereNumber('colourGroup')->name('colour-groups.update');
+    Route::delete('vaults/{vault}/colour-groups/{colourGroup}', [ColourGroupController::class, 'destroy'])->whereNumber('colourGroup')->name('colour-groups.destroy');
     Route::post('vaults/{vault}/notes', [NoteController::class, 'store'])->name('notes.store');
     Route::get('vaults/{vault}/notes/{note}', [NoteController::class, 'show'])->middleware(WatchVault::class)->name('notes.show');
     Route::put('vaults/{vault}/notes/{note}', [NoteController::class, 'update'])->name('notes.update');
