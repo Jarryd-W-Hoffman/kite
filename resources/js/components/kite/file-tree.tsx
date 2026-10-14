@@ -7,6 +7,8 @@ import {
     FolderOpen,
     FolderPlus,
     MoreHorizontal,
+    Pencil,
+    Trash2,
 } from 'lucide-react';
 import { createContext, use, useMemo, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
@@ -15,11 +17,13 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { buildTree, noteFolder, noteName } from '@/lib/note-tree';
 import type { TreeFolder } from '@/lib/note-tree';
 import { cn } from '@/lib/utils';
+import { update as updateFolder } from '@/routes/folders';
 import { update as updatePath } from '@/routes/note-path';
 import { show } from '@/routes/notes';
 import type { TreeNote, VaultSummary } from '@/types';
@@ -27,7 +31,14 @@ import type { TreeNote, VaultSummary } from '@/types';
 type FolderActions = {
     onNewNote: (folder: string) => void;
     onNewFolder: (parent: string) => void;
+    onRenameFolder: (folder: string) => void;
+    onDeleteFolder: (folder: string) => void;
 };
+
+/** What is being dragged around the tree: a note, or a whole folder. */
+type Dragged =
+    | { kind: 'note'; note: TreeNote }
+    | { kind: 'folder'; path: string };
 
 type Props = FolderActions & {
     vault: VaultSummary;
@@ -51,8 +62,8 @@ type TreeContextValue = {
     /** Folder a dragged note would be dropped into: '' for the vault root, null when none. */
     dropTarget: string | null;
     dropHandlers: (folder: string) => DropHandlers;
-    onNoteDragStart: (event: DragEvent, note: TreeNote) => void;
-    onNoteDragEnd: () => void;
+    onDragStart: (event: DragEvent, item: Dragged) => void;
+    onDragEnd: () => void;
 };
 
 const TreeContext = createContext<TreeContextValue | null>(null);
@@ -73,7 +84,23 @@ const INDENT = 16;
 /** How long a dragged note hovers over a collapsed folder before it opens. */
 const EXPAND_DELAY_MS = 600;
 
-const NOTE_DRAG_TYPE = 'application/x-kite-note';
+const DRAG_TYPE = 'application/x-kite-tree-item';
+
+function parentOf(item: Dragged): string {
+    return noteFolder(item.kind === 'note' ? item.note.path : item.path);
+}
+
+/** A folder can't go into itself or one of its own subfolders, and nothing drops where it already is. */
+function canDrop(item: Dragged, folder: string): boolean {
+    if (parentOf(item) === folder) {
+        return false;
+    }
+
+    return (
+        item.kind === 'note' ||
+        (folder !== item.path && !folder.startsWith(`${item.path}/`))
+    );
+}
 
 function storageKey(vault: VaultSummary): string {
     return `kite:collapsed:${vault.id}`;
@@ -86,6 +113,8 @@ export function FileTree({
     activeNoteId,
     onNewNote,
     onNewFolder,
+    onRenameFolder,
+    onDeleteFolder,
 }: Props) {
     const tree = useMemo(() => buildTree(notes, folders), [notes, folders]);
     const [collapsed, setCollapsed] = useState<Set<string>>(() => {
@@ -100,7 +129,7 @@ export function FileTree({
         }
     });
     const [dropTarget, setDropTarget] = useState<string | null>(null);
-    const dragged = useRef<TreeNote | null>(null);
+    const dragged = useRef<Dragged | null>(null);
     const expandTimer = useRef<{ folder: string; id: number } | null>(null);
 
     const setFolderCollapsed = (path: string, isCollapsed?: boolean) => {
@@ -126,34 +155,49 @@ export function FileTree({
         }
     };
 
-    const moveNote = (note: TreeNote, folder: string) => {
-        const name = note.path.split('/').pop() ?? note.path;
+    const move = (item: Dragged, folder: string) => {
+        const path = item.kind === 'note' ? item.note.path : item.path;
+        const name = path.split('/').pop() ?? path;
+        const destination = folder === '' ? name : `${folder}/${name}`;
+        const options = {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors: Record<string, string>) =>
+                toast.error(
+                    errors.path ??
+                        errors.to ??
+                        `Could not move the ${item.kind}.`,
+                ),
+        };
 
-        router.put(
-            updatePath({ vault: vault.id, note: note.id }).url,
-            { path: folder === '' ? name : `${folder}/${name}` },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                onError: (errors) =>
-                    toast.error(errors.path ?? 'Could not move the note.'),
-            },
-        );
+        if (item.kind === 'note') {
+            router.put(
+                updatePath({ vault: vault.id, note: item.note.id }).url,
+                { path: destination },
+                options,
+            );
+        } else {
+            router.put(
+                updateFolder(vault.id).url,
+                { path, to: destination },
+                options,
+            );
+        }
     };
 
     // Every folder row and folder body is a drop zone. Handlers stop propagation so the innermost
-    // zone wins; drags that aren't tree notes (files, editor text) are left alone.
+    // zone wins; drags that aren't tree items (files, editor text) are left alone.
     const dropHandlers = (folder: string): DropHandlers => ({
         onDragOver: (event) => {
-            const note = dragged.current;
+            const item = dragged.current;
 
-            if (!note) {
+            if (!item) {
                 return;
             }
 
             event.stopPropagation();
 
-            if (noteFolder(note.path) === folder) {
+            if (!canDrop(item, folder)) {
                 event.dataTransfer.dropEffect = 'none';
                 setDropTarget(null);
 
@@ -193,9 +237,9 @@ export function FileTree({
             }
         },
         onDrop: (event) => {
-            const note = dragged.current;
+            const item = dragged.current;
 
-            if (!note) {
+            if (!item) {
                 return;
             }
 
@@ -205,8 +249,8 @@ export function FileTree({
             setDropTarget(null);
             dragged.current = null;
 
-            if (noteFolder(note.path) !== folder) {
-                moveNote(note, folder);
+            if (canDrop(item, folder)) {
+                move(item, folder);
             }
         },
     });
@@ -221,6 +265,8 @@ export function FileTree({
             setFolderCollapsed(parent, false);
             onNewFolder(parent);
         },
+        onRenameFolder,
+        onDeleteFolder,
     };
 
     if (notes.length === 0 && folders.length === 0) {
@@ -239,17 +285,23 @@ export function FileTree({
         actions,
         dropTarget,
         dropHandlers,
-        onNoteDragStart: (event, note) => {
-            dragged.current = note;
-            // Moving within the tree is a move; dropping into the editor copies in a wiki link.
-            event.dataTransfer.effectAllowed = 'copyMove';
-            event.dataTransfer.setData(NOTE_DRAG_TYPE, String(note.id));
-            event.dataTransfer.setData(
-                'text/plain',
-                `[[${noteName(note.path)}]]`,
-            );
+        onDragStart: (event, item) => {
+            dragged.current = item;
+
+            if (item.kind === 'note') {
+                // Moving within the tree is a move; dropping into the editor copies in a wiki link.
+                event.dataTransfer.effectAllowed = 'copyMove';
+                event.dataTransfer.setData(DRAG_TYPE, String(item.note.id));
+                event.dataTransfer.setData(
+                    'text/plain',
+                    `[[${noteName(item.note.path)}]]`,
+                );
+            } else {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData(DRAG_TYPE, item.path);
+            }
         },
-        onNoteDragEnd: () => {
+        onDragEnd: () => {
             dragged.current = null;
             cancelExpand();
             setDropTarget(null);
@@ -302,9 +354,9 @@ function FolderContents({
                         preserveScroll
                         draggable
                         onDragStart={(event: DragEvent) =>
-                            tree.onNoteDragStart(event, note)
+                            tree.onDragStart(event, { kind: 'note', note })
                         }
-                        onDragEnd={tree.onNoteDragEnd}
+                        onDragEnd={tree.onDragEnd}
                         aria-current={
                             note.id === tree.activeNoteId ? 'page' : undefined
                         }
@@ -349,6 +401,14 @@ function FolderItem({
             >
                 <button
                     type="button"
+                    draggable
+                    onDragStart={(event) =>
+                        tree.onDragStart(event, {
+                            kind: 'folder',
+                            path: folder.path,
+                        })
+                    }
+                    onDragEnd={tree.onDragEnd}
                     onClick={() => tree.onToggle(folder.path)}
                     aria-expanded={!isCollapsed}
                     className={cn(
@@ -398,6 +458,26 @@ function FolderItem({
                         >
                             <FolderPlus />
                             New folder
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            data-test="tree-rename-folder"
+                            onSelect={() =>
+                                tree.actions.onRenameFolder(folder.path)
+                            }
+                        >
+                            <Pencil />
+                            Rename…
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            data-test="tree-delete-folder"
+                            variant="destructive"
+                            onSelect={() =>
+                                tree.actions.onDeleteFolder(folder.path)
+                            }
+                        >
+                            <Trash2 />
+                            Delete…
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

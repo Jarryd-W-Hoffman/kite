@@ -57,6 +57,8 @@ Route::get('vaults/{vault}/search', [VaultSearchController::class, 'index'])->na
 Route::post('vaults/{vault}/preview', [VaultPreviewController::class, 'store'])->name('vault-preview.store');
 Route::get('vaults/{vault}/files/{path}', [VaultFileController::class, 'show'])->where('path', '.*')->name('vault-files.show');
 Route::post('vaults/{vault}/folders', [FolderController::class, 'store'])->name('folders.store');
+Route::put('vaults/{vault}/folders', [FolderController::class, 'update'])->name('folders.update');
+Route::delete('vaults/{vault}/folders', [FolderController::class, 'destroy'])->name('folders.destroy');
 Route::post('vaults/{vault}/attachments', [VaultAttachmentController::class, 'store'])->name('vault-attachments.store');
 Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->middleware(WatchVault::class)->name('vault-graph.show');
 
