@@ -136,6 +136,7 @@ function PreferencesForm({
         attachments_folder: preferences.attachments_folder ?? '',
         daily_folder: preferences.daily_folder ?? '',
         daily_template: preferences.daily_template ?? '',
+        templates_folder: preferences.templates_folder ?? '',
         capture_shortcut: preferences.capture_shortcut ?? '',
     });
 
@@ -333,7 +334,7 @@ function PreferencesForm({
                     <Field
                         id="daily_template"
                         label="Template note"
-                        hint="Vault-relative path. Supports {{date}}, {{title}} and {{time}}."
+                        hint="Vault-relative path. Supports the same placeholders as templates."
                         error={errors.daily_template}
                     >
                         <Input
@@ -342,6 +343,24 @@ function PreferencesForm({
                             value={data.daily_template}
                             onChange={(event) =>
                                 setData('daily_template', event.target.value)
+                            }
+                        />
+                    </Field>
+                </Section>
+
+                <Section title="Templates">
+                    <Field
+                        id="templates_folder"
+                        label="Templates folder"
+                        hint="Notes here are offered by New note from template. Leave empty to turn templates off."
+                        error={errors.templates_folder}
+                    >
+                        <Input
+                            id="templates_folder"
+                            placeholder="Templates"
+                            value={data.templates_folder}
+                            onChange={(event) =>
+                                setData('templates_folder', event.target.value)
                             }
                         />
                     </Field>

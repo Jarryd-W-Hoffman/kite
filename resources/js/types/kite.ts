@@ -80,7 +80,10 @@ export type WorkspaceProps = {
     comments?: NoteComment[];
     /** Set when the note's comments file exists but can't be read. */
     comments_error?: string;
+    templates?: NoteTemplate[];
 };
+
+export type NoteTemplate = { id: number; path: string; name: string };
 
 export type NoteComment = {
     id: string;
@@ -131,6 +134,7 @@ export type Preferences = EditorPreferences & {
     daily_folder: string | null;
     daily_format: string;
     daily_template: string | null;
+    templates_folder: string | null;
     capture_shortcut: string | null;
     tree_group_colours: boolean;
 };

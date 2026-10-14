@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Models\Note;
 use App\Models\Vault;
 use App\Services\DailyNotes;
+use App\Services\Templates;
 use App\Services\VaultFilesystem;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -18,6 +19,7 @@ final readonly class OpenDailyNote
         private VaultFilesystem $files,
         private DailyNotes $daily,
         private IndexNote $indexNote,
+        private Templates $templates,
     ) {
         //
     }
@@ -52,10 +54,11 @@ final readonly class OpenDailyNote
             $contents = "# {{title}}\n\n";
         }
 
-        return strtr($contents, [
-            '{{date}}' => $date->toDateString(),
-            '{{title}}' => $title,
-            '{{time}}' => now()->format('H:i'),
+        return $this->templates->render($contents, [
+            'title' => $title,
+            'date' => $date,
+            'folder' => dirname($this->daily->pathFor($date)) === '.' ? '' : dirname($this->daily->pathFor($date)),
+            'vault' => $vault->name,
         ]);
     }
 }

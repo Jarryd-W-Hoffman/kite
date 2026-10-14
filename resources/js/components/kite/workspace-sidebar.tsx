@@ -7,6 +7,7 @@ import {
     FolderPlus,
     Hash,
     Keyboard,
+    LayoutTemplate,
     Monitor,
     Moon,
     Network,
@@ -24,6 +25,7 @@ import { IndexingStatus } from '@/components/kite/indexing-status';
 import { Kbd } from '@/components/kite/kbd';
 import { PreferencesDialog } from '@/components/kite/preferences-dialog';
 import { ShortcutsDialog } from '@/components/kite/shortcuts-dialog';
+import { TemplateDialog } from '@/components/kite/template-dialog';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -51,6 +53,7 @@ import { show as showTag } from '@/routes/vault-tags';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
 import type {
     IndexingProgress,
+    NoteTemplate,
     TagCount,
     TreeNote,
     VaultSummary,
@@ -98,6 +101,9 @@ export function WorkspaceSidebar({
     const { kite } = usePage().props;
     const [preferencesOpen, setPreferencesOpen] = useState(false);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
+    const [templateFolder, setTemplateFolder] = useState<string | null>(null);
+    const templates =
+        (usePage().props as { templates?: NoteTemplate[] }).templates ?? [];
     const { appearance, resolvedAppearance, updateAppearance } =
         useAppearance();
     const [folderDialog, setFolderDialog] = useState<FolderDialogState>(null);
@@ -111,6 +117,7 @@ export function WorkspaceSidebar({
         'open-vault': () => router.visit(vaultsIndex()),
         preferences: () => setPreferencesOpen(true),
         shortcuts: () => setShortcutsOpen(true),
+        'new-from-template': () => setTemplateFolder(''),
         search: onSearch,
         graph: () => router.visit(showGraph(vault.id)),
         'toggle-theme': () =>
@@ -182,6 +189,24 @@ export function WorkspaceSidebar({
                             variant="ghost"
                             size="icon"
                             className="kite-no-drag size-8"
+                            aria-label="New note from template"
+                            data-test="new-from-template"
+                            onClick={() => setTemplateFolder('')}
+                        >
+                            <LayoutTemplate />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        New note from template (
+                        {formatShortcut('Mod+Shift+N', kite.platform)})
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="kite-no-drag size-8"
                             aria-label="New folder"
                             data-test="new-folder"
                             onClick={() =>
@@ -240,6 +265,7 @@ export function WorkspaceSidebar({
                     onNewNote={(folder) =>
                         createNote(vault, 'Untitled', folder)
                     }
+                    onNewFromTemplate={setTemplateFolder}
                     onNewFolder={(path) =>
                         setFolderDialog({ kind: 'new', path })
                     }
@@ -332,6 +358,12 @@ export function WorkspaceSidebar({
             <ShortcutsDialog
                 open={shortcutsOpen}
                 onOpenChange={setShortcutsOpen}
+            />
+            <TemplateDialog
+                vault={vault}
+                templates={templates}
+                folder={templateFolder}
+                onClose={() => setTemplateFolder(null)}
             />
             <IndexingStatus vault={vault} indexing={indexing} />
         </aside>

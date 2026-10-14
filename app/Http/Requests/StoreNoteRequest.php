@@ -17,6 +17,7 @@ final class StoreNoteRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:200'],
             'folder' => ['nullable', 'string', 'max:1024'],
+            'template' => ['nullable', 'string', 'max:1024'],
         ];
     }
 }

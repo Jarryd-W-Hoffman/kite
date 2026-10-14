@@ -16,6 +16,7 @@ final readonly class AppMenu
 {
     public const array COMMANDS = [
         'new-note' => ['New note', 'CmdOrCtrl+N'],
+        'new-from-template' => ['New note from template…', 'CmdOrCtrl+Shift+N'],
         'close-tab' => ['Close tab', 'CmdOrCtrl+W'],
         'daily-note' => ["Today's note", 'CmdOrCtrl+D'],
         'open-vault' => ['Open vault…', 'CmdOrCtrl+O'],
@@ -33,6 +34,7 @@ final readonly class AppMenu
             Menu::app(),
             Menu::make(
                 $this->command('new-note'),
+                $this->command('new-from-template'),
                 $this->command('daily-note'),
                 Menu::label('Quick capture…')->event(QuickCaptureRequested::class),
                 Menu::separator(),
