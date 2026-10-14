@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { FileText, Hash } from 'lucide-react';
 import { useState } from 'react';
 import { CommandPalette } from '@/components/kite/command-palette';
+import { EmptyState } from '@/components/kite/empty-state';
 import { WorkspaceSidebar } from '@/components/kite/workspace-sidebar';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { show } from '@/routes/notes';
@@ -74,9 +75,12 @@ export default function TagShow({
 
                     <div className="min-h-0 flex-1 overflow-y-auto">
                         {notes.length === 0 ? (
-                            <p className="p-8 text-center text-sm text-muted-foreground">
-                                No notes are tagged #{tag}.
-                            </p>
+                            <EmptyState
+                                icon={Hash}
+                                title={`No notes are tagged #${tag}`}
+                                description="Add the tag anywhere in a note, or in its frontmatter tags list."
+                                className="h-full"
+                            />
                         ) : (
                             <ul
                                 className="mx-auto max-w-3xl divide-y px-6 py-4"

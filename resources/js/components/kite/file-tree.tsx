@@ -277,9 +277,20 @@ export function FileTree({
 
     if (notes.length === 0 && folders.length === 0) {
         return (
-            <p className="px-3 py-2 text-sm text-muted-foreground">
-                No notes yet.
-            </p>
+            <div
+                className="space-y-2 px-3 py-2 text-sm text-muted-foreground"
+                data-test="tree-empty"
+            >
+                <p>No notes yet.</p>
+                <button
+                    type="button"
+                    onClick={() => onNewNote('')}
+                    className="inline-flex items-center gap-1.5 rounded-md text-sidebar-foreground underline-offset-4 hover:underline"
+                >
+                    <FilePlus className="size-3.5" />
+                    Create your first note
+                </button>
+            </div>
         );
     }
 
@@ -354,6 +365,15 @@ function FolderContents({
                     indent={indent}
                 />
             ))}
+            {folder.folders.length === 0 && folder.notes.length === 0 && (
+                <li
+                    className="py-1 pr-2 text-xs text-muted-foreground italic"
+                    style={{ paddingLeft: `${depth * INDENT + 8 + 18}px` }}
+                    data-test="tree-empty-folder"
+                >
+                    Empty
+                </li>
+            )}
             {folder.notes.map((note) => (
                 <li key={note.id}>
                     <Link

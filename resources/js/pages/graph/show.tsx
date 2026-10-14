@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { EyeOff, FilePlus2, Network, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { ColourGroupEditor } from '@/components/kite/colour-group-editor';
 import {
@@ -8,9 +8,14 @@ import {
 } from '@/components/kite/colour-group-legend';
 import type { LegendKey } from '@/components/kite/colour-group-legend';
 import { CommandPalette } from '@/components/kite/command-palette';
+import { EmptyState } from '@/components/kite/empty-state';
 import { GraphCanvas } from '@/components/kite/graph-canvas';
 import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
-import { WorkspaceSidebar } from '@/components/kite/workspace-sidebar';
+import {
+    WorkspaceSidebar,
+    createNote,
+} from '@/components/kite/workspace-sidebar';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useVaultSync } from '@/hooks/use-vault-sync';
@@ -102,6 +107,12 @@ export default function GraphShow({
         });
 
     const noteCount = graph.nodes.filter((node) => !node.ghost).length;
+
+    const resetFilters = () => {
+        setShowGhosts(true);
+        setShowOrphans(true);
+        setHiddenGroups(new Set());
+    };
 
     const open = (node: GraphNode) => {
         const match = graph.nodes.find((candidate) => candidate.id === node.id);
@@ -214,11 +225,35 @@ export default function GraphShow({
                     </header>
 
                     <div className="relative min-h-0 flex-1">
-                        {nodes.length === 0 ? (
-                            <p className="p-8 text-center text-sm text-muted-foreground">
-                                Nothing to show yet. Link notes with [[wiki
-                                links]] to grow the graph.
-                            </p>
+                        {noteCount === 0 ? (
+                            <EmptyState
+                                icon={Network}
+                                title="No notes to graph yet"
+                                description="Notes appear here as dots, and every [[wiki link]] between them becomes a line."
+                                className="h-full"
+                            >
+                                <Button
+                                    onClick={() => createNote(vault, 'Home')}
+                                >
+                                    <FilePlus2 />
+                                    Create a note
+                                </Button>
+                            </EmptyState>
+                        ) : nodes.length === 0 ? (
+                            <EmptyState
+                                icon={EyeOff}
+                                title="Everything is filtered out"
+                                description="The current filters hide every note in the graph."
+                                className="h-full"
+                            >
+                                <Button
+                                    variant="outline"
+                                    onClick={resetFilters}
+                                    data-test="reset-graph-filters"
+                                >
+                                    Show all notes
+                                </Button>
+                            </EmptyState>
                         ) : (
                             <GraphCanvas
                                 nodes={nodes}
@@ -229,6 +264,15 @@ export default function GraphShow({
                                 groups={colourGroups}
                                 onOpen={open}
                             />
+                        )}
+                        {nodes.length > 0 && graph.edges.length === 0 && (
+                            <p
+                                className="pointer-events-none absolute inset-x-0 bottom-10 mx-auto w-fit rounded-full border bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-sm"
+                                data-test="graph-no-links"
+                            >
+                                No links yet. Type [[ in a note to link it to
+                                another.
+                            </p>
                         )}
                         {colourBy === 'group' && (
                             <ColourGroupLegend
