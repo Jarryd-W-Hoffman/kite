@@ -21,6 +21,7 @@ export type AppCommand =
     | 'version-history'
     | 'extract-selection'
     | 'merge-note'
+    | 'focus-mode'
     | 'export-html'
     | 'export-pdf'
     | 'publish';
@@ -47,6 +48,7 @@ const SHORTCUTS: Record<string, AppCommand> = {
     k: 'search',
     g: 'graph',
     e: 'toggle-preview',
+    'shift+f': 'focus-mode',
     'shift+l': 'toggle-theme',
     'shift+n': 'new-from-template',
     '/': 'shortcuts',

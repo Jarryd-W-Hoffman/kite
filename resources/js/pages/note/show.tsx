@@ -8,6 +8,7 @@ import {
     FileCode,
     FileDown,
     FilePlus2,
+    Focus,
     Globe,
     History,
     LoaderCircle,
@@ -26,6 +27,7 @@ import { CommandPalette } from '@/components/kite/command-palette';
 import { CommentRail } from '@/components/kite/comment-rail';
 import { DeleteNoteDialog } from '@/components/kite/delete-note-dialog';
 import { EmptyState } from '@/components/kite/empty-state';
+import { countWords, FocusBar } from '@/components/kite/focus-bar';
 import { Kbd } from '@/components/kite/kbd';
 import { NoteEditor } from '@/components/kite/note-editor';
 import type {
@@ -53,6 +55,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
+    DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -64,6 +67,7 @@ import { useNoteLinkModifiers } from '@/hooks/use-note-link-modifiers';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { requestJson } from '@/lib/kite-http';
 import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
+import { formatShortcut } from '@/lib/shortcuts';
 import { BASE_COMMANDS } from '@/lib/slash-commands';
 import type { SlashCommand } from '@/lib/slash-commands';
 import { cn, editorWidthClass } from '@/lib/utils';
@@ -99,6 +103,9 @@ export default function NoteShow(props: WorkspaceProps) {
         () => localStorage.getItem('kite:panel') !== 'closed',
     );
 
+    // Focus mode hides everything but the note; it lasts until left, across notes.
+    const [focus, setFocus] = useState(false);
+
     const togglePanel = () => {
         setPanelOpen((open) => {
             localStorage.setItem('kite:panel', open ? 'closed' : 'open');
@@ -112,17 +119,19 @@ export default function NoteShow(props: WorkspaceProps) {
             <Head title={note?.title ?? vault.name} />
 
             <div className="flex h-svh overflow-hidden bg-background">
-                <WorkspaceSidebar
-                    vault={vault}
-                    vaults={vaults}
-                    tree={tree}
-                    folders={folders}
-                    colourGroups={colourGroups}
-                    tags={tags}
-                    activeNoteId={note?.id ?? null}
-                    indexing={indexing}
-                    onSearch={() => setPaletteOpen(true)}
-                />
+                {!(focus && note) && (
+                    <WorkspaceSidebar
+                        vault={vault}
+                        vaults={vaults}
+                        tree={tree}
+                        folders={folders}
+                        colourGroups={colourGroups}
+                        tags={tags}
+                        activeNoteId={note?.id ?? null}
+                        indexing={indexing}
+                        onSearch={() => setPaletteOpen(true)}
+                    />
+                )}
 
                 {note ? (
                     <NoteWorkspace
@@ -131,6 +140,8 @@ export default function NoteShow(props: WorkspaceProps) {
                         note={note}
                         panelOpen={panelOpen}
                         onTogglePanel={togglePanel}
+                        focus={focus}
+                        onToggleFocus={() => setFocus((on) => !on)}
                     />
                 ) : (
                     <EmptyWorkspace {...props} />
@@ -233,6 +244,8 @@ type NoteWorkspaceProps = WorkspaceProps & {
     note: NoteDetail;
     panelOpen: boolean;
     onTogglePanel: () => void;
+    focus: boolean;
+    onToggleFocus: () => void;
 };
 
 function NoteWorkspace({
@@ -248,6 +261,8 @@ function NoteWorkspace({
     templates = [],
     panelOpen,
     onTogglePanel,
+    focus,
+    onToggleFocus,
 }: NoteWorkspaceProps) {
     const { kite } = usePage().props;
     const { editor } = kite;
@@ -278,9 +293,31 @@ function NoteWorkspace({
     // Side panels float over the note in narrow windows, and split view needs room for two panes.
     const narrow = useMediaQuery('(max-width: 1279px)');
     const tooNarrowToSplit = useMediaQuery('(max-width: 1099px)');
+    // Focus mode shows one pane: the editor, or the preview when that's what was showing.
     const shownMode =
-        tooNarrowToSplit && viewMode === 'split' ? 'edit' : viewMode;
+        (tooNarrowToSplit || focus) && viewMode === 'split' ? 'edit' : viewMode;
     const [starred, setStarred] = useState(note.starred === true);
+
+    useEffect(() => {
+        if (!focus) {
+            return;
+        }
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            // Let the editor (closing a menu) and dialogs have Escape first.
+            if (
+                event.key === 'Escape' &&
+                !event.defaultPrevented &&
+                document.querySelector('[role=dialog]') === null
+            ) {
+                onToggleFocus();
+            }
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [focus, onToggleFocus]);
 
     const toggleStar = () => {
         const next = !starred;
@@ -469,6 +506,7 @@ function NoteWorkspace({
             }
         },
         'merge-note': () => setMerging(true),
+        'focus-mode': onToggleFocus,
         'export-html': () => void exportNote('html'),
         'export-pdf': () => void exportNote('pdf'),
         publish: () =>
@@ -611,12 +649,23 @@ function NoteWorkspace({
 
     return (
         <>
-            <main className="flex min-w-0 flex-1 flex-col">
-                <TabBar
-                    vault={vault}
-                    note={{ id: note.id, title: meta.title }}
-                />
-                <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-3">
+            <main
+                className="relative flex min-w-0 flex-1 flex-col"
+                data-focus={focus || undefined}
+            >
+                {!focus && (
+                    <TabBar
+                        vault={vault}
+                        note={{ id: note.id, title: meta.title }}
+                    />
+                )}
+                <header
+                    className={cn(
+                        'kite-drag flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-3',
+                        focus &&
+                            'border-transparent opacity-0 transition-opacity duration-300 focus-within:opacity-100 hover:opacity-100',
+                    )}
+                >
                     {renaming ? (
                         <input
                             autoFocus
@@ -795,6 +844,19 @@ function NoteWorkspace({
                                     Rename or move
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                    onSelect={onToggleFocus}
+                                    data-test="enter-focus"
+                                >
+                                    <Focus />
+                                    Focus mode
+                                    <DropdownMenuShortcut>
+                                        {formatShortcut(
+                                            'Mod+Shift+F',
+                                            kite.platform,
+                                        )}
+                                    </DropdownMenuShortcut>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                     onSelect={() => setMerging(true)}
                                     data-test="merge-note"
                                 >
@@ -858,7 +920,7 @@ function NoteWorkspace({
                 </header>
 
                 <div className="relative flex min-h-0 flex-1">
-                    {narrow && sidePanels}
+                    {narrow && !focus && sidePanels}
                     {shownMode !== 'preview' && (
                         <NoteEditor
                             ref={editorRef}
@@ -879,6 +941,7 @@ function NoteWorkspace({
                                 toggleComments(true);
                             }}
                             onExtract={setExtracting}
+                            typewriter={focus}
                             className={cn(
                                 'min-w-0 flex-1',
                                 shownMode === 'split' && 'border-r',
@@ -897,18 +960,42 @@ function NoteWorkspace({
                             />
                         </div>
                     )}
-                    {splitNoteId !== null && splitNoteId !== note.id && (
-                        <SplitPane
-                            vault={vault}
-                            noteId={splitNoteId}
-                            tree={tree}
-                            onClose={closeSplit}
+                    {focus && (
+                        <FocusBar
+                            words={countWords(contents)}
+                            goal={
+                                typeof properties.word_goal === 'number' &&
+                                properties.word_goal > 0
+                                    ? properties.word_goal
+                                    : null
+                            }
+                            onGoalChange={(goal) => {
+                                const { word_goal: _previous, ...rest } =
+                                    properties;
+
+                                changeProperties(
+                                    goal === null
+                                        ? rest
+                                        : { ...properties, word_goal: goal },
+                                );
+                            }}
+                            onExit={onToggleFocus}
                         />
                     )}
+                    {!focus &&
+                        splitNoteId !== null &&
+                        splitNoteId !== note.id && (
+                            <SplitPane
+                                vault={vault}
+                                noteId={splitNoteId}
+                                tree={tree}
+                                onClose={closeSplit}
+                            />
+                        )}
                 </div>
             </main>
 
-            {!narrow && sidePanels}
+            {!narrow && !focus && sidePanels}
 
             <VersionHistoryDialog
                 vault={vault}

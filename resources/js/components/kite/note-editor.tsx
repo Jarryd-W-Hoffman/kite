@@ -68,6 +68,7 @@ import {
     slashIcon,
 } from '@/lib/slash-commands';
 import type { SlashCommand } from '@/lib/slash-commands';
+import { typewriterScrolling } from '@/lib/typewriter';
 import { cn, editorFontClass, editorWidthClass } from '@/lib/utils';
 import type { TreeNote } from '@/types';
 
@@ -106,6 +107,8 @@ type Props = {
     onAddComment?: (anchor: CommentAnchor) => void;
     /** Passing this offers an Extract button on selections, to move them into a new note. */
     onExtract?: (selection: EditorSelectionText) => void;
+    /** Keep the cursor's line in the middle of the editor as you write. */
+    typewriter?: boolean;
     /** Called with the cursor's 1-based line whenever it moves to another line. */
     onCursorLine?: (line: number) => void;
     /** Commands offered after typing `/`; the built-in blocks when not given. */
@@ -122,6 +125,9 @@ function selectionOf(view: EditorView): EditorSelectionText | null {
 
 /** Live preview can be switched on and off without rebuilding the editor. */
 const livePreviewMode = new Compartment();
+
+/** Typewriter scrolling, on in focus mode. */
+const typewriterMode = new Compartment();
 
 /**
  * Re-find comments in the document. Comments already tracked keep their mapped position unless
@@ -405,6 +411,7 @@ export function NoteEditor({
     onSelectComment,
     onAddComment,
     onExtract,
+    typewriter = false,
     onCursorLine,
     slashCommands,
 }: Props) {
@@ -430,6 +437,7 @@ export function NoteEditor({
     const commentable = useRef(onAddComment !== undefined);
     const extractable = useRef(onExtract !== undefined);
     const initialLivePreview = useRef(editor.live_preview);
+    const initialTypewriter = useRef(typewriter);
 
     useEffect(() => {
         callbacks.current = {
@@ -650,6 +658,9 @@ export function NoteEditor({
             markdownBlocksTheme,
             livePreviewTheme,
             livePreviewMode.of(initialLivePreview.current ? livePreview : []),
+            typewriterMode.of(
+                initialTypewriter.current ? typewriterScrolling : [],
+            ),
             commentField,
             commentTheme,
             ...(selectionActions.length > 0
@@ -826,6 +837,26 @@ export function NoteEditor({
             ),
         });
     }, [editor.live_preview]);
+
+    useEffect(() => {
+        const view = viewRef.current;
+
+        view?.dispatch({
+            effects: [
+                typewriterMode.reconfigure(
+                    typewriter ? typewriterScrolling : [],
+                ),
+                ...(typewriter
+                    ? [
+                          EditorView.scrollIntoView(
+                              view.state.selection.main.head,
+                              { y: 'center' },
+                          ),
+                      ]
+                    : []),
+            ],
+        });
+    }, [typewriter]);
 
     useEffect(() => {
         viewRef.current?.dispatch({

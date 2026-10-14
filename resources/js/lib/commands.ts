@@ -18,6 +18,7 @@ import {
     Table2,
     X,
     Eye,
+    Focus,
     Merge,
     Scissors,
 } from 'lucide-react';
@@ -108,6 +109,14 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         shortcut: 'Mod+E',
         note: true,
         keywords: 'reading view',
+    },
+    {
+        id: 'focus-mode',
+        label: 'Toggle focus mode',
+        icon: Focus,
+        shortcut: 'Mod+Shift+F',
+        note: true,
+        keywords: 'zen distraction free writing typewriter goal',
     },
     {
         id: 'toggle-star',

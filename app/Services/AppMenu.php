@@ -24,6 +24,7 @@ final readonly class AppMenu
         'search' => ['Search…', 'CmdOrCtrl+K'],
         'graph' => ['Graph view', 'CmdOrCtrl+G'],
         'toggle-preview' => ['Toggle preview', 'CmdOrCtrl+E'],
+        'focus-mode' => ['Focus mode', 'CmdOrCtrl+Shift+F'],
         'toggle-theme' => ['Toggle dark mode', 'CmdOrCtrl+Shift+L'],
         'shortcuts' => ['Keyboard shortcuts', 'CmdOrCtrl+/'],
     ];
@@ -49,6 +50,7 @@ final readonly class AppMenu
                 $this->command('search'),
                 $this->command('graph'),
                 $this->command('toggle-preview'),
+                $this->command('focus-mode'),
                 $this->command('toggle-theme'),
                 Menu::separator(),
                 $this->command('shortcuts'),
