@@ -73,5 +73,7 @@ it('applies the stored appearance to the native theme in the desktop app', funct
 it('provides php ini directives for the native runtime', function (): void {
     expect(new NativeAppServiceProvider()->phpIni())->toBe([
         'memory_limit' => '512M',
+        'upload_max_filesize' => '1G',
+        'post_max_size' => '1G',
     ]);
 });

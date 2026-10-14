@@ -59,6 +59,9 @@ final class NativeAppServiceProvider implements ProvidesPhpIni
     {
         return [
             'memory_limit' => '512M',
+            // Room for big uploads, such as a Notion export.
+            'upload_max_filesize' => '1G',
+            'post_max_size' => '1G',
         ];
     }
 }

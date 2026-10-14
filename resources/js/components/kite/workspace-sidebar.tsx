@@ -8,6 +8,7 @@ import {
     Clock,
     ChevronsUpDown,
     FolderOpen,
+    Import,
     FolderPlus,
     Hash,
     Keyboard,
@@ -30,6 +31,7 @@ import { FolderDialogs } from '@/components/kite/folder-dialogs';
 import type { FolderDialogState } from '@/components/kite/folder-dialogs';
 import { IndexingStatus } from '@/components/kite/indexing-status';
 import { Kbd } from '@/components/kite/kbd';
+import { NotionImportDialog } from '@/components/kite/notion-import-dialog';
 import { PreferencesDialog } from '@/components/kite/preferences-dialog';
 import { ShortcutsDialog } from '@/components/kite/shortcuts-dialog';
 import { TemplateDialog } from '@/components/kite/template-dialog';
@@ -116,6 +118,7 @@ export function WorkspaceSidebar({
     const { kite } = usePage().props;
     const [preferencesOpen, setPreferencesOpen] = useState(false);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
+    const [importing, setImporting] = useState(false);
     const [calendarOpen, setCalendarOpen] = useState(
         () => localStorage.getItem('kite:calendar-open') !== 'false',
     );
@@ -203,6 +206,13 @@ export function WorkspaceSidebar({
                                 <FolderOpen />
                                 Open another vault…
                             </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onSelect={() => setImporting(true)}
+                            data-test="import-notion"
+                        >
+                            <Import />
+                            Import from Notion…
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -467,6 +477,11 @@ export function WorkspaceSidebar({
                 onClose={() => setTemplateFolder(null)}
             />
             <IndexingStatus vault={vault} indexing={indexing} />
+            <NotionImportDialog
+                vault={vault}
+                open={importing}
+                onOpenChange={setImporting}
+            />
         </aside>
     );
 }
