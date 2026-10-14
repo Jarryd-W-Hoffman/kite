@@ -1,6 +1,8 @@
 export type Tab = {
     id: number;
     title: string;
+    /** Pinned tabs stay at the front, aren't replaced by other notes and aren't closed by Mod+W. */
+    pinned?: boolean;
 };
 
 export type TabState = {
@@ -55,11 +57,12 @@ export function visitTab(vaultId: number, note: Tab): TabState {
     let tabs = [...state.tabs];
 
     if (existing !== -1) {
-        tabs[existing] = note;
+        tabs[existing] = { ...note, pinned: tabs[existing].pinned };
     } else {
         const activeIndex = tabs.findIndex((tab) => tab.id === state.active);
 
-        if (wantsNewTab || activeIndex === -1) {
+        // A pinned tab keeps its note; the new one opens beside it instead.
+        if (wantsNewTab || activeIndex === -1 || tabs[activeIndex].pinned) {
             tabs.splice(activeIndex + 1 || tabs.length, 0, note);
         } else {
             tabs[activeIndex] = note;
@@ -83,6 +86,11 @@ export function closeTab(
 ): { state: TabState; next: number | null } {
     const state = readTabs(vaultId);
     const index = state.tabs.findIndex((tab) => tab.id === id);
+
+    if (state.tabs[index]?.pinned) {
+        return { state, next: null };
+    }
+
     const tabs = state.tabs.filter((tab) => tab.id !== id);
 
     if (state.active !== id) {
@@ -92,4 +100,22 @@ export function closeTab(
     const next = tabs[Math.min(index, tabs.length - 1)]?.id ?? null;
 
     return { state: writeTabs(vaultId, { tabs, active: next }), next };
+}
+
+/**
+ * Pin or unpin a tab. Pinned tabs move to the front, in the order they were pinned.
+ */
+export function togglePin(vaultId: number, id: number): TabState {
+    const state = readTabs(vaultId);
+    const tabs = state.tabs.map((tab) =>
+        tab.id === id ? { ...tab, pinned: !tab.pinned } : tab,
+    );
+
+    return writeTabs(vaultId, {
+        ...state,
+        tabs: [
+            ...tabs.filter((tab) => tab.pinned),
+            ...tabs.filter((tab) => !tab.pinned),
+        ],
+    });
 }

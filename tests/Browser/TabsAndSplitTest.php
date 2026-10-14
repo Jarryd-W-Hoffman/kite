@@ -64,3 +64,24 @@ it('opens a note beside the current one and edits it there', function (): void {
 
     expect(file_get_contents($vault->path.'/Beta.md'))->toBe('# Beta edited');
 });
+
+it('keeps pinned tabs when opening other notes', function (): void {
+    $vault = tabsVault();
+    $notes = fn (string $path): string => 'nav[aria-label=Notes] a[href="/vaults/'.$vault->id.'/notes/'.noteId($path).'"]';
+
+    visit(route('notes.show', [$vault, noteId('Alpha.md')]))
+        ->withKeyDown('Control', fn ($page) => $page->click($notes('Beta.md')))
+        ->click('[aria-label="Pin Beta"]')
+        ->assertMissing('[aria-label="Close Beta"]')
+        ->click($notes('Gamma.md'))
+        ->assertSeeIn('@note-preview', 'Gamma')
+        ->assertSeeIn('@tab-bar', 'Beta')
+        ->assertSeeIn('@tab-bar', 'Gamma')
+        ->click('[role=tab]:first-child a')
+        ->assertSeeIn('@note-preview', 'Beta')
+        ->keys('@note-editor', 'Control+w')
+        ->assertSeeIn('@note-preview', 'Beta')
+        ->click('[aria-label="Unpin Beta"]')
+        ->assertPresent('[aria-label="Close Beta"]')
+        ->assertNoJavaScriptErrors();
+});
