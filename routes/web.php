@@ -16,6 +16,7 @@ use App\Http\Controllers\NoteExportController;
 use App\Http\Controllers\NoteMentionController;
 use App\Http\Controllers\NotePaneController;
 use App\Http\Controllers\NotePathController;
+use App\Http\Controllers\NotePropertiesController;
 use App\Http\Controllers\NotePublicationController;
 use App\Http\Controllers\NoteVersionController;
 use App\Http\Controllers\NoteVersionRestoreController;
@@ -88,6 +89,7 @@ Route::scopeBindings()->group(function (): void {
     Route::get('vaults/{vault}/notes/{note}/pane', [NotePaneController::class, 'show'])->name('note-panes.show');
     Route::post('vaults/{vault}/notes/{note}/mentions', [NoteMentionController::class, 'store'])->name('note-mentions.store');
     Route::put('vaults/{vault}/notes/{note}/path', [NotePathController::class, 'update'])->name('note-path.update');
+    Route::put('vaults/{vault}/notes/{note}/properties', [NotePropertiesController::class, 'update'])->name('note-properties.update');
     Route::delete('vaults/{vault}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
     Route::get('vaults/{vault}/notes/{note}/export/{format}', [NoteExportController::class, 'show'])->whereIn('format', ['html', 'pdf'])->name('note-exports.show');
     Route::post('vaults/{vault}/notes/{note}/publish', [NotePublicationController::class, 'store'])->name('note-publications.store');

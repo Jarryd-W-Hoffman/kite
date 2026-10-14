@@ -29,6 +29,7 @@ import { NoteEditor } from '@/components/kite/note-editor';
 import type { NoteEditorHandle } from '@/components/kite/note-editor';
 import { NotePanel } from '@/components/kite/note-panel';
 import { NotePreview, scrollToHeading } from '@/components/kite/note-preview';
+import type { Properties } from '@/components/kite/properties-editor';
 import { SplitPane } from '@/components/kite/split-pane';
 import { TabBar } from '@/components/kite/tab-bar';
 import { VersionHistoryDialog } from '@/components/kite/version-history-dialog';
@@ -58,6 +59,7 @@ import type { SlashCommand } from '@/lib/slash-commands';
 import { cn, editorWidthClass } from '@/lib/utils';
 import { show as noteExport } from '@/routes/note-exports';
 import { update as updatePath } from '@/routes/note-path';
+import { update as updateProperties } from '@/routes/note-properties';
 import { store as publishNote } from '@/routes/note-publications';
 import { store as restoreVersion } from '@/routes/note-version-restores';
 import { show as showTemplate } from '@/routes/templates';
@@ -256,6 +258,43 @@ function NoteWorkspace({
     );
     const pendingReveal = useRef<string | null>(null);
     const [cursorLine, setCursorLine] = useState<number | null>(null);
+    const [properties, setProperties] = useState<Properties>(meta.frontmatter);
+    const [savedFrontmatter, setSavedFrontmatter] = useState(meta.frontmatter);
+
+    // A save (or a change on disk) brings the parsed frontmatter back from the server.
+    if (meta.frontmatter !== savedFrontmatter) {
+        setSavedFrontmatter(meta.frontmatter);
+        setProperties(meta.frontmatter);
+    }
+
+    const latestContents = useRef(contents);
+    const propertyQueue = useRef<Promise<void>>(Promise.resolve());
+
+    useEffect(() => {
+        latestContents.current = contents;
+    }, [contents]);
+
+    // Changes run one at a time on the newest text, so quick edits never undo each other.
+    const changeProperties = (next: Properties) => {
+        setProperties(next);
+        propertyQueue.current = propertyQueue.current.then(async () => {
+            try {
+                const response = await requestJson<{
+                    contents: string;
+                    properties: Properties;
+                }>(updateProperties({ vault: vault.id, note: note.id }), {
+                    contents: latestContents.current,
+                    properties: next,
+                });
+
+                latestContents.current = response.contents;
+                setContents(response.contents);
+                setProperties(response.properties);
+            } catch {
+                toast.error('Could not update the properties.');
+            }
+        });
+    };
     const noteComments = useNoteComments({
         vault,
         noteId: note.id,
@@ -760,6 +799,8 @@ function NoteWorkspace({
                         mentions={mentions}
                         onSelectHeading={selectHeading}
                         cursorLine={viewMode === 'preview' ? null : cursorLine}
+                        properties={properties}
+                        onPropertiesChange={changeProperties}
                     />
                 </aside>
             )}
