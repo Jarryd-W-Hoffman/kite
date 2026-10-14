@@ -10,6 +10,7 @@ use App\Http\Controllers\ColourGroupPreviewController;
 use App\Http\Controllers\DailyNoteController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\NoteCommentController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NoteMentionController;
 use App\Http\Controllers\NotePaneController;
@@ -81,6 +82,9 @@ Route::scopeBindings()->group(function (): void {
     Route::post('vaults/{vault}/notes/{note}/mentions', [NoteMentionController::class, 'store'])->name('note-mentions.store');
     Route::put('vaults/{vault}/notes/{note}/path', [NotePathController::class, 'update'])->name('note-path.update');
     Route::delete('vaults/{vault}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
+    Route::post('vaults/{vault}/notes/{note}/comments', [NoteCommentController::class, 'store'])->name('note-comments.store');
+    Route::put('vaults/{vault}/notes/{note}/comments/{comment}', [NoteCommentController::class, 'update'])->where('comment', '[0-9a-z]{26}')->name('note-comments.update');
+    Route::delete('vaults/{vault}/notes/{note}/comments/{comment}', [NoteCommentController::class, 'destroy'])->where('comment', '[0-9a-z]{26}')->name('note-comments.destroy');
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {

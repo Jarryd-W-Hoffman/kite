@@ -77,6 +77,20 @@ export type WorkspaceProps = {
     backlinks: Backlink[];
     outgoing: OutgoingLink[];
     mentions?: UnlinkedMention[];
+    comments?: NoteComment[];
+    /** Set when the note's comments file exists but can't be read. */
+    comments_error?: string;
+};
+
+export type NoteComment = {
+    id: string;
+    body: string;
+    quote: string;
+    prefix: string;
+    suffix: string;
+    resolved: boolean;
+    created_at: string;
+    updated_at: string;
 };
 
 export type UnlinkedMention = {

@@ -44,6 +44,7 @@ const SECTIONS: { title: string; shortcuts: [string, string][] }[] = [
             ['Mod+F', 'Find and replace'],
             ['Mod+Z', 'Undo'],
             ['Mod+Shift+Z', 'Redo'],
+            ['Mod+Alt+M', 'Comment on the selection'],
             ['[[', 'Link to a note'],
         ],
     },
