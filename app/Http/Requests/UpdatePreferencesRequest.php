@@ -15,6 +15,7 @@ final class UpdatePreferencesRequest extends FormRequest
      */
     public function rules(Settings $settings): array
     {
-        return $settings->rules();
+        // Appearance applies instantly from its own control, so the preferences form never sends it.
+        return array_diff_key($settings->rules(), ['appearance' => true]);
     }
 }

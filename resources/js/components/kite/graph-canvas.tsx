@@ -61,7 +61,7 @@ function readPalette(element: HTMLElement): Palette {
     return {
         foreground: read('--foreground', '#111'),
         muted: read('--muted-foreground', '#888'),
-        edge: read('--border', '#ddd'),
+        edge: read('--kite-graph-edge', '#ccc'),
         background: read('--background', '#fff'),
         accent: 'oklch(0.62 0.19 260)',
         groups: readGroupColours(element),

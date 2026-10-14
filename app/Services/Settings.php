@@ -7,6 +7,7 @@ namespace App\Services;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Native\Desktop\Enums\SystemThemesEnum;
 
 /**
  * User preferences stored in the database. Settings backed by config are applied over it at boot,
@@ -20,6 +21,7 @@ final readonly class Settings
     public function definitions(): array
     {
         return [
+            'appearance' => ['config' => null, 'default' => 'system', 'rules' => ['required', Rule::enum(SystemThemesEnum::class)]],
             'editor_font' => ['config' => null, 'default' => 'mono', 'rules' => ['required', Rule::in(['sans', 'serif', 'mono'])]],
             'editor_font_size' => ['config' => null, 'default' => 14, 'rules' => ['required', 'integer', 'between:12,22']],
             'editor_width' => ['config' => null, 'default' => 'normal', 'rules' => ['required', Rule::in(['narrow', 'normal', 'wide', 'full'])]],

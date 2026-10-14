@@ -1,6 +1,7 @@
 import { router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import AppearanceTabs from '@/components/appearance-tabs';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -166,6 +167,16 @@ function PreferencesForm({
             }}
         >
             <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-6 py-6">
+                <Section title="Appearance">
+                    <Field
+                        id="appearance"
+                        label="Theme"
+                        hint="Applies straight away. System follows your OS setting."
+                    >
+                        <AppearanceTabs id="appearance" className="w-fit" />
+                    </Field>
+                </Section>
+
                 <Section title="Editor">
                     <Field
                         id="editor_font"
