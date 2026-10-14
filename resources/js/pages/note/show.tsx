@@ -133,6 +133,7 @@ export default function NoteShow(props: WorkspaceProps) {
                 vault={vault}
                 open={paletteOpen}
                 onOpenChange={setPaletteOpen}
+                noteOpen={note !== null}
             />
         </>
     );
@@ -442,6 +443,20 @@ function NoteWorkspace({
     useAppCommands({
         'toggle-preview': () =>
             setViewMode((mode) => (mode === 'preview' ? 'edit' : 'preview')),
+        'toggle-star': () => toggleStar(),
+        'toggle-comments': () => toggleComments(!commentsOpen),
+        'toggle-panel': onTogglePanel,
+        'version-history': () => setHistoryOpen(true),
+        'export-html': () => void exportNote('html'),
+        'export-pdf': () => void exportNote('pdf'),
+        publish: () =>
+            void save().then(() =>
+                router.post(
+                    publishNote({ vault: vault.id, note: note.id }).url,
+                    {},
+                    { preserveScroll: true },
+                ),
+            ),
     });
 
     const submitRename = (path: string) => {
