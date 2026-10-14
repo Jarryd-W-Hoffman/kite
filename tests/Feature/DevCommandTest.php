@@ -23,6 +23,11 @@ it('stops the other process group, children included, when one process ends', fu
     $child = (int) file_get_contents($marker);
     unlink($marker);
 
+    // A killed child lingers until it's reaped by whichever process inherited it, so allow a moment.
+    for ($waited = 0; $waited < 20 && posix_kill($child, 0); $waited++) {
+        usleep(100_000);
+    }
+
     expect($child)->toBeGreaterThan(0)
         ->and(posix_kill($child, 0))->toBeFalse();
 });
