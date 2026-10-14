@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { GraphCanvas } from '@/components/kite/graph-canvas';
 import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
+import { PropertiesEditor } from '@/components/kite/properties-editor';
+import type { Properties } from '@/components/kite/properties-editor';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -28,6 +30,9 @@ type Props = {
     onSelectHeading?: (item: OutlineItem) => void;
     /** The editor's cursor line, to highlight the section being edited. */
     cursorLine?: number | null;
+    /** Editable frontmatter; without onPropertiesChange the properties are listed read-only. */
+    properties?: Properties;
+    onPropertiesChange?: (properties: Properties) => void;
     children?: ReactNode;
 };
 
@@ -250,6 +255,8 @@ export function NotePanel({
     mentions,
     onSelectHeading,
     cursorLine = null,
+    properties,
+    onPropertiesChange,
     children,
 }: Props) {
     const currentHeading =
@@ -304,7 +311,7 @@ export function NotePanel({
         return { nodes: [...nodes.values()], edges };
     }, [note.id, note.title, outgoing, backlinks]);
 
-    const properties = Object.entries(note.frontmatter).filter(
+    const readOnly = Object.entries(note.frontmatter).filter(
         ([key]) => !['title', 'tags', 'tag'].includes(key),
     );
 
@@ -511,19 +518,30 @@ export function NotePanel({
                 </Section>
             )}
 
-            {properties.length > 0 && (
+            {onPropertiesChange ? (
                 <Section title="Properties">
-                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-                        {properties.map(([key, value]) => (
-                            <div key={key} className="contents">
-                                <dt className="text-muted-foreground">{key}</dt>
-                                <dd className="truncate">
-                                    {formatValue(value)}
-                                </dd>
-                            </div>
-                        ))}
-                    </dl>
+                    <PropertiesEditor
+                        properties={properties ?? {}}
+                        onChange={onPropertiesChange}
+                    />
                 </Section>
+            ) : (
+                readOnly.length > 0 && (
+                    <Section title="Properties">
+                        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+                            {readOnly.map(([key, value]) => (
+                                <div key={key} className="contents">
+                                    <dt className="text-muted-foreground">
+                                        {key}
+                                    </dt>
+                                    <dd className="truncate">
+                                        {formatValue(value)}
+                                    </dd>
+                                </div>
+                            ))}
+                        </dl>
+                    </Section>
+                )
             )}
 
             <p className="text-xs text-muted-foreground tabular-nums">
