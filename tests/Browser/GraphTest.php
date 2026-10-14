@@ -13,7 +13,7 @@ it('renders the vault graph and opens notes from the sidebar', function (): void
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
 
     $page->assertSee('Local graph')
         ->click('@graph-link')

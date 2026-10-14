@@ -9,7 +9,7 @@ it('lists keyboard shortcuts for the current platform', function (): void {
     $vault = vaultWithFiles(['Note.md' => '# Note']);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->sole()]));
 
     $page->assertSee('Ctrl+K')
         ->assertDontSee('⌘K')

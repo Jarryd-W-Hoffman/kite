@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 
 it('renders auth pages inside the auth layout', function (): void {
-    $page = visit(route('login'));
+    $page = visitSplit(route('login'));
 
     $page->assertSee('Log in to your account')
         ->assertSee('Enter your email and password below to log in')
@@ -24,7 +24,7 @@ it('renders settings pages inside the app and settings layouts', function (): vo
 
     $this->actingAs($user);
 
-    $page = visit(route('user-profile.edit'));
+    $page = visitSplit(route('user-profile.edit'));
 
     $page->assertSee(config('app.name'))
         ->assertSee('Settings')
@@ -42,7 +42,7 @@ it('renders passkeys page', function (): void {
 
     $this->actingAs($user)->session(['auth.password_confirmed_at' => time()]);
 
-    $page = visit(route('user-passkey.index'));
+    $page = visitSplit(route('user-passkey.index'));
 
     $page->assertSee('Passkeys')
         ->assertSee('No passkeys yet')
@@ -55,7 +55,7 @@ it('shows a toast after updating the profile', function (): void {
 
     $this->actingAs($user);
 
-    $page = visit(route('user-profile.edit'));
+    $page = visitSplit(route('user-profile.edit'));
 
     $page->fill('name', 'Taylor Otwell')
         ->click('Save')
@@ -68,7 +68,7 @@ it('may delete the account from the profile settings', function (): void {
 
     $this->actingAs($user);
 
-    $page = visit(route('user-profile.edit'));
+    $page = visitSplit(route('user-profile.edit'));
 
     $page->click('@delete-user-button')
         ->fill('password', 'password')
@@ -84,7 +84,7 @@ it('may reset the password from the reset link', function (): void {
 
     $token = Password::createToken($user);
 
-    $page = visit(route('password.reset', ['token' => $token, 'email' => $user->email]));
+    $page = visitSplit(route('password.reset', ['token' => $token, 'email' => $user->email]));
 
     $page->fill('password', 'new-Password-123!')
         ->fill('password_confirmation', 'new-Password-123!')

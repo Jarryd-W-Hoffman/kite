@@ -11,7 +11,7 @@ it('shows indexing progress and reloads when indexing finishes', function (): vo
 
     $progress->update($vault, 120, 480);
 
-    $page = visit(route('vaults.show', $vault));
+    $page = visitSplit(route('vaults.show', $vault));
 
     $page->assertSee('Indexing notes…')
         ->assertSee('120 / 480')

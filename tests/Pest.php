@@ -78,3 +78,17 @@ function writeVaultFile(Vault $vault, string $relativePath, string $contents): v
     touch($absolutePath, time() + random_int(10, 1000));
     clearstatcache();
 }
+
+/**
+ * Visit a page with notes shown in split view (editor beside preview), which most browser tests
+ * read rendered output from. New users start in the editor alone.
+ */
+function visitSplit(string $url): mixed
+{
+    $page = visit($url);
+
+    // Remembered for later pages too; switches a note page already open without reloading it.
+    $page->script("localStorage.setItem('kite:view-mode', 'split'); document.querySelector('[aria-label=Split]:not([data-state=on])')?.click()");
+
+    return $page;
+}

@@ -12,7 +12,7 @@ it('jumps to headings from the outline and heading links', function (): void {
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Guide.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Guide.md')->sole()]));
 
     $page->assertSee('Outline')
         ->click('@outline-second-part')
@@ -20,7 +20,7 @@ it('jumps to headings from the outline and heading links', function (): void {
         ->assertScript("document.querySelector('.cm-editor').dataset.cursor", '16')
         ->assertNoJavaScriptErrors();
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Index.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Index.md')->sole()]));
 
     $page->click('Guide › Second part')
         ->assertScript('window.location.hash', '#second-part')
@@ -32,7 +32,7 @@ it('highlights the heading the cursor is under', function (): void {
     $vault = vaultWithFiles(['Guide.md' => "# Guide\n\nIntro\n\n## Second part\n\nBody"]);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
         ->click('@outline-second-part')
         ->assertAttribute('@outline-second-part', 'aria-current', 'location')
         ->keys('@note-editor', ['Control+Home'])
@@ -48,7 +48,7 @@ it('groups backlinks by note and opens the linking line', function (): void {
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->where('path', 'Topic.md')->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Topic.md')->sole()]))
         ->assertCount('@backlink-group', 2)
         ->assertCount('@backlink-line', 3)
         ->assertSeeIn('@panel-section-backlinks', '2')
@@ -63,7 +63,7 @@ it('folds panel sections and remembers them', function (): void {
     $vault = vaultWithFiles(['A.md' => "# A\n\n[[B]]", 'B.md' => '# B']);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->where('path', 'A.md')->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'A.md')->sole()]))
         ->click('@panel-section-links')
         ->assertAttribute('@panel-section-links', 'aria-expanded', 'false')
         ->refresh()

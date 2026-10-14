@@ -9,7 +9,7 @@ it('creates folders and notes inside them from the file tree', function (): void
     $vault = vaultWithFiles(['Home.md' => '# Home']);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->sole()]));
 
     $page->click('@new-folder')
         ->assertVisible('@folder-dialog')
@@ -38,7 +38,7 @@ it('explains why a folder could not be created', function (): void {
     $vault = vaultWithFiles(['Taken/Note.md' => '# Note']);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
         ->click('@new-folder')
         ->fill('folder-name', 'Taken')
         ->click('Create folder')
@@ -55,7 +55,7 @@ it('moves notes between folders by dragging them in the file tree', function ():
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
 
     $page->drag('a[data-path="Inbox.md"]', '[data-test=tree-folder][data-path="Projects"]')
         ->assertPresent('a[data-path="Projects/Inbox.md"]')
@@ -89,7 +89,7 @@ it('drops a wiki link when a note is dragged from the tree into the editor', fun
         })()
         JS;
 
-    visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
         ->assertScript($dropFromTree, '[[Plan]]')
         ->assertSeeIn('@note-editor', '[[Plan]]')
         ->assertNoJavaScriptErrors();
@@ -105,7 +105,7 @@ it('renames folders from their menu and moves them by dragging', function (): vo
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
         ->click('[data-test=tree-folder][data-path="Projects"] [data-test=tree-folder-actions]')
         ->click('@tree-rename-folder')
         ->assertValue('folder-name', 'Projects')
@@ -124,7 +124,7 @@ it('deletes a folder after confirming and leaves it if the open note was inside'
     $vault = vaultWithFiles(['Home.md' => '# Home', 'Projects/Plan.md' => '# Plan', 'Projects/Next.md' => '# Next']);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->where('path', 'Projects/Plan.md')->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Projects/Plan.md')->sole()]))
         ->click('@tree-folder-actions')
         ->click('@tree-delete-folder')
         ->assertSee('Delete “Projects”?')
