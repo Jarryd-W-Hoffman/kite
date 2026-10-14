@@ -23,8 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
-        // A comment's anchor is matched character for character, surrounding spaces included.
-        $middleware->trimStrings(except: ['quote', 'prefix', 'suffix']);
+        // Note text is saved exactly as typed, and a comment's anchor is matched character for
+        // character, surrounding spaces included.
+        $middleware->trimStrings(except: ['contents', 'quote', 'prefix', 'suffix']);
 
         $middleware->web(append: [
             HandleAppearance::class,
