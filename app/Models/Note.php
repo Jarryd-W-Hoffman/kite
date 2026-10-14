@@ -71,6 +71,14 @@ final class Note extends Model
     }
 
     /**
+     * @return HasMany<NoteComment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(NoteComment::class);
+    }
+
+    /**
      * @return HasMany<NoteLink, $this>
      */
     public function backlinks(): HasMany

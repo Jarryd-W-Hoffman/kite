@@ -13,6 +13,7 @@ use App\Actions\SaveNote;
 use App\Http\Requests\StoreNoteRequest;
 use App\Http\Requests\UpdateNoteRequest;
 use App\Models\Note;
+use App\Models\NoteComment;
 use App\Models\Vault;
 use App\Services\DailyNotes;
 use App\Services\VaultFilesystem;
@@ -47,6 +48,7 @@ final readonly class NoteController
         return Inertia::render('note/show', [
             ...$action->handle($vault, $note),
             'mentions' => Inertia::defer(fn (): array => $mentions->handle($note)),
+            'comments' => $note->comments()->oldest()->oldest('id')->get()->map(fn (NoteComment $comment): array => $comment->toSummary())->all(),
         ]);
     }
 
