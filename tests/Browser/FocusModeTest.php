@@ -42,6 +42,8 @@ it('sets a word goal in the note properties', function (): void {
         ->assertSeeIn('@focus-words', '2 / 250 words')
         ->click('@exit-focus')
         ->assertMissing('@focus-bar')
+        // The goal reaches the text once the properties request returns; then it autosaves.
+        ->assertSeeIn('@note-editor', '1 property')
         ->assertSee('Saved')
         ->assertNoJavaScriptErrors();
 

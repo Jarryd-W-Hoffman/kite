@@ -84,5 +84,6 @@ it('narrows a search with filters', function (): void {
         ->and($titles('status:active'))->toBe(['Standup'])
         ->and($titles('sync tag:nothing'))->toBe([])
         ->and($titles('sync tag:'))->toEqualCanonicalizing(['Standup', 'Old standup', 'Groceries', '{{title}}'])
-        ->and($titles('https://example.com'))->toBe(['Links']);
+        ->and($titles('https://example.com'))->toBe(['Links'])
+        ->and($titles('links tag:""'))->toBe([]);
 });
