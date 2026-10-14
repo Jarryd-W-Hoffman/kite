@@ -329,3 +329,16 @@
     color: var(--muted-foreground);
     text-decoration-style: dashed;
 }
+
+.kite-prose a.tag-link {
+    text-decoration: none;
+    border-radius: 9999px;
+    padding: 0.05em 0.45em;
+    background: var(--muted);
+    color: var(--foreground);
+    font-size: 0.9em;
+}
+
+.kite-prose a.tag-link:hover {
+    background: var(--accent);
+}

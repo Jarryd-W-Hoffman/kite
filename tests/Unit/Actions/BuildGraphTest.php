@@ -9,7 +9,7 @@ use App\Models\Note;
 it('builds nodes and de-duplicated undirected edges with ghost nodes', function (): void {
     $vault = vaultWithFiles([
         'A.md' => '[[B]] [[B#Again]] [[A]] [[Ghost]] [[ghost]]',
-        'Folder/B.md' => '[[A]]',
+        'Folder/B.md' => '[[A]] #shared #beta',
         'Lonely.md' => 'no links',
     ]);
     resolve(IndexVault::class)->handle($vault);
@@ -25,10 +25,10 @@ it('builds nodes and de-duplicated undirected edges with ghost nodes', function 
         ['source' => "n{$a->id}", 'target' => 'gghost'],
     ])
         ->and(collect($graph['nodes'])->keyBy('id')->all())->toBe([
-            "n{$a->id}" => ['id' => "n{$a->id}", 'note_id' => $a->id, 'title' => 'A', 'path' => 'A.md', 'folder' => '', 'degree' => 2, 'ghost' => false],
-            "n{$b->id}" => ['id' => "n{$b->id}", 'note_id' => $b->id, 'title' => 'B', 'path' => 'Folder/B.md', 'folder' => 'Folder', 'degree' => 1, 'ghost' => false],
-            "n{$lonely->id}" => ['id' => "n{$lonely->id}", 'note_id' => $lonely->id, 'title' => 'Lonely', 'path' => 'Lonely.md', 'folder' => '', 'degree' => 0, 'ghost' => false],
-            'gghost' => ['id' => 'gghost', 'note_id' => null, 'title' => 'Ghost', 'path' => null, 'folder' => '', 'degree' => 1, 'ghost' => true],
+            "n{$a->id}" => ['id' => "n{$a->id}", 'note_id' => $a->id, 'title' => 'A', 'path' => 'A.md', 'folder' => '', 'tags' => [], 'degree' => 2, 'ghost' => false],
+            "n{$b->id}" => ['id' => "n{$b->id}", 'note_id' => $b->id, 'title' => 'B', 'path' => 'Folder/B.md', 'folder' => 'Folder', 'tags' => ['beta', 'shared'], 'degree' => 1, 'ghost' => false],
+            "n{$lonely->id}" => ['id' => "n{$lonely->id}", 'note_id' => $lonely->id, 'title' => 'Lonely', 'path' => 'Lonely.md', 'folder' => '', 'tags' => [], 'degree' => 0, 'ghost' => false],
+            'gghost' => ['id' => 'gghost', 'note_id' => null, 'title' => 'Ghost', 'path' => null, 'folder' => '', 'tags' => [], 'degree' => 1, 'ghost' => true],
         ]);
 });
 

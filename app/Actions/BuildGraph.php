@@ -14,13 +14,18 @@ final readonly class BuildGraph
      * Build the vault's note graph. Unresolved links become "ghost" nodes keyed by their target.
      *
      * @return array{
-     *     nodes: list<array{id: string, note_id: int|null, title: string, path: string|null, folder: string, degree: int, ghost: bool}>,
+     *     nodes: list<array{id: string, note_id: int|null, title: string, path: string|null, folder: string, tags: list<string>, degree: int, ghost: bool}>,
      *     edges: list<array{source: string, target: string}>
      * }
      */
     public function handle(Vault $vault): array
     {
         $nodes = [];
+        $tags = [];
+
+        foreach (DB::table('note_tags')->where('vault_id', $vault->id)->orderBy('name')->get(['note_id', 'name']) as $row) {
+            $tags[Row::int($row, 'note_id')][] = Row::string($row, 'name');
+        }
 
         foreach (DB::table('notes')->where('vault_id', $vault->id)->orderBy('id')->get(['id', 'title', 'path']) as $row) {
             $id = Row::int($row, 'id');
@@ -32,6 +37,7 @@ final readonly class BuildGraph
                 'title' => Row::string($row, 'title'),
                 'path' => $path,
                 'folder' => str_contains($path, '/') ? dirname($path) : '',
+                'tags' => $tags[$id] ?? [],
                 'degree' => 0,
                 'ghost' => false,
             ];
@@ -59,6 +65,7 @@ final readonly class BuildGraph
                     'title' => Row::string($link, 'target'),
                     'path' => null,
                     'folder' => '',
+                    'tags' => [],
                     'degree' => 0,
                     'ghost' => true,
                 ];

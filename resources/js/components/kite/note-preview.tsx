@@ -35,6 +35,13 @@ export function NotePreview({ vault, html, className }: Props) {
 
         const href = anchor.getAttribute('href') ?? '';
 
+        if (anchor.classList.contains('tag-link')) {
+            event.preventDefault();
+            router.visit(href);
+
+            return;
+        }
+
         if (anchor.classList.contains('heading-link')) {
             event.preventDefault();
             scrollToHeading(href.slice(1));
