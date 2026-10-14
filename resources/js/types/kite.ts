@@ -42,7 +42,10 @@ export type NoteMeta = {
 
 export type NoteDetail = NoteMeta & {
     contents: string;
+    starred?: boolean;
 };
+
+export type NoteLinkSummary = { id: number; title: string; path: string };
 
 export type Backlink = {
     id: number;

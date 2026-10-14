@@ -20,6 +20,7 @@ use App\Services\Templates;
 use App\Services\VaultFilesystem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -67,6 +68,9 @@ final readonly class NoteController
 
     public function show(Vault $vault, Note $note, LoadWorkspace $action, FindUnlinkedMentions $mentions, CommentStore $comments): Response
     {
+        // Remember the visit for the sidebar's recent notes, without touching updated_at.
+        DB::table('notes')->where('id', $note->id)->update(['opened_at' => now()]);
+
         return Inertia::render('note/show', [
             ...$action->handle($vault, $note),
             'mentions' => Inertia::defer(fn (): array => $mentions->handle($note)),

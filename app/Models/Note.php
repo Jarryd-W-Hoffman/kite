@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read int $size
  * @property-read int $modified_at
  * @property-read string $hash
+ * @property-read CarbonInterface|null $starred_at
+ * @property-read CarbonInterface|null $opened_at
  * @property-read CarbonInterface $created_at
  * @property-read CarbonInterface $updated_at
  * @property-read Vault $vault
@@ -49,6 +51,8 @@ final class Note extends Model
             'size' => 'integer',
             'modified_at' => 'integer',
             'hash' => 'string',
+            'starred_at' => 'datetime',
+            'opened_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];

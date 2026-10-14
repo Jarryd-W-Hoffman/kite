@@ -19,6 +19,7 @@ use App\Http\Controllers\NotePaneController;
 use App\Http\Controllers\NotePathController;
 use App\Http\Controllers\NotePropertiesController;
 use App\Http\Controllers\NotePublicationController;
+use App\Http\Controllers\NoteStarController;
 use App\Http\Controllers\NoteTaskController;
 use App\Http\Controllers\NoteVersionController;
 use App\Http\Controllers\NoteVersionRestoreController;
@@ -98,6 +99,7 @@ Route::scopeBindings()->group(function (): void {
     Route::get('vaults/{vault}/views/{tableView}', [TableViewController::class, 'show'])->whereNumber('tableView')->middleware(WatchVault::class)->name('table-views.show');
     Route::put('vaults/{vault}/views/{tableView}', [TableViewController::class, 'update'])->whereNumber('tableView')->name('table-views.update');
     Route::delete('vaults/{vault}/views/{tableView}', [TableViewController::class, 'destroy'])->whereNumber('tableView')->name('table-views.destroy');
+    Route::put('vaults/{vault}/notes/{note}/star', [NoteStarController::class, 'update'])->name('note-star.update');
     Route::put('vaults/{vault}/notes/{note}/frontmatter', [NoteFrontmatterController::class, 'update'])->name('note-frontmatter.update');
     Route::put('vaults/{vault}/notes/{note}/tasks/{line}', [NoteTaskController::class, 'update'])->whereNumber('line')->name('note-tasks.update');
     Route::put('vaults/{vault}/notes/{note}/properties', [NotePropertiesController::class, 'update'])->name('note-properties.update');

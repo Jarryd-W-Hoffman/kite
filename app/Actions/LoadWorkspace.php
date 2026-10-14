@@ -61,6 +61,8 @@ final readonly class LoadWorkspace
             'folders' => fn (): array => $this->files->folders($vault),
             'colour_groups' => $this->colourGroups->summaries($vault),
             'templates' => fn (): array => $this->templates->all($vault),
+            'favourites' => fn (): array => $this->noteLinks($vault, 'starred_at', 'asc', 50),
+            'recent_notes' => fn (): array => $this->noteLinks($vault, 'opened_at', 'desc', 6),
             'table_views' => fn (): array => $vault->tableViews()->orderBy('name')->get(['id', 'name'])->map(fn (TableView $view): array => ['id' => $view->id, 'name' => $view->name])->all(),
             'open_tasks' => fn (): int => DB::table('note_tasks')->where('vault_id', $vault->id)->where('done', false)->count(),
             'tags' => DB::table('note_tags')
@@ -95,10 +97,34 @@ final readonly class LoadWorkspace
             ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'hash', 'modified_at']),
             'contents' => $contents,
             'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
+            'starred' => $note->starred_at !== null,
             'daily_date' => $this->daily->dateOf($note->path)?->toDateString(),
             'html' => $rendered->html,
             'outline' => $rendered->outline,
         ];
+    }
+
+    /**
+     * Notes with a timestamp set (starred or opened), for the sidebar's shortcuts.
+     *
+     * @param  'starred_at'|'opened_at'  $column
+     * @param  'asc'|'desc'  $direction
+     * @return list<array{id: int, title: string, path: string}>
+     */
+    private function noteLinks(Vault $vault, string $column, string $direction, int $limit): array
+    {
+        return array_values(DB::table('notes')
+            ->where('vault_id', $vault->id)
+            ->whereNotNull($column)
+            ->orderBy($column, $direction)
+            ->limit($limit)
+            ->get(['id', 'title', 'path'])
+            ->map(fn (object $row): array => [
+                'id' => Row::int($row, 'id'),
+                'title' => Row::string($row, 'title'),
+                'path' => Row::string($row, 'path'),
+            ])
+            ->all());
     }
 
     /**

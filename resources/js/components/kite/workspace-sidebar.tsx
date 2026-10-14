@@ -3,6 +3,7 @@ import {
     CalendarDays,
     Check,
     CheckSquare,
+    Clock,
     ChevronsUpDown,
     FolderOpen,
     FolderPlus,
@@ -15,6 +16,7 @@ import {
     Plus,
     Search,
     Settings2,
+    Star,
     Sun,
     Table2,
 } from 'lucide-react';
@@ -49,6 +51,7 @@ import type { ColourGroup } from '@/lib/colour-groups';
 import { formatShortcut } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
+import { show as showNote } from '@/routes/notes';
 import { store } from '@/routes/notes';
 import { show as showView, store as storeView } from '@/routes/table-views';
 import { index as tasksIndex } from '@/routes/tasks';
@@ -57,6 +60,7 @@ import { show as showTag } from '@/routes/vault-tags';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
 import type {
     IndexingProgress,
+    NoteLinkSummary,
     NoteTemplate,
     TagCount,
     TreeNote,
@@ -114,10 +118,14 @@ export function WorkspaceSidebar({
         templates = [],
         open_tasks: openTasks = 0,
         table_views: tableViews = [],
+        favourites = [],
+        recent_notes: recentNotes = [],
     } = usePage().props as {
         templates?: NoteTemplate[];
         open_tasks?: number;
         table_views?: { id: number; name: string }[];
+        favourites?: NoteLinkSummary[];
+        recent_notes?: NoteLinkSummary[];
     };
     const { appearance, resolvedAppearance, updateAppearance } =
         useAppearance();
@@ -221,6 +229,44 @@ export function WorkspaceSidebar({
             </nav>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+                {favourites.length > 0 && (
+                    <div className="mb-4" data-test="favourites">
+                        <SectionHeading title="Favourites" />
+                        {favourites.map((item) => (
+                            <NavItem
+                                key={item.id}
+                                icon={Star}
+                                label={item.title}
+                                href={
+                                    showNote({ vault: vault.id, note: item.id })
+                                        .url
+                                }
+                                active={item.id === activeNoteId}
+                                testId="favourite-link"
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {recentNotes.length > 0 && (
+                    <div className="mb-4" data-test="recent-notes">
+                        <SectionHeading title="Recent" />
+                        {recentNotes.map((item) => (
+                            <NavItem
+                                key={item.id}
+                                icon={Clock}
+                                label={item.title}
+                                href={
+                                    showNote({ vault: vault.id, note: item.id })
+                                        .url
+                                }
+                                active={item.id === activeNoteId}
+                                testId="recent-link"
+                            />
+                        ))}
+                    </div>
+                )}
+
                 <SectionHeading title="Notes">
                     <SectionAction
                         label="New note"
@@ -458,7 +504,7 @@ function NavItem({
     const contents = (
         <>
             <Icon className="size-4 shrink-0 text-muted-foreground group-hover:text-sidebar-accent-foreground" />
-            {label}
+            <span className="min-w-0 truncate">{label}</span>
             {badge !== undefined && badge > 0 && (
                 <span className="ml-auto rounded-full bg-sidebar-accent px-1.5 text-[11px] font-medium text-muted-foreground tabular-nums group-hover:bg-background">
                     {badge}

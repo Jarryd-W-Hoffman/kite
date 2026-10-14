@@ -15,6 +15,7 @@ import {
     MoreHorizontal,
     PanelRight,
     PencilLine,
+    Star,
     Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -61,6 +62,7 @@ import { show as noteExport } from '@/routes/note-exports';
 import { update as updatePath } from '@/routes/note-path';
 import { update as updateProperties } from '@/routes/note-properties';
 import { store as publishNote } from '@/routes/note-publications';
+import { update as updateStar } from '@/routes/note-star';
 import { store as restoreVersion } from '@/routes/note-version-restores';
 import { show as showTemplate } from '@/routes/templates';
 import type { NoteDetail, OutlineItem, WorkspaceProps } from '@/types';
@@ -258,6 +260,23 @@ function NoteWorkspace({
     );
     const pendingReveal = useRef<string | null>(null);
     const [cursorLine, setCursorLine] = useState<number | null>(null);
+    const [starred, setStarred] = useState(note.starred === true);
+
+    const toggleStar = () => {
+        const next = !starred;
+
+        setStarred(next);
+        router.put(
+            updateStar({ vault: vault.id, note: note.id }).url,
+            { starred: next },
+            {
+                only: ['favourites'],
+                preserveScroll: true,
+                preserveState: true,
+                onError: () => setStarred(!next),
+            },
+        );
+    };
     const [properties, setProperties] = useState<Properties>(meta.frontmatter);
     const [savedFrontmatter, setSavedFrontmatter] = useState(meta.frontmatter);
 
@@ -627,6 +646,26 @@ function NoteWorkspace({
                                 <Eye />
                             </ToggleGroupItem>
                         </ToggleGroup>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                                'size-8',
+                                starred &&
+                                    'text-amber-500 hover:text-amber-500',
+                            )}
+                            aria-label={
+                                starred
+                                    ? 'Remove from favourites'
+                                    : 'Add to favourites'
+                            }
+                            aria-pressed={starred}
+                            data-test="star-note"
+                            onClick={toggleStar}
+                        >
+                            <Star className={cn(starred && 'fill-current')} />
+                        </Button>
 
                         <Button
                             variant="ghost"

@@ -1,8 +1,8 @@
 import { Link, router } from '@inertiajs/react';
-import { X } from 'lucide-react';
+import { Pin, PinOff, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAppCommands } from '@/hooks/use-app-commands';
-import { closeTab, visitTab } from '@/lib/tabs';
+import { closeTab, togglePin, visitTab } from '@/lib/tabs';
 import type { TabState } from '@/lib/tabs';
 import { cn } from '@/lib/utils';
 import { show } from '@/routes/notes';
@@ -81,11 +81,15 @@ export function TabBar({ vault, note }: Props) {
                     aria-selected={tab.id === note.id}
                     className={cn(
                         'kite-no-drag group relative -mb-px flex h-8 max-w-52 min-w-28 items-center gap-1 rounded-t-lg border border-b-0 px-3 text-[12.5px] transition-colors',
+                        tab.pinned && 'max-w-40 min-w-0',
                         tab.id === note.id
                             ? 'border-border bg-background font-medium text-foreground'
                             : 'border-transparent text-muted-foreground hover:bg-background/50 hover:text-foreground',
                     )}
                 >
+                    {tab.pinned && (
+                        <Pin className="size-3 shrink-0 fill-current text-primary" />
+                    )}
                     <Link
                         href={show({ vault: vault.id, note: tab.id })}
                         className="min-w-0 flex-1 truncate py-1"
@@ -95,12 +99,31 @@ export function TabBar({ vault, note }: Props) {
                     </Link>
                     <button
                         type="button"
-                        onClick={() => close(tab.id)}
-                        aria-label={`Close ${tab.title}`}
-                        className="rounded p-0.5 opacity-60 group-hover:opacity-100 hover:bg-accent"
+                        onClick={() => setState(togglePin(vault.id, tab.id))}
+                        aria-label={
+                            tab.pinned
+                                ? `Unpin ${tab.title}`
+                                : `Pin ${tab.title}`
+                        }
+                        data-test="pin-tab"
+                        className="rounded p-0.5 opacity-0 group-hover:opacity-60 hover:bg-accent hover:!opacity-100 focus-visible:opacity-100"
                     >
-                        <X className="size-3" />
+                        {tab.pinned ? (
+                            <PinOff className="size-3" />
+                        ) : (
+                            <Pin className="size-3" />
+                        )}
                     </button>
+                    {!tab.pinned && (
+                        <button
+                            type="button"
+                            onClick={() => close(tab.id)}
+                            aria-label={`Close ${tab.title}`}
+                            className="rounded p-0.5 opacity-60 group-hover:opacity-100 hover:bg-accent"
+                        >
+                            <X className="size-3" />
+                        </button>
+                    )}
                 </div>
             ))}
         </div>
