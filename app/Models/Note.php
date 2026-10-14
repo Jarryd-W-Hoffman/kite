@@ -71,6 +71,14 @@ final class Note extends Model
     }
 
     /**
+     * @return HasMany<NoteVersion, $this>
+     */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(NoteVersion::class);
+    }
+
+    /**
      * @return HasMany<NoteComment, $this>
      */
     public function comments(): HasMany
