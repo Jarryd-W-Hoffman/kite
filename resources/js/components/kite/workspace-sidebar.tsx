@@ -2,6 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import {
     CalendarDays,
     Check,
+    CheckSquare,
     ChevronsUpDown,
     FolderOpen,
     FolderPlus,
@@ -48,6 +49,7 @@ import { formatShortcut } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
 import { store } from '@/routes/notes';
+import { index as tasksIndex } from '@/routes/tasks';
 import { show as showGraph } from '@/routes/vault-graph';
 import { show as showTag } from '@/routes/vault-tags';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
@@ -69,6 +71,7 @@ type Props = {
     activeNoteId: number | null;
     indexing?: IndexingProgress | null;
     graphActive?: boolean;
+    tasksActive?: boolean;
     activeTag?: string | null;
     onSearch: () => void;
 };
@@ -95,6 +98,7 @@ export function WorkspaceSidebar({
     activeNoteId,
     indexing = null,
     graphActive = false,
+    tasksActive = false,
     activeTag = null,
     onSearch,
 }: Props) {
@@ -102,8 +106,10 @@ export function WorkspaceSidebar({
     const [preferencesOpen, setPreferencesOpen] = useState(false);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const [templateFolder, setTemplateFolder] = useState<string | null>(null);
-    const templates =
-        (usePage().props as { templates?: NoteTemplate[] }).templates ?? [];
+    const { templates = [], open_tasks: openTasks = 0 } = usePage().props as {
+        templates?: NoteTemplate[];
+        open_tasks?: number;
+    };
     const { appearance, resolvedAppearance, updateAppearance } =
         useAppearance();
     const [folderDialog, setFolderDialog] = useState<FolderDialogState>(null);
@@ -186,6 +192,14 @@ export function WorkspaceSidebar({
                     shortcut="Mod+D"
                     onClick={() => openDailyNote(vault)}
                     testId="today-link"
+                />
+                <NavItem
+                    icon={CheckSquare}
+                    label="Tasks"
+                    href={tasksIndex(vault.id).url}
+                    active={tasksActive}
+                    badge={openTasks}
+                    testId="tasks-link"
                 />
                 <NavItem
                     icon={Network}
@@ -387,11 +401,14 @@ function NavItem({
     onClick,
     href,
     active = false,
+    badge,
     testId,
 }: {
     icon: typeof Search;
     label: string;
     shortcut?: string;
+    /** A count shown at the end of the row, e.g. open tasks. */
+    badge?: number;
     onClick?: () => void;
     href?: string;
     active?: boolean;
@@ -406,6 +423,11 @@ function NavItem({
         <>
             <Icon className="size-4 shrink-0 text-muted-foreground group-hover:text-sidebar-accent-foreground" />
             {label}
+            {badge !== undefined && badge > 0 && (
+                <span className="ml-auto rounded-full bg-sidebar-accent px-1.5 text-[11px] font-medium text-muted-foreground tabular-nums group-hover:bg-background">
+                    {badge}
+                </span>
+            )}
             {shortcut && (
                 <Kbd
                     shortcut={shortcut}

@@ -10,6 +10,7 @@ final readonly class ParsedNote
      * @param  array<string, mixed>  $frontmatter
      * @param  list<WikiLink>  $links
      * @param  list<string>  $tags
+     * @param  list<array{line: int, text: string, done: bool, due: string|null}>  $tasks
      */
     public function __construct(
         public string $title,
@@ -19,6 +20,7 @@ final readonly class ParsedNote
         public array $tags,
         public int $wordCount,
         public int $bodyStartLine = 0,
+        public array $tasks = [],
     ) {
         //
     }

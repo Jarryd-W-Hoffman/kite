@@ -136,3 +136,17 @@ it('normalises link keys', function (string $target, string $key): void {
     ['/Root\\Child.MD', 'root/child'],
     ['  Many   Spaces ', 'many spaces'],
 ]);
+
+it('collects tasks outside code with their lines and due dates', function (): void {
+    $parsed = resolve(MarkdownParser::class)->parse(
+        "---\ntitle: T\n---\n- [ ] Write `code` due:2026-10-20\n* [x] Done thing\n1. [ ] Numbered 📅 2026-11-01\n- [ ]\n\n```\n- [ ] in code\n```\n  - [X] Nested",
+        'T.md',
+    );
+
+    expect($parsed->tasks)->toBe([
+        ['line' => 4, 'text' => 'Write `code` due:2026-10-20', 'done' => false, 'due' => '2026-10-20'],
+        ['line' => 5, 'text' => 'Done thing', 'done' => true, 'due' => null],
+        ['line' => 6, 'text' => 'Numbered 📅 2026-11-01', 'done' => false, 'due' => '2026-11-01'],
+        ['line' => 12, 'text' => 'Nested', 'done' => true, 'due' => null],
+    ]);
+});

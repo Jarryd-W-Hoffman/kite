@@ -50,6 +50,7 @@ final readonly class NoteWriter
             DB::table('notes_fts')->where('rowid', $id)->delete();
             DB::table('note_links')->where('source_note_id', $id)->delete();
             DB::table('note_tags')->where('note_id', $id)->delete();
+            DB::table('note_tasks')->where('note_id', $id)->delete();
         }
 
         DB::table('notes_fts')->insert([
@@ -63,6 +64,14 @@ final readonly class NoteWriter
             'note_id' => $id,
             'name' => $tag,
         ], $parsed->tags));
+
+        foreach (array_chunk($parsed->tasks, 200) as $tasks) {
+            DB::table('note_tasks')->insert(array_map(fn (array $task): array => [
+                'vault_id' => $vault->id,
+                'note_id' => $id,
+                ...$task,
+            ], $tasks));
+        }
 
         $note = new Note()->newFromBuilder([
             ...$attributes,
