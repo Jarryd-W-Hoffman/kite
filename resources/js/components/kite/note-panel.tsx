@@ -4,13 +4,17 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { GraphCanvas } from '@/components/kite/graph-canvas';
 import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { store as linkMention } from '@/routes/note-mentions';
 import { show, store } from '@/routes/notes';
 import type {
     Backlink,
     NoteMeta,
     OutgoingLink,
     OutlineItem,
+    UnlinkedMention,
     VaultSummary,
 } from '@/types';
 
@@ -19,6 +23,7 @@ type Props = {
     note: NoteMeta;
     backlinks: Backlink[];
     outgoing: OutgoingLink[];
+    mentions?: UnlinkedMention[];
     onSelectHeading?: (item: OutlineItem) => void;
     children?: ReactNode;
 };
@@ -64,6 +69,7 @@ export function NotePanel({
     note,
     backlinks,
     outgoing,
+    mentions,
     onSelectHeading,
     children,
 }: Props) {
@@ -206,6 +212,67 @@ export function NotePanel({
                                         </span>
                                     )}
                                 </Link>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </Section>
+
+            <Section title="Unlinked mentions" count={mentions?.length}>
+                {mentions === undefined ? (
+                    <div className="space-y-2" aria-busy="true">
+                        <Skeleton className="h-4 w-3/4 animate-pulse" />
+                        <Skeleton className="h-3 w-full animate-pulse" />
+                        <Skeleton className="h-4 w-1/2 animate-pulse" />
+                    </div>
+                ) : mentions.length === 0 ? (
+                    <p className="text-muted-foreground">
+                        No unlinked mentions.
+                    </p>
+                ) : (
+                    <ul className="space-y-1" data-test="unlinked-mentions">
+                        {mentions.map((mention) => (
+                            <li
+                                key={`${mention.id}:${mention.line}`}
+                                className="group rounded-md px-2 py-1.5 hover:bg-accent"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Link
+                                        href={show({
+                                            vault: vault.id,
+                                            note: mention.id,
+                                        })}
+                                        className="min-w-0 flex-1 truncate font-medium"
+                                    >
+                                        {mention.title}
+                                    </Link>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 px-2 text-xs"
+                                        onClick={() =>
+                                            router.post(
+                                                linkMention({
+                                                    vault: vault.id,
+                                                    note: note.id,
+                                                }).url,
+                                                {
+                                                    source_id: mention.id,
+                                                    line: mention.line,
+                                                },
+                                                {
+                                                    preserveScroll: true,
+                                                    preserveState: true,
+                                                },
+                                            )
+                                        }
+                                    >
+                                        Link
+                                    </Button>
+                                </div>
+                                <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">
+                                    {mention.context}
+                                </span>
                             </li>
                         ))}
                     </ul>

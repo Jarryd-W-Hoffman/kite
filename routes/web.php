@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\NoteMentionController;
 use App\Http\Controllers\NotePathController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\UserController;
@@ -48,6 +49,7 @@ Route::scopeBindings()->group(function (): void {
     Route::post('vaults/{vault}/notes', [NoteController::class, 'store'])->name('notes.store');
     Route::get('vaults/{vault}/notes/{note}', [NoteController::class, 'show'])->middleware(WatchVault::class)->name('notes.show');
     Route::put('vaults/{vault}/notes/{note}', [NoteController::class, 'update'])->name('notes.update');
+    Route::post('vaults/{vault}/notes/{note}/mentions', [NoteMentionController::class, 'store'])->name('note-mentions.store');
     Route::put('vaults/{vault}/notes/{note}/path', [NotePathController::class, 'update'])->name('note-path.update');
     Route::delete('vaults/{vault}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
 });

@@ -161,6 +161,7 @@ function NoteWorkspace({
     note,
     backlinks,
     outgoing,
+    mentions,
     panelOpen,
     onTogglePanel,
 }: NoteWorkspaceProps) {
@@ -486,6 +487,7 @@ function NoteWorkspace({
                         note={meta}
                         backlinks={backlinks}
                         outgoing={outgoing}
+                        mentions={mentions}
                         onSelectHeading={selectHeading}
                     />
                 </aside>

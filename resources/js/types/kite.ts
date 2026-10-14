@@ -69,6 +69,16 @@ export type WorkspaceProps = {
     note: NoteDetail | null;
     backlinks: Backlink[];
     outgoing: OutgoingLink[];
+    mentions?: UnlinkedMention[];
+};
+
+export type UnlinkedMention = {
+    id: number;
+    title: string;
+    path: string;
+    line: number;
+    term: string;
+    context: string;
 };
 
 export type SearchResult = {
