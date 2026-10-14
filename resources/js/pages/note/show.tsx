@@ -58,6 +58,7 @@ function storedViewMode(): ViewMode {
 
 export default function NoteShow(props: WorkspaceProps) {
     const { vault, vaults, tree, folders, tags, note, indexing } = props;
+    const colourGroups = props.colour_groups;
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [panelOpen, setPanelOpen] = useState(
         () => localStorage.getItem('kite:panel') !== 'closed',
@@ -81,6 +82,7 @@ export default function NoteShow(props: WorkspaceProps) {
                     vaults={vaults}
                     tree={tree}
                     folders={folders}
+                    colourGroups={colourGroups}
                     tags={tags}
                     activeNoteId={note?.id ?? null}
                     indexing={indexing}
@@ -199,7 +201,14 @@ function NoteWorkspace({
         () => {
             router.reload({
                 only: isDirty()
-                    ? ['tree', 'folders', 'tags', 'backlinks', 'outgoing']
+                    ? [
+                          'tree',
+                          'folders',
+                          'colour_groups',
+                          'tags',
+                          'backlinks',
+                          'outgoing',
+                      ]
                     : undefined,
             });
         },

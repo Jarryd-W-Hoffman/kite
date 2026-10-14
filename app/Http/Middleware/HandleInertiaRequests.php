@@ -39,14 +39,19 @@ final class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            'kite' => fn (): array => [
-                'native' => (bool) config('nativephp-internal.running'),
-                'platform' => mb_strtolower(PHP_OS_FAMILY),
-                'editor' => array_intersect_key(
-                    resolve(Settings::class)->all(),
-                    array_flip(['editor_font', 'editor_font_size', 'editor_width', 'autosave_ms']),
-                ),
-            ],
+            'kite' => function (): array {
+                $settings = resolve(Settings::class)->all();
+
+                return [
+                    'native' => (bool) config('nativephp-internal.running'),
+                    'platform' => mb_strtolower(PHP_OS_FAMILY),
+                    'editor' => array_intersect_key(
+                        $settings,
+                        array_flip(['editor_font', 'editor_font_size', 'editor_width', 'autosave_ms']),
+                    ),
+                    'tree_group_colours' => (bool) $settings['tree_group_colours'],
+                ];
+            },
             'preferences' => Inertia::optional(fn (): array => resolve(Settings::class)->all()),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

@@ -33,6 +33,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useAppCommands } from '@/hooks/use-app-commands';
+import type { ColourGroup } from '@/lib/colour-groups';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
 import { store } from '@/routes/notes';
@@ -51,6 +52,7 @@ type Props = {
     vaults: VaultSummary[];
     tree: TreeNote[];
     folders: string[];
+    colourGroups: ColourGroup[];
     tags: TagCount[];
     activeNoteId: number | null;
     indexing?: IndexingProgress | null;
@@ -76,6 +78,7 @@ export function WorkspaceSidebar({
     vaults,
     tree,
     folders,
+    colourGroups,
     tags,
     activeNoteId,
     indexing = null,
@@ -221,6 +224,7 @@ export function WorkspaceSidebar({
                     vault={vault}
                     notes={tree}
                     folders={folders}
+                    groups={kite.tree_group_colours ? colourGroups : []}
                     activeNoteId={activeNoteId}
                     onNewNote={(folder) =>
                         createNote(vault, 'Untitled', folder)

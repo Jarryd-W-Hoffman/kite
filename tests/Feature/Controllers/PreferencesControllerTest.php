@@ -20,6 +20,7 @@ function validPreferences(array $overrides = []): array
         'daily_format' => 'd.m.Y',
         'daily_template' => 'Templates/Day.md',
         'capture_shortcut' => 'CmdOrCtrl+Shift+Space',
+        'tree_group_colours' => false,
         ...$overrides,
     ];
 }
@@ -49,7 +50,7 @@ it('saves preferences, returns to the page and shares editor settings', function
             'editor_font_size' => 16,
             'editor_width' => 'wide',
             'autosave_ms' => 800,
-        ]));
+        ])->where('kite.tree_group_colours', false));
 });
 
 it('validates preferences', function (array $overrides, string $error): void {
@@ -64,6 +65,7 @@ it('validates preferences', function (array $overrides, string $error): void {
     'escaping ignore' => [['ignored_folders' => ['a/../b']], 'ignored_folders.0'],
     'date format' => [['daily_format' => '<script>'], 'daily_format'],
     'shortcut' => [['capture_shortcut' => 'Ctrl;rm'], 'capture_shortcut'],
+    'tree group colours' => [['tree_group_colours' => 'sometimes'], 'tree_group_colours'],
 ]);
 
 it('re-registers the capture shortcut in the desktop app', function (): void {
