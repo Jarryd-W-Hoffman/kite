@@ -126,6 +126,7 @@ export type EditorPreferences = {
     editor_font_size: number;
     editor_width: 'narrow' | 'normal' | 'wide' | 'full';
     autosave_ms: number;
+    live_preview: boolean;
 };
 
 export type Preferences = EditorPreferences & {

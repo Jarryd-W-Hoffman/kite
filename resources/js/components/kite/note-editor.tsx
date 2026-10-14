@@ -23,7 +23,12 @@ import {
     search,
     searchKeymap,
 } from '@codemirror/search';
-import { Annotation, EditorSelection, EditorState } from '@codemirror/state';
+import {
+    Annotation,
+    Compartment,
+    EditorSelection,
+    EditorState,
+} from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import {
     Decoration,
@@ -53,6 +58,7 @@ import {
     setCommentStyle,
 } from '@/lib/comment-highlights';
 import type { CommentRanges } from '@/lib/comment-highlights';
+import { livePreview, livePreviewTheme } from '@/lib/live-preview';
 import { markdownBlocks, markdownBlocksTheme } from '@/lib/markdown-blocks';
 import { matchNotes, noteName } from '@/lib/note-tree';
 import {
@@ -95,6 +101,9 @@ type Props = {
 };
 
 const NO_COMMENTS: EditorComment[] = [];
+
+/** Live preview can be switched on and off without rebuilding the editor. */
+const livePreviewMode = new Compartment();
 
 /**
  * Re-find comments in the document. Comments already tracked keep their mapped position unless
@@ -399,6 +408,7 @@ export function NoteEditor({
     const initialValue = useRef(value);
     const initialTestId = useRef(testId);
     const commentable = useRef(onAddComment !== undefined);
+    const initialLivePreview = useRef(editor.live_preview);
 
     useEffect(() => {
         callbacks.current = {
@@ -575,6 +585,8 @@ export function NoteEditor({
             kiteTheme,
             markdownBlocks,
             markdownBlocksTheme,
+            livePreviewTheme,
+            livePreviewMode.of(initialLivePreview.current ? livePreview : []),
             commentField,
             commentTheme,
             ...(commentable.current
@@ -743,6 +755,14 @@ export function NoteEditor({
             anchorComments(view, comments, false);
         }
     }, [comments]);
+
+    useEffect(() => {
+        viewRef.current?.dispatch({
+            effects: livePreviewMode.reconfigure(
+                editor.live_preview ? livePreview : [],
+            ),
+        });
+    }, [editor.live_preview]);
 
     useEffect(() => {
         viewRef.current?.dispatch({
