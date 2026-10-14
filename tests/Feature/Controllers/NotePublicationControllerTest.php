@@ -17,6 +17,7 @@ beforeEach(function (): void {
         'Other.md' => '# Other',
     ]);
     $this->vault->update(['name' => 'My Notes']);
+
     resolve(IndexVault::class)->handle($this->vault);
     $this->root = storage_path('framework/testing/published-'.uniqid());
     config(['kite.publish.folder' => $this->root]);

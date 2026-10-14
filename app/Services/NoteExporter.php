@@ -6,8 +6,11 @@ namespace App\Services;
 
 use App\Actions\RenderMarkdown;
 use App\Models\Note;
+use Dom\Document;
 use Dom\Element;
 use Dom\HTMLDocument;
+use Dom\HTMLElement;
+use Dom\Node;
 use Illuminate\Support\Facades\File;
 use InvalidArgumentException;
 
@@ -41,22 +44,25 @@ final readonly class NoteExporter
         $head = $document->head;
         $body = $document->body;
 
-        if ($head === null || $body === null) {
-            throw new InvalidArgumentException('Could not build the export page.');
-        }
+        throw_if(! $head instanceof HTMLElement || ! $body instanceof HTMLElement, InvalidArgumentException::class, 'Could not build the export page.');
 
         $charset = $document->createElement('meta');
         $charset->setAttribute('charset', 'utf-8');
+
         $viewport = $document->createElement('meta');
         $viewport->setAttribute('name', 'viewport');
         $viewport->setAttribute('content', 'width=device-width, initial-scale=1');
+
         $generator = $document->createElement('meta');
         $generator->setAttribute('name', 'generator');
         $generator->setAttribute('content', 'Kite');
+
         $title = $document->createElement('title');
         $title->textContent = $note->title;
+
         $style = $document->createElement('style');
         $style->textContent = File::get(resource_path('css/export.css'));
+
         $head->append($charset, $viewport, $generator, $title, $style);
 
         if ($home !== null) {
@@ -72,6 +78,7 @@ final readonly class NoteExporter
         $main = $document->createElement('main');
         $main->setAttribute('class', 'kite-prose');
         $main->innerHTML = $rendered->html;
+
         $body->append($main);
 
         $this->rewriteLinks($main, $note, $pages);
@@ -136,14 +143,14 @@ final readonly class NoteExporter
     {
         $document = $link->ownerDocument;
 
-        if ($document === null) {
+        if (! $document instanceof Document) {
             return;
         }
 
         $span = $document->createElement('span');
         $span->setAttribute('class', mb_trim(str_replace(['is-unresolved', 'attachment-link'], ['', 'wiki-link'], $class)) ?: 'wiki-link');
 
-        while ($link->firstChild !== null) {
+        while ($link->firstChild instanceof Node) {
             $span->append($link->firstChild);
         }
 
