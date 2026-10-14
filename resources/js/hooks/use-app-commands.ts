@@ -3,6 +3,7 @@ import { isNativeApp, onNativeEvent } from '@/lib/native-events';
 
 export type AppCommand =
     | 'new-note'
+    | 'close-tab'
     | 'daily-note'
     | 'open-vault'
     | 'preferences'
@@ -16,6 +17,7 @@ export type AppCommand =
  */
 const SHORTCUTS: Record<string, AppCommand> = {
     n: 'new-note',
+    w: 'close-tab',
     d: 'daily-note',
     o: 'open-vault',
     ',': 'preferences',

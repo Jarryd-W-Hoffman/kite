@@ -59,6 +59,7 @@ type Props = {
     onFollowLink?: (target: string) => void;
     notes: TreeNote[];
     className?: string;
+    testId?: string;
 };
 
 /**
@@ -208,6 +209,7 @@ export function NoteEditor({
     onFollowLink,
     notes,
     className,
+    testId = 'note-editor',
 }: Props) {
     const { editor } = usePage().props.kite;
     const containerRef = useRef<HTMLDivElement>(null);
@@ -220,6 +222,7 @@ export function NoteEditor({
         notes,
     });
     const initialValue = useRef(value);
+    const initialTestId = useRef(testId);
 
     useEffect(() => {
         callbacks.current = { onChange, onSave, onUpload, onFollowLink, notes };
@@ -427,7 +430,7 @@ export function NoteEditor({
             }),
             EditorView.contentAttributes.of({
                 'aria-label': 'Note contents',
-                'data-test': 'note-editor',
+                'data-test': initialTestId.current,
                 spellcheck: 'true',
             }),
         ];
