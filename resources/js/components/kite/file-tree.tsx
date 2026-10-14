@@ -33,6 +33,9 @@ type Props = FolderActions & {
     activeNoteId: number | null;
 };
 
+/** Horizontal step, in pixels, between one level of the tree and the next. */
+const INDENT = 16;
+
 function storageKey(vault: VaultSummary): string {
     return `kite:collapsed:${vault.id}`;
 }
@@ -128,7 +131,8 @@ function FolderContents({
     onToggle,
     actions,
 }: FolderContentsProps) {
-    const indent = { paddingLeft: `${depth * 12 + 8}px` };
+    // Notes line up with their sibling folders' chevrons, so items at the same level share an edge.
+    const indent = { paddingLeft: `${depth * INDENT + 8}px` };
 
     return (
         <ul role="group">
@@ -195,15 +199,24 @@ function FolderContents({
                             </DropdownMenu>
                         </div>
                         {!isCollapsed && (
-                            <FolderContents
-                                folder={child}
-                                depth={depth + 1}
-                                vault={vault}
-                                activeNoteId={activeNoteId}
-                                collapsed={collapsed}
-                                onToggle={onToggle}
-                                actions={actions}
-                            />
+                            <div className="relative">
+                                <span
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-y-0 w-px bg-sidebar-border"
+                                    style={{
+                                        left: `${depth * INDENT + 8 + 7}px`,
+                                    }}
+                                />
+                                <FolderContents
+                                    folder={child}
+                                    depth={depth + 1}
+                                    vault={vault}
+                                    activeNoteId={activeNoteId}
+                                    collapsed={collapsed}
+                                    onToggle={onToggle}
+                                    actions={actions}
+                                />
+                            </div>
                         )}
                     </li>
                 );
@@ -221,7 +234,7 @@ function FolderContents({
                             note.id === activeNoteId &&
                                 'bg-sidebar-accent font-medium text-sidebar-accent-foreground',
                         )}
-                        style={{ paddingLeft: `${depth * 12 + 28}px` }}
+                        style={indent}
                         title={note.title}
                     >
                         <FileText className="size-4 shrink-0 text-muted-foreground" />
