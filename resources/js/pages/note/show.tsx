@@ -33,9 +33,15 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAppCommands } from '@/hooks/use-app-commands';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { requestJson, uploadFile } from '@/lib/kite-http';
+import { noteName } from '@/lib/note-tree';
 import { cn, editorWidthClass } from '@/lib/utils';
 import { update as updatePath } from '@/routes/note-path';
-import { destroy, update } from '@/routes/notes';
+import {
+    destroy,
+    show as showNote,
+    store as storeNote,
+    update,
+} from '@/routes/notes';
 import { store as storeAttachment } from '@/routes/vault-attachments';
 import type {
     NoteDetail,
@@ -281,6 +287,21 @@ function NoteWorkspace({
         );
     };
 
+    const followLink = (target: string) => {
+        const key = target.trim().toLowerCase().replace(/\.md$/, '');
+        const match =
+            tree.find((item) => noteName(item.path).toLowerCase() === key) ??
+            tree.find((item) =>
+                item.path.toLowerCase().replace(/\.md$/, '').endsWith(key),
+            );
+
+        if (match) {
+            router.visit(showNote({ vault: vault.id, note: match.id }));
+        } else {
+            router.post(storeNote(vault.id).url, { title: target });
+        }
+    };
+
     const upload = async (files: File[]): Promise<string[]> => {
         const embeds: string[] = [];
 
@@ -476,6 +497,7 @@ function NoteWorkspace({
                             }}
                             onSave={() => void save()}
                             onUpload={upload}
+                            onFollowLink={followLink}
                             notes={tree}
                             className={cn(
                                 'min-w-0 flex-1',

@@ -342,3 +342,11 @@
 .kite-prose a.tag-link:hover {
     background: var(--accent);
 }
+
+:root {
+    --kite-link: oklch(0.55 0.17 260);
+}
+
+.dark {
+    --kite-link: oklch(0.75 0.13 260);
+}
