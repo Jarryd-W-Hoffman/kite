@@ -229,7 +229,7 @@ final readonly class ImportNotionExport
                 continue;
             }
 
-            $rows = (string) preg_replace('/^\x{FEFF}/u', '', (string) $zip->getFromIndex($index, 65536));
+            $rows = (string) preg_replace('/^\x{FEFF}/u', '', (string) $zip->getFromIndex($index));
             $header = str_getcsv(strtok($rows, "\r\n") ?: '', escape: '');
             $rowsFolder = (string) preg_replace(['/_all\.csv$/i', '/\.csv$/i'], '', $original);
             $folder = (string) preg_replace('/\.csv$/', '', $paths[$original]);
