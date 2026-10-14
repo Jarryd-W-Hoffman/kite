@@ -36,6 +36,10 @@ it('renders display math blocks', function (string $markdown, string $tex): void
     'content on the opening line' => ["$$ a +\nb $$", "a +\nb"],
 ]);
 
+it('ends a one-line math block at its own line', function (): void {
+    expect(render("$$ x $$\nAfter"))->toBe("<div class=\"math math-block\">x</div>\n<p>After</p>\n");
+});
+
 it('marks mermaid blocks for the preview to draw', function (): void {
     expect(render("```mermaid\nflowchart LR\n  A --> B\n```"))
         ->toContain('<code class="language-mermaid">flowchart LR');

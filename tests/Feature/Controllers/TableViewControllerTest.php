@@ -79,3 +79,10 @@ it('sets one property in a note file', function (): void {
 
     $this->put(route('note-frontmatter.update', [$this->vault, $note]), ['key' => 'bad:key', 'value' => 1])->assertSessionHasErrors('key');
 });
+
+it('shows every note when a saved query no longer parses', function (): void {
+    $view = TableView::factory()->for($this->vault)->create(['query' => 'tag:']);
+
+    $this->get(route('table-views.show', [$this->vault, $view]))
+        ->assertInertia(fn ($page) => $page->count('rows', 3));
+});
