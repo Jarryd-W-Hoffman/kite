@@ -16,6 +16,7 @@ final readonly class AppMenu
 {
     public const array COMMANDS = [
         'new-note' => ['New note', 'CmdOrCtrl+N'],
+        'close-tab' => ['Close tab', 'CmdOrCtrl+W'],
         'daily-note' => ["Today's note", 'CmdOrCtrl+D'],
         'open-vault' => ['Open vault…', 'CmdOrCtrl+O'],
         'preferences' => ['Preferences…', 'CmdOrCtrl+,'],
@@ -37,7 +38,7 @@ final readonly class AppMenu
                 Menu::separator(),
                 $this->command('preferences'),
                 Menu::separator(),
-                Menu::close(),
+                $this->command('close-tab'),
             )->label('File'),
             Menu::edit(),
             Menu::make(
