@@ -458,6 +458,24 @@ function PreferencesForm({
                                 }
                             />
                         </Field>
+                        <div className="flex items-start gap-2 sm:col-span-2">
+                            <Checkbox
+                                id="live_preview"
+                                checked={data.live_preview}
+                                onCheckedChange={(value) =>
+                                    setData('live_preview', value === true)
+                                }
+                            />
+                            <div className="grid gap-1">
+                                <Label htmlFor="live_preview">
+                                    Live preview
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Hide markdown symbols on lines you aren’t
+                                    editing, and show checkboxes and bullets.
+                                </p>
+                            </div>
+                        </div>
                     </Section>
 
                     <Section title="Vault files">

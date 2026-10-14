@@ -51,7 +51,7 @@ it('opens a note beside the current one and edits it there', function (): void {
     $page = visit(route('notes.show', [$vault, noteId('Alpha.md')]));
 
     $page->withKeyDown('Control', fn ($page) => $page->withKeyDown('Shift', fn ($page) => $page->click('nav a[href="/vaults/'.$vault->id.'/notes/'.noteId('Beta.md').'"]')))
-        ->assertSeeIn('@split-editor', '# Beta')
+        ->assertSeeIn('@split-editor', 'Beta')
         ->assertSeeIn('@note-preview', 'Alpha')
         ->click('@split-editor')
         ->keys('@split-editor', 'End')

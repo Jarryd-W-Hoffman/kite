@@ -26,6 +26,7 @@ final readonly class Settings
             'editor_font_size' => ['config' => null, 'default' => 16, 'rules' => ['required', 'integer', 'between:12,22']],
             'editor_width' => ['config' => null, 'default' => 'normal', 'rules' => ['required', Rule::in(['narrow', 'normal', 'wide', 'full'])]],
             'autosave_ms' => ['config' => null, 'default' => 400, 'rules' => ['required', 'integer', 'between:200,10000']],
+            'live_preview' => ['config' => null, 'default' => true, 'rules' => ['required', 'boolean']],
             'ignored_folders' => ['config' => 'kite.ignored_folders', 'default' => ['node_modules'], 'rules' => ['present', 'array', 'max:50']],
             'ignored_folders.*' => ['config' => null, 'default' => null, 'rules' => ['string', 'max:200', 'not_regex:/(^|\/)\.\.(\/|$)/']],
             'attachments_folder' => ['config' => 'kite.attachments.folder', 'default' => 'attachments', 'rules' => ['nullable', 'string', 'max:200', 'not_regex:/(^|\/)\.\.(\/|$)/']],

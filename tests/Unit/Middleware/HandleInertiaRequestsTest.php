@@ -105,6 +105,7 @@ it('shares whether kite is running as a desktop app', function (bool $native): v
             'editor_font_size' => 16,
             'editor_width' => 'normal',
             'autosave_ms' => 400,
+            'live_preview' => true,
         ],
         'tree_group_colours' => true,
     ]);

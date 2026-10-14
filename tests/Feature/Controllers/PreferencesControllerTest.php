@@ -15,6 +15,7 @@ function validPreferences(array $overrides = []): array
         'editor_font_size' => 16,
         'editor_width' => 'wide',
         'autosave_ms' => 800,
+        'live_preview' => false,
         'ignored_folders' => ['node_modules', 'Archive'],
         'attachments_folder' => 'assets',
         'daily_folder' => 'Journal',
@@ -51,6 +52,7 @@ it('saves preferences, returns to the page and shares editor settings', function
             'editor_font_size' => 16,
             'editor_width' => 'wide',
             'autosave_ms' => 800,
+            'live_preview' => false,
         ])->where('kite.tree_group_colours', false));
 });
 

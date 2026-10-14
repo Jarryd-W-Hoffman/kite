@@ -47,7 +47,7 @@ final class HandleInertiaRequests extends Middleware
                     'platform' => mb_strtolower(PHP_OS_FAMILY),
                     'editor' => array_intersect_key(
                         $settings,
-                        array_flip(['editor_font', 'editor_font_size', 'editor_width', 'autosave_ms']),
+                        array_flip(['editor_font', 'editor_font_size', 'editor_width', 'autosave_ms', 'live_preview']),
                     ),
                     'tree_group_colours' => (bool) $settings['tree_group_colours'],
                 ];
