@@ -28,14 +28,17 @@ export default function GraphShow({
     tags,
     graph,
     indexing,
+    watching,
 }: Props) {
     const [query, setQuery] = useState('');
     const [showGhosts, setShowGhosts] = useState(true);
     const [showOrphans, setShowOrphans] = useState(true);
     const [paletteOpen, setPaletteOpen] = useState(false);
 
-    useVaultSync(vault, () =>
-        router.reload({ only: ['graph', 'tree', 'tags'] }),
+    useVaultSync(
+        vault,
+        () => router.reload({ only: ['graph', 'tree', 'tags'] }),
+        watching,
     );
 
     useEffect(() => {

@@ -17,18 +17,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Indexing
+    | Shared State Cache Store
     |--------------------------------------------------------------------------
     |
-    | Progress and locks are shared between the queue worker and the app, so
-    | they need a cache store that is visible across processes and not tied
-    | to an open database transaction.
+    | Indexing progress, indexing locks and watcher state are shared between
+    | the web server, the queue worker and the file watcher, so they need a
+    | cache store visible across processes and never tied to an open
+    | database transaction.
     |
     */
 
-    'indexing' => [
-        'cache_store' => env('KITE_INDEXING_CACHE_STORE', 'file'),
+    'cache_store' => env('KITE_CACHE_STORE', 'file'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Indexing
+    |--------------------------------------------------------------------------
+    */
+
+    'indexing' => [
         'batch_size' => (int) env('KITE_INDEXING_BATCH_SIZE', 200),
     ],
 

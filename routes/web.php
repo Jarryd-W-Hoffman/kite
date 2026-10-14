@@ -23,6 +23,7 @@ use App\Http\Controllers\VaultPreviewController;
 use App\Http\Controllers\VaultSearchController;
 use App\Http\Controllers\VaultStatusController;
 use App\Http\Controllers\VaultSyncController;
+use App\Http\Middleware\WatchVault;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -32,7 +33,7 @@ Route::get('/', HomeController::class)->name('home');
 Route::get('vaults', [VaultController::class, 'index'])->name('vaults.index');
 Route::post('vaults', [VaultController::class, 'store'])->name('vaults.store');
 Route::post('vaults/folder', [VaultFolderController::class, 'store'])->name('vault-folder.store');
-Route::get('vaults/{vault}', [VaultController::class, 'show'])->name('vaults.show');
+Route::get('vaults/{vault}', [VaultController::class, 'show'])->middleware(WatchVault::class)->name('vaults.show');
 Route::delete('vaults/{vault}', [VaultController::class, 'destroy'])->name('vaults.destroy');
 Route::get('vaults/{vault}/status', [VaultStatusController::class, 'show'])->name('vault-status.show');
 Route::post('vaults/{vault}/sync', [VaultSyncController::class, 'store'])->name('vault-sync.store');
@@ -40,12 +41,12 @@ Route::get('vaults/{vault}/search', [VaultSearchController::class, 'index'])->na
 Route::post('vaults/{vault}/preview', [VaultPreviewController::class, 'store'])->name('vault-preview.store');
 Route::get('vaults/{vault}/files/{path}', [VaultFileController::class, 'show'])->where('path', '.*')->name('vault-files.show');
 Route::post('vaults/{vault}/attachments', [VaultAttachmentController::class, 'store'])->name('vault-attachments.store');
-Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->name('vault-graph.show');
+Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->middleware(WatchVault::class)->name('vault-graph.show');
 
 // Notes...
 Route::scopeBindings()->group(function (): void {
     Route::post('vaults/{vault}/notes', [NoteController::class, 'store'])->name('notes.store');
-    Route::get('vaults/{vault}/notes/{note}', [NoteController::class, 'show'])->name('notes.show');
+    Route::get('vaults/{vault}/notes/{note}', [NoteController::class, 'show'])->middleware(WatchVault::class)->name('notes.show');
     Route::put('vaults/{vault}/notes/{note}', [NoteController::class, 'update'])->name('notes.update');
     Route::put('vaults/{vault}/notes/{note}/path', [NotePathController::class, 'update'])->name('note-path.update');
     Route::delete('vaults/{vault}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');

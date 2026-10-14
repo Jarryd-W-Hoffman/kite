@@ -8,7 +8,6 @@ use App\Models\Vault;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Contracts\Cache\Repository;
-use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 /**
@@ -17,6 +16,11 @@ use RuntimeException;
 final readonly class IndexingProgress
 {
     private const int TTL_SECONDS = 3600;
+
+    public function __construct(private KiteCache $cache)
+    {
+        //
+    }
 
     /**
      * A lock that ensures only one index run per vault happens at a time.
@@ -61,14 +65,7 @@ final readonly class IndexingProgress
 
     private function store(): Repository
     {
-        return Cache::store($this->storeName());
-    }
-
-    private function storeName(): ?string
-    {
-        $store = config('kite.indexing.cache_store');
-
-        return is_string($store) ? $store : null;
+        return $this->cache->store();
     }
 
     private function key(Vault $vault): string
