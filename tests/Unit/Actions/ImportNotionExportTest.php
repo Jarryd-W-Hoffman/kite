@@ -35,6 +35,7 @@ it('imports pages, attachments and databases from a Notion export', function ():
         'Home '.HOME_ID.'/Tasks '.TASKS_ID.'_all.csv' => "Name,Status\n",
         'Home '.HOME_ID.'/Tasks '.TASKS_ID.'/Ship it '.ROW_ID.'.md' => "# Ship it\n\nStatus: Doing\nDone: No\nPoints: 3\nEstimate: 1.5\nDue: October 14, 2026\nTags: a, b\nOwner: \nPlanned: Smarch 3, 2026\n\nBack [home](../../Home%20".HOME_ID.'.md).',
         'Home '.HOME_ID.'/Tasks '.TASKS_ID.'/Loose '.ROW_ID.'.md' => "# Loose\n\nUnknown: value\n\nText",
+        'Home '.HOME_ID.'/Tasks '.TASKS_ID.'/Bare '.ROW_ID.'.md' => 'No title or properties',
     ]);
     $zip = notionZip([
         'Home '.HOME_ID.'.md' => "\u{FEFF}# Home\r\n\r\n".implode("\n", [
@@ -61,7 +62,7 @@ it('imports pages, attachments and databases from a Notion export', function ():
 
     $result = resolve(ImportNotionExport::class)->handle($vault, $zip, 'Notion');
 
-    expect($result)->toBe(['notes' => 5, 'attachments' => 2, 'views' => 1, 'folder' => 'Notion 1'])
+    expect($result)->toBe(['notes' => 6, 'attachments' => 2, 'views' => 1, 'folder' => 'Notion 1'])
         ->and(file_get_contents($vault->path.'/Notion 1/Home.md'))->toBe(implode("\n", [
             '# Home',
             '',
@@ -91,10 +92,11 @@ it('imports pages, attachments and databases from a Notion export', function ():
 
             Back [[Home|home]].
             MD)
+        ->and(file_get_contents($vault->path.'/Notion 1/Home/Tasks/Bare.md'))->toBe('No title or properties')
         ->and(file_get_contents($vault->path.'/Notion 1/Home/Tasks/Loose.md'))->toBe("# Loose\n\nUnknown: value\n\nText")
         ->and(file_get_contents($vault->path.'/Notion 1/Home/diagram.png'))->toBe('PNG')
         ->and(file_exists($vault->path.'/Notion 1/escape.md'))->toBeFalse()
-        ->and(Note::query()->where('path', 'like', 'Notion 1/%')->count())->toBe(5);
+        ->and(Note::query()->where('path', 'like', 'Notion 1/%')->count())->toBe(6);
 
     $view = TableView::query()->sole();
 
