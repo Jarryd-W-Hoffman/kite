@@ -9,7 +9,7 @@ import { destroy, store, update } from '@/routes/note-comments';
 import type { NoteComment, VaultSummary } from '@/types';
 
 /** The comment being written, highlighted like the others until it is saved. */
-export const DRAFT_ID = -1;
+export const DRAFT_ID = 'draft';
 
 /** How long the text must stay still before moved anchors are saved. */
 const ANCHOR_SAVE_DELAY = 1000;
@@ -38,11 +38,11 @@ export function useNoteComments({
 }: Options) {
     const [comments, setComments] = useState(initial);
     const [draft, setDraft] = useState<CommentAnchor | null>(null);
-    const [activeId, setActiveId] = useState<number | null>(null);
+    const [activeId, setActiveId] = useState<string | null>(null);
     const [editorRanges, setEditorRanges] = useState<CommentRanges | null>(
         null,
     );
-    const saving = useRef(new Set<number>());
+    const saving = useRef(new Set<string>());
 
     const editorComments = useMemo<EditorComment[]>(
         () => [
@@ -59,7 +59,7 @@ export function useNoteComments({
     );
 
     const textRanges = useMemo(() => {
-        const ranges = new Map<number, AnchorRange>();
+        const ranges = new Map<string, AnchorRange>();
 
         if (!editing) {
             for (const comment of editorComments) {
@@ -116,7 +116,7 @@ export function useNoteComments({
         );
 
     async function send(
-        id: number,
+        id: string,
         changes: Partial<CommentAnchor & { body: string; resolved: boolean }>,
         quietly = false,
     ): Promise<void> {
@@ -157,7 +157,7 @@ export function useNoteComments({
         }
     };
 
-    const remove = async (id: number): Promise<void> => {
+    const remove = async (id: string): Promise<void> => {
         try {
             await requestJson(
                 destroy({ vault: vault.id, note: noteId, comment: id }),
@@ -186,8 +186,8 @@ export function useNoteComments({
         },
         setEditorRanges,
         add,
-        edit: (id: number, body: string) => send(id, { body }),
-        setResolved: (id: number, resolved: boolean) => send(id, { resolved }),
+        edit: (id: string, body: string) => send(id, { body }),
+        setResolved: (id: string, resolved: boolean) => send(id, { resolved }),
         remove,
     };
 }
