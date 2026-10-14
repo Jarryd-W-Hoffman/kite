@@ -17,7 +17,7 @@ import {
     PencilLine,
     Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { CommandPalette } from '@/components/kite/command-palette';
@@ -51,12 +51,16 @@ import { useNoteComments } from '@/hooks/use-note-comments';
 import { useNoteDocument } from '@/hooks/use-note-document';
 import { useNoteLinkModifiers } from '@/hooks/use-note-link-modifiers';
 import { useVaultSync } from '@/hooks/use-vault-sync';
+import { requestJson } from '@/lib/kite-http';
 import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
+import { BASE_COMMANDS } from '@/lib/slash-commands';
+import type { SlashCommand } from '@/lib/slash-commands';
 import { cn, editorWidthClass } from '@/lib/utils';
 import { show as noteExport } from '@/routes/note-exports';
 import { update as updatePath } from '@/routes/note-path';
 import { store as publishNote } from '@/routes/note-publications';
 import { store as restoreVersion } from '@/routes/note-version-restores';
+import { show as showTemplate } from '@/routes/templates';
 import type { NoteDetail, OutlineItem, WorkspaceProps } from '@/types';
 
 type ViewMode = 'edit' | 'split' | 'preview';
@@ -226,6 +230,7 @@ function NoteWorkspace({
     mentions,
     comments: initialComments = [],
     comments_error: commentsError,
+    templates = [],
     panelOpen,
     onTogglePanel,
 }: NoteWorkspaceProps) {
@@ -409,6 +414,43 @@ function NoteWorkspace({
         link.download = '';
         link.click();
     };
+
+    const slashCommands = useMemo<SlashCommand[]>(
+        () => [
+            ...BASE_COMMANDS,
+            ...templates.map((template): SlashCommand => ({
+                id: `template-${template.id}`,
+                label: template.name,
+                section: 'Templates',
+                description: 'Insert this template',
+                keywords: 'template',
+                icon: '⧉',
+                insert: async () => {
+                    const { contents } = await requestJson<{
+                        contents: string;
+                    }>(
+                        showTemplate(
+                            { vault: vault.id, path: template.path },
+                            {
+                                query: {
+                                    title: meta.title,
+                                    folder: note.path.includes('/')
+                                        ? note.path.slice(
+                                              0,
+                                              note.path.lastIndexOf('/'),
+                                          )
+                                        : '',
+                                },
+                            },
+                        ),
+                    );
+
+                    return { text: contents, block: true };
+                },
+            })),
+        ],
+        [templates, vault.id, meta.title, note.path],
+    );
 
     const followLink = (target: string) => followWikiLink(vault, tree, target);
 
@@ -664,6 +706,7 @@ function NoteWorkspace({
                             activeCommentId={noteComments.activeId}
                             onCommentRanges={noteComments.setEditorRanges}
                             onCursorLine={setCursorLine}
+                            slashCommands={slashCommands}
                             onSelectComment={selectComment}
                             onAddComment={(anchor) => {
                                 noteComments.startDraft(anchor);

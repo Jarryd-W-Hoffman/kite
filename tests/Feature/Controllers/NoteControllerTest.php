@@ -124,3 +124,11 @@ it('says a deleted note went to the trash in the desktop app', function (): void
 
     Shell::assertTrashedFile($vault->path.'/A.md');
 });
+
+it('saves note text exactly, including surrounding whitespace', function (): void {
+    $vault = indexedVault(['A.md' => 'a']);
+
+    $this->putJson(route('notes.update', [$vault, Note::query()->sole()]), ['contents' => "  indented\n\ntrailing\n"])->assertOk();
+
+    expect(file_get_contents($vault->path.'/A.md'))->toBe("  indented\n\ntrailing\n");
+});

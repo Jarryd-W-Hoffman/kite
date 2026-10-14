@@ -69,6 +69,7 @@ Route::post('vaults/{vault}/preview', [VaultPreviewController::class, 'store'])-
 Route::get('vaults/{vault}/files/{path}', [VaultFileController::class, 'show'])->where('path', '.*')->name('vault-files.show');
 Route::post('vaults/{vault}/folders', [FolderController::class, 'store'])->name('folders.store');
 Route::post('vaults/{vault}/templates', [TemplateController::class, 'store'])->name('templates.store');
+Route::get('vaults/{vault}/templates/{path}', [TemplateController::class, 'show'])->where('path', '.*')->name('templates.show');
 Route::put('vaults/{vault}/folders', [FolderController::class, 'update'])->name('folders.update');
 Route::delete('vaults/{vault}/folders', [FolderController::class, 'destroy'])->name('folders.destroy');
 Route::post('vaults/{vault}/attachments', [VaultAttachmentController::class, 'store'])->name('vault-attachments.store');

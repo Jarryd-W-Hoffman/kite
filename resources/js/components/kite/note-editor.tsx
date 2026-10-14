@@ -55,6 +55,12 @@ import {
 import type { CommentRanges } from '@/lib/comment-highlights';
 import { markdownBlocks, markdownBlocksTheme } from '@/lib/markdown-blocks';
 import { matchNotes, noteName } from '@/lib/note-tree';
+import {
+    BASE_COMMANDS,
+    slashCompletions,
+    slashIcon,
+} from '@/lib/slash-commands';
+import type { SlashCommand } from '@/lib/slash-commands';
 import { cn, editorFontClass, editorWidthClass } from '@/lib/utils';
 import type { TreeNote } from '@/types';
 
@@ -84,6 +90,8 @@ type Props = {
     onAddComment?: (anchor: CommentAnchor) => void;
     /** Called with the cursor's 1-based line whenever it moves to another line. */
     onCursorLine?: (line: number) => void;
+    /** Commands offered after typing `/`; the built-in blocks when not given. */
+    slashCommands?: SlashCommand[];
 };
 
 const NO_COMMENTS: EditorComment[] = [];
@@ -234,14 +242,64 @@ const kiteTheme = EditorView.theme({
         textUnderlineOffset: '3px',
     },
     '.cm-tooltip': {
+        fontFamily: 'var(--font-sans)',
+        fontSize: '13.5px',
         border: '1px solid var(--border)',
         backgroundColor: 'var(--popover)',
         color: 'var(--popover-foreground)',
         borderRadius: '8px',
-        boxShadow: '0 8px 24px rgb(0 0 0 / 0.12)',
+        boxShadow: 'var(--kite-shadow-lg)',
         overflow: 'hidden',
     },
-    '.cm-tooltip-autocomplete > ul > li': { padding: '4px 10px' },
+    '.cm-tooltip-autocomplete > ul': {
+        maxHeight: '22rem !important',
+        padding: '4px',
+    },
+    '.cm-tooltip-autocomplete > ul > li': {
+        padding: '4px 10px',
+        borderRadius: '6px',
+    },
+    '.cm-tooltip-autocomplete > ul > completion-section': {
+        display: 'block',
+        padding: '8px 10px 4px',
+        fontSize: '11px',
+        fontWeight: '600',
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        color: 'var(--muted-foreground)',
+        borderBottom: 'none',
+    },
+    '.cm-kite-slash-icon': {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '28px',
+        height: '28px',
+        marginRight: '10px',
+        borderRadius: '6px',
+        border: '1px solid var(--border)',
+        backgroundColor: 'var(--background)',
+        fontSize: '12px',
+        fontWeight: '600',
+        verticalAlign: 'middle',
+        color: 'var(--muted-foreground)',
+    },
+    '.cm-tooltip-autocomplete li:has(.cm-kite-slash-icon)': {
+        display: 'flex',
+        alignItems: 'center',
+        minWidth: '19rem',
+        padding: '5px 8px !important',
+    },
+    '.cm-tooltip-autocomplete li:has(.cm-kite-slash-icon) .cm-completionLabel':
+        {
+            fontWeight: '500',
+        },
+    '.cm-tooltip-autocomplete li:has(.cm-kite-slash-icon) .cm-completionDetail':
+        {
+            marginLeft: 'auto',
+            paddingLeft: '16px',
+            fontSize: '12px',
+        },
     '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
         backgroundColor: 'var(--accent)',
         color: 'var(--accent-foreground)',
@@ -320,6 +378,7 @@ export function NoteEditor({
     onSelectComment,
     onAddComment,
     onCursorLine,
+    slashCommands,
 }: Props) {
     const { editor } = usePage().props.kite;
     const containerRef = useRef<HTMLDivElement>(null);
@@ -335,6 +394,7 @@ export function NoteEditor({
         onSelectComment,
         onAddComment,
         onCursorLine,
+        slashCommands,
     });
     const initialValue = useRef(value);
     const initialTestId = useRef(testId);
@@ -352,6 +412,7 @@ export function NoteEditor({
             onSelectComment,
             onAddComment,
             onCursorLine,
+            slashCommands,
         };
     });
 
@@ -500,11 +561,17 @@ export function NoteEditor({
             syntaxHighlighting(markdownHighlighting),
             wikiLinks,
             autocompletion({
-                override: [linkCompletions],
+                override: [
+                    linkCompletions,
+                    slashCompletions(
+                        () => callbacks.current.slashCommands ?? BASE_COMMANDS,
+                    ),
+                ],
                 icons: false,
                 activateOnTyping: true,
+                addToOptions: [slashIcon],
             }),
-            placeholder('Start writing… Use [[ to link notes.'),
+            placeholder('Start writing… Type / for blocks, [[ to link notes.'),
             kiteTheme,
             markdownBlocks,
             markdownBlocksTheme,
