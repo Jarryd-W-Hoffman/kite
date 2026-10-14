@@ -350,3 +350,33 @@
 .dark {
     --kite-link: oklch(0.75 0.13 260);
 }
+
+/* Kite: embedded notes */
+.kite-prose .note-embed {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--kite-link);
+    border-radius: 8px;
+    padding: 0.75em 1em;
+    background: color-mix(in oklch, var(--muted) 35%, transparent);
+}
+
+.kite-prose .note-embed > .note-embed-title {
+    display: inline-block;
+    margin-bottom: 0.5em;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.kite-prose .note-embed-body > :first-child {
+    margin-top: 0;
+}
+
+.kite-prose .note-embed-body > * + * {
+    margin-top: 0.75em;
+}
+
+.kite-prose .note-embed-notice {
+    color: var(--muted-foreground);
+    font-style: italic;
+}

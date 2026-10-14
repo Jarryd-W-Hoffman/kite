@@ -18,8 +18,10 @@ final class OutlineCollector
      */
     private array $outline = [];
 
-    public function __construct(private readonly int $lineOffset = 0)
-    {
+    public function __construct(
+        private readonly int $lineOffset = 0,
+        private readonly bool $assignIds = true,
+    ) {
         //
     }
 
@@ -36,7 +38,9 @@ final class OutlineCollector
             $text = mb_trim(StringContainerHelper::getChildText($node));
             $slug = $slugger->unique($text);
 
-            $node->data->set('attributes/id', 'h-'.$slug);
+            if ($this->assignIds) {
+                $node->data->set('attributes/id', 'h-'.$slug);
+            }
 
             $this->outline[] = [
                 'level' => $node->getLevel(),
