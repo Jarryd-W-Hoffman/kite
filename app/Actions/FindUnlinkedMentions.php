@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Models\Note;
 use App\Services\Markdown\MentionMatcher;
 use App\Services\Row;
+use App\Services\Templates;
 use App\Services\VaultFilesystem;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +20,7 @@ final readonly class FindUnlinkedMentions
     public function __construct(
         private VaultFilesystem $files,
         private MentionMatcher $matcher,
+        private Templates $templates,
     ) {
         //
     }
@@ -66,8 +68,8 @@ final readonly class FindUnlinkedMentions
 
         $linkingNoteIds = DB::table('note_links')->where('target_note_id', $note->id)->pluck('source_note_id')->all();
 
-        $candidates = DB::table('notes_fts')
-            ->join('notes', 'notes.id', '=', 'notes_fts.rowid')
+        $candidates = $this->templates->exclude(DB::table('notes_fts')
+            ->join('notes', 'notes.id', '=', 'notes_fts.rowid'), 'notes.path')
             ->where('notes.vault_id', $note->vault_id)
             ->where('notes.id', '!=', $note->id)
             ->whereNotIn('notes.id', $linkingNoteIds)

@@ -6,10 +6,16 @@ namespace App\Actions;
 
 use App\Models\Vault;
 use App\Services\Row;
+use App\Services\Templates;
 use Illuminate\Support\Facades\DB;
 
 final readonly class ListTasks
 {
+    public function __construct(private Templates $templates)
+    {
+        //
+    }
+
     /**
      * Every checklist item in the vault, with its note and the note's tags, open ones first and
      * by due date, then by note and line.
@@ -18,9 +24,9 @@ final readonly class ListTasks
      */
     public function handle(Vault $vault): array
     {
-        $rows = DB::table('note_tasks')
+        $rows = $this->templates->exclude(DB::table('note_tasks')
             ->join('notes', 'notes.id', '=', 'note_tasks.note_id')
-            ->where('note_tasks.vault_id', $vault->id)
+            ->where('note_tasks.vault_id', $vault->id), 'notes.path')
             ->orderBy('note_tasks.done')
             ->orderByRaw('note_tasks.due IS NULL, note_tasks.due')
             ->orderByRaw('notes.path COLLATE NOCASE')

@@ -7,12 +7,15 @@ namespace App\Actions;
 use App\Models\Vault;
 use App\Services\ColourGroups;
 use App\Services\Row;
+use App\Services\Templates;
 use Illuminate\Support\Facades\DB;
 
 final readonly class BuildGraph
 {
-    public function __construct(private ColourGroups $colourGroups)
-    {
+    public function __construct(
+        private ColourGroups $colourGroups,
+        private Templates $templates,
+    ) {
         //
     }
 
@@ -35,7 +38,7 @@ final readonly class BuildGraph
             $tags[Row::int($row, 'note_id')][] = Row::string($row, 'name');
         }
 
-        foreach (DB::table('notes')->where('vault_id', $vault->id)->orderBy('id')->get(['id', 'title', 'path']) as $row) {
+        foreach ($this->templates->exclude(DB::table('notes')->where('vault_id', $vault->id))->orderBy('id')->get(['id', 'title', 'path']) as $row) {
             $id = Row::int($row, 'id');
             $path = Row::string($row, 'path');
 
@@ -64,6 +67,11 @@ final readonly class BuildGraph
         foreach ($links as $link) {
             $source = 'n'.Row::int($link, 'source_note_id');
             $targetNoteId = Row::nullableInt($link, 'target_note_id');
+
+            // Links from or to templates aren't part of the vault's graph.
+            if (! isset($nodes[$source]) || ($targetNoteId !== null && ! isset($nodes['n'.$targetNoteId]))) {
+                continue;
+            }
 
             if ($targetNoteId === null) {
                 $target = 'g'.Row::string($link, 'target_key');

@@ -180,7 +180,13 @@ final readonly class MarkdownParser
         }
 
         if (preg_match('/^#[ \t]+(.+?)[ \t#]*$/mu', $searchable, $matches) === 1) {
-            return mb_trim(str_replace(['[[', ']]'], '', $matches[1]));
+            // Inline #tags tag the note; they aren't part of its name.
+            $heading = (string) preg_replace(self::TAG_PATTERN, '', str_replace(['[[', ']]'], '', $matches[1]));
+            $heading = mb_trim((string) preg_replace('/\s+/u', ' ', $heading));
+
+            if ($heading !== '') {
+                return $heading;
+            }
         }
 
         return (string) preg_replace('/\.md$/i', '', basename(str_replace('\\', '/', $path)));

@@ -8,13 +8,16 @@ use App\Models\TableView;
 use App\Services\ColourGroupQuery;
 use App\Services\ColourGroups;
 use App\Services\Row;
+use App\Services\Templates;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 final readonly class ListTableRows
 {
-    public function __construct(private ColourGroups $notes)
-    {
+    public function __construct(
+        private ColourGroups $notes,
+        private Templates $templates,
+    ) {
         //
     }
 
@@ -42,7 +45,7 @@ final readonly class ListTableRows
         $keys = [];
 
         foreach ($this->notes->notes($view->vault) as $id => $note) {
-            if ($query instanceof ColourGroupQuery && ! $query->matches($note)) {
+            if ($this->templates->contains($note['path']) || ($query instanceof ColourGroupQuery && ! $query->matches($note))) {
                 continue;
             }
 

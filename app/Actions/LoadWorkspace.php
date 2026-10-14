@@ -64,7 +64,7 @@ final readonly class LoadWorkspace
             'favourites' => fn (): array => $this->noteLinks($vault, 'starred_at', 'asc', 50),
             'recent_notes' => fn (): array => $this->noteLinks($vault, 'opened_at', 'desc', 6),
             'table_views' => fn (): array => $vault->tableViews()->orderBy('name')->get(['id', 'name'])->map(fn (TableView $view): array => ['id' => $view->id, 'name' => $view->name])->all(),
-            'open_tasks' => fn (): int => DB::table('note_tasks')->where('vault_id', $vault->id)->where('done', false)->count(),
+            'open_tasks' => fn (): int => $this->templates->exclude(DB::table('note_tasks')->join('notes', 'notes.id', '=', 'note_tasks.note_id')->where('note_tasks.vault_id', $vault->id)->where('note_tasks.done', false), 'notes.path')->count(),
             'tags' => DB::table('note_tags')
                 ->where('vault_id', $vault->id)
                 ->groupBy('name')
