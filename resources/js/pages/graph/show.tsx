@@ -123,6 +123,7 @@ export default function GraphShow({
                     vaults={vaults}
                     tree={tree}
                     folders={folders}
+                    colourGroups={colourGroups}
                     tags={tags}
                     activeNoteId={null}
                     indexing={indexing}

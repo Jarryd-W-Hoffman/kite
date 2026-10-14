@@ -20,6 +20,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { groupColourVariable } from '@/lib/colour-groups';
+import type { ColourGroup } from '@/lib/colour-groups';
 import { buildTree, noteFolder, noteName } from '@/lib/note-tree';
 import type { TreeFolder } from '@/lib/note-tree';
 import { cn } from '@/lib/utils';
@@ -44,6 +46,8 @@ type Props = FolderActions & {
     vault: VaultSummary;
     notes: TreeNote[];
     folders: string[];
+    /** Colour groups by id; notes in a group get a coloured dot. Empty to hide the dots. */
+    groups: ColourGroup[];
     activeNoteId: number | null;
 };
 
@@ -56,6 +60,7 @@ type DropHandlers = {
 type TreeContextValue = {
     vault: VaultSummary;
     activeNoteId: number | null;
+    groups: Map<number, ColourGroup>;
     collapsed: Set<string>;
     onToggle: (path: string) => void;
     actions: FolderActions;
@@ -110,6 +115,7 @@ export function FileTree({
     vault,
     notes,
     folders,
+    groups,
     activeNoteId,
     onNewNote,
     onNewFolder,
@@ -280,6 +286,7 @@ export function FileTree({
     const context: TreeContextValue = {
         vault,
         activeNoteId,
+        groups: new Map(groups.map((group) => [group.id, group])),
         collapsed,
         onToggle: setFolderCollapsed,
         actions,
@@ -372,6 +379,7 @@ function FolderContents({
                     >
                         <FileText className="size-4 shrink-0 text-muted-foreground" />
                         <span className="truncate">{noteName(note.path)}</span>
+                        <GroupDot group={tree.groups.get(note.group ?? -1)} />
                     </Link>
                 </li>
             ))}
@@ -496,5 +504,22 @@ function FolderItem({
                 </div>
             )}
         </li>
+    );
+}
+
+function GroupDot({ group }: { group: ColourGroup | undefined }) {
+    if (!group) {
+        return null;
+    }
+
+    return (
+        <span
+            className="ml-auto size-2 shrink-0 rounded-full"
+            style={{ background: groupColourVariable(group.colour) }}
+            title={group.name}
+            data-test="tree-group-dot"
+        >
+            <span className="sr-only">{group.name}</span>
+        </span>
     );
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\IndexVault;
 use App\Enums\GroupColour;
 use App\Models\ColourGroup;
+use App\Models\Note;
 
 it('creates colour groups from the graph and hides them from the legend', function (): void {
     $vault = vaultWithFiles([
@@ -55,4 +56,21 @@ it('edits, reorders and deletes colour groups in the editor', function (): void 
 
     expect(ColourGroup::query()->pluck('query', 'id')->all())->toBe([$first->id => 'tag:nothing'])
         ->and(ColourGroup::query()->find($second->id))->toBeNull();
+});
+
+it('marks grouped notes in the file tree unless turned off in preferences', function (): void {
+    $vault = vaultWithFiles(['Plan.md' => '# Plan #project', 'Home.md' => '# Home']);
+    resolve(IndexVault::class)->handle($vault);
+    ColourGroup::factory()->for($vault)->create(['name' => 'Projects', 'query' => 'tag:project']);
+
+    visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
+        ->assertPresent('a[data-path="Plan.md"] [data-test=tree-group-dot]')
+        ->assertMissing('a[data-path="Home.md"] [data-test=tree-group-dot]')
+        ->click('@preferences-link')
+        ->assertChecked('tree_group_colours')
+        ->click('#tree_group_colours')
+        ->click('Save preferences')
+        ->assertMissing('@preferences-dialog')
+        ->assertMissing('[data-test=tree-group-dot]')
+        ->assertNoJavaScriptErrors();
 });

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -333,6 +334,27 @@ function PreferencesForm({
                             }
                         />
                     </Field>
+                </Section>
+
+                <Section title="File tree">
+                    <div className="flex items-start gap-2 sm:col-span-2">
+                        <Checkbox
+                            id="tree_group_colours"
+                            checked={data.tree_group_colours}
+                            onCheckedChange={(value) =>
+                                setData('tree_group_colours', value === true)
+                            }
+                        />
+                        <div className="grid gap-1">
+                            <Label htmlFor="tree_group_colours">
+                                Show colour group dots
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                                Mark notes with the colour of the first colour
+                                group they match, as on the graph.
+                            </p>
+                        </div>
+                    </div>
                 </Section>
 
                 <Section title="Quick capture">

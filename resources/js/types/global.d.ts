@@ -20,6 +20,7 @@ declare module '@inertiajs/core' {
                 native: boolean;
                 platform: string;
                 editor: EditorPreferences;
+                tree_group_colours: boolean;
             };
             preferences?: Preferences;
             sidebarOpen: boolean;
