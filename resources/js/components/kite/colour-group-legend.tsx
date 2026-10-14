@@ -42,7 +42,7 @@ export function ColourGroupLegend({
 
     return (
         <div
-            className="kite-no-drag absolute top-3 left-4 z-10 w-56 rounded-lg border bg-background/90 p-2 text-sm shadow-sm backdrop-blur"
+            className="kite-no-drag absolute top-4 left-4 z-10 w-56 rounded-xl border bg-background/85 p-1.5 text-[13px] shadow-kite-lg backdrop-blur-md"
             data-test="colour-group-legend"
         >
             {groups.length === 0 ? (

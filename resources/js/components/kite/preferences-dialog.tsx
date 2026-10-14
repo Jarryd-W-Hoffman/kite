@@ -26,8 +26,7 @@ type Props = {
     onOpenChange: (open: boolean) => void;
 };
 
-const selectClass =
-    'h-9 w-full rounded-md border bg-background px-3 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring';
+const selectClass = 'kite-select h-9 w-full text-sm';
 
 function Field({
     id,

@@ -17,7 +17,7 @@ import {
     Sun,
 } from 'lucide-react';
 import { useState } from 'react';
-import AppLogoIcon from '@/components/app-logo-icon';
+import type { ReactNode } from 'react';
 import { FileTree } from '@/components/kite/file-tree';
 import { FolderDialogs } from '@/components/kite/folder-dialogs';
 import type { FolderDialogState } from '@/components/kite/folder-dialogs';
@@ -125,10 +125,10 @@ export function WorkspaceSidebar({
     });
 
     return (
-        <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+        <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
             <div
                 className={cn(
-                    'kite-drag flex h-12 shrink-0 items-center gap-1 border-b px-2',
+                    'kite-drag flex h-12 shrink-0 items-center gap-1 px-2',
                     insetTrafficLights && 'pl-20',
                 )}
             >
@@ -136,11 +136,16 @@ export function WorkspaceSidebar({
                     <DropdownMenuTrigger asChild>
                         <button
                             type="button"
-                            className="kite-no-drag flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-semibold hover:bg-sidebar-accent"
+                            className="kite-no-drag group flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left text-sm font-semibold transition-colors hover:bg-sidebar-accent"
                         >
-                            <AppLogoIcon className="size-4 shrink-0 fill-current" />
-                            <span className="truncate">{vault.name}</span>
-                            <ChevronsUpDown className="ml-auto size-3.5 shrink-0 text-muted-foreground" />
+                            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-[oklch(0.62_0.2_310)] text-[11px] font-bold text-primary-foreground shadow-kite-sm">
+                                {vault.name.trim().charAt(0).toUpperCase() ||
+                                    'K'}
+                            </span>
+                            <span className="truncate text-sidebar-accent-foreground">
+                                {vault.name}
+                            </span>
+                            <ChevronsUpDown className="ml-auto size-3.5 shrink-0 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100" />
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-64">
@@ -166,96 +171,59 @@ export function WorkspaceSidebar({
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="kite-no-drag size-8"
-                            aria-label="New note"
-                            onClick={() => createNote(vault)}
-                        >
-                            <Plus />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        New note ({formatShortcut('Mod+N', kite.platform)})
-                    </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="kite-no-drag size-8"
-                            aria-label="New note from template"
-                            data-test="new-from-template"
-                            onClick={() => setTemplateFolder('')}
-                        >
-                            <LayoutTemplate />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        New note from template (
-                        {formatShortcut('Mod+Shift+N', kite.platform)})
-                    </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="kite-no-drag size-8"
-                            aria-label="New folder"
-                            data-test="new-folder"
-                            onClick={() =>
-                                setFolderDialog({ kind: 'new', path: '' })
-                            }
-                        >
-                            <FolderPlus />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>New folder</TooltipContent>
-                </Tooltip>
             </div>
 
-            <div className="space-y-1 p-2">
-                <button
-                    type="button"
+            <nav className="space-y-px px-2 pb-2" aria-label="Workspace">
+                <NavItem
+                    icon={Search}
+                    label="Search"
+                    shortcut="Mod+K"
                     onClick={onSearch}
-                    className="flex w-full items-center gap-2 rounded-md border bg-background px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-accent"
-                >
-                    <Search className="size-4" />
-                    Search
-                    <Kbd shortcut="Mod+K" className="ml-auto py-0" />
-                </button>
-                <button
-                    type="button"
+                />
+                <NavItem
+                    icon={CalendarDays}
+                    label="Today"
+                    shortcut="Mod+D"
                     onClick={() => openDailyNote(vault)}
-                    data-test="today-link"
-                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent"
-                >
-                    <CalendarDays className="size-4" />
-                    Today
-                    <Kbd shortcut="Mod+D" className="ml-auto py-0" />
-                </button>
-                <Link
-                    href={showGraph(vault.id)}
-                    data-test="graph-link"
-                    className={cn(
-                        'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-sidebar-accent',
-                        graphActive &&
-                            'bg-sidebar-accent font-medium text-sidebar-accent-foreground',
-                    )}
-                >
-                    <Network className="size-4" />
-                    Graph view
-                    <Kbd shortcut="Mod+G" className="ml-auto py-0" />
-                </Link>
-            </div>
+                    testId="today-link"
+                />
+                <NavItem
+                    icon={Network}
+                    label="Graph view"
+                    shortcut="Mod+G"
+                    href={showGraph(vault.id).url}
+                    active={graphActive}
+                    testId="graph-link"
+                />
+            </nav>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+                <SectionHeading title="Notes">
+                    <SectionAction
+                        label="New note"
+                        shortcut={formatShortcut('Mod+N', kite.platform)}
+                        onClick={() => createNote(vault)}
+                    >
+                        <Plus />
+                    </SectionAction>
+                    <SectionAction
+                        label="New note from template"
+                        shortcut={formatShortcut('Mod+Shift+N', kite.platform)}
+                        onClick={() => setTemplateFolder('')}
+                        testId="new-from-template"
+                    >
+                        <LayoutTemplate />
+                    </SectionAction>
+                    <SectionAction
+                        label="New folder"
+                        onClick={() =>
+                            setFolderDialog({ kind: 'new', path: '' })
+                        }
+                        testId="new-folder"
+                    >
+                        <FolderPlus />
+                    </SectionAction>
+                </SectionHeading>
                 <FileTree
                     vault={vault}
                     notes={tree}
@@ -278,11 +246,9 @@ export function WorkspaceSidebar({
                 />
 
                 {tags.length > 0 && (
-                    <div className="mt-6">
-                        <h2 className="px-2 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                            Tags
-                        </h2>
-                        <ul className="flex flex-wrap gap-1 px-2">
+                    <div className="mt-5">
+                        <SectionHeading title="Tags" />
+                        <ul className="flex flex-wrap gap-1 px-1.5">
                             {tags.map((tag) => (
                                 <li key={tag.name}>
                                     <Link
@@ -292,14 +258,14 @@ export function WorkspaceSidebar({
                                         })}
                                         data-test={`tag-${tag.name}`}
                                         className={cn(
-                                            'inline-flex items-center gap-1 rounded-full bg-sidebar-accent px-2 py-0.5 text-xs hover:ring-1 hover:ring-ring',
+                                            'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                                             tag.name === activeTag &&
-                                                'bg-primary text-primary-foreground',
+                                                'bg-kite-accent-soft text-primary hover:bg-kite-accent-soft hover:text-primary',
                                         )}
                                     >
-                                        <Hash className="size-3" />
+                                        <Hash className="size-3 opacity-60" />
                                         {tag.name}
-                                        <span className="tabular-nums opacity-60">
+                                        <span className="tabular-nums opacity-50">
                                             {tag.count}
                                         </span>
                                     </Link>
@@ -309,12 +275,12 @@ export function WorkspaceSidebar({
                     </div>
                 )}
             </div>
-            <div className="flex items-center gap-1 border-t p-2">
+            <div className="flex items-center gap-0.5 border-t border-sidebar-border px-2 py-1.5">
                 <button
                     type="button"
                     onClick={() => setPreferencesOpen(true)}
                     data-test="preferences-link"
-                    className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 >
                     <Settings2 className="size-4" />
                     Preferences
@@ -407,6 +373,112 @@ function ThemeButton({
                 </Button>
             </TooltipTrigger>
             <TooltipContent side="top">Theme: {label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
+/**
+ * A row in the sidebar's top navigation, as a link or a button.
+ */
+function NavItem({
+    icon: Icon,
+    label,
+    shortcut,
+    onClick,
+    href,
+    active = false,
+    testId,
+}: {
+    icon: typeof Search;
+    label: string;
+    shortcut?: string;
+    onClick?: () => void;
+    href?: string;
+    active?: boolean;
+    testId?: string;
+}) {
+    const className = cn(
+        'group flex w-full items-center gap-2.5 rounded-md px-2 py-[5px] text-[13.5px] text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        active &&
+            'bg-sidebar-accent font-medium text-sidebar-accent-foreground',
+    );
+    const contents = (
+        <>
+            <Icon className="size-4 shrink-0 text-muted-foreground group-hover:text-sidebar-accent-foreground" />
+            {label}
+            {shortcut && (
+                <Kbd
+                    shortcut={shortcut}
+                    className="ml-auto border-transparent py-0 opacity-0 transition-opacity group-hover:opacity-100"
+                />
+            )}
+        </>
+    );
+
+    return href ? (
+        <Link href={href} className={className} data-test={testId}>
+            {contents}
+        </Link>
+    ) : (
+        <button
+            type="button"
+            onClick={onClick}
+            className={className}
+            data-test={testId}
+        >
+            {contents}
+        </button>
+    );
+}
+
+function SectionHeading({
+    title,
+    children,
+}: {
+    title: string;
+    children?: ReactNode;
+}) {
+    return (
+        <div className="group/section flex h-7 items-center gap-0.5 pr-0.5 pl-2">
+            <h2 className="flex-1 text-[11px] font-semibold tracking-wider text-muted-foreground/80 uppercase">
+                {title}
+            </h2>
+            {children}
+        </div>
+    );
+}
+
+function SectionAction({
+    label,
+    shortcut,
+    onClick,
+    testId,
+    children,
+}: {
+    label: string;
+    shortcut?: string;
+    onClick: () => void;
+    testId?: string;
+    children: ReactNode;
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 text-muted-foreground opacity-60 transition-opacity group-hover/section:opacity-100 focus-visible:opacity-100 [&_svg]:size-3.5"
+                    aria-label={label}
+                    data-test={testId}
+                    onClick={onClick}
+                >
+                    {children}
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+                {label}
+                {shortcut ? ` (${shortcut})` : ''}
+            </TooltipContent>
         </Tooltip>
     );
 }

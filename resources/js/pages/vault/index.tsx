@@ -43,22 +43,30 @@ export default function VaultIndex({ vaults, canPickFolder }: Props) {
         <>
             <Head title="Open a vault" />
 
-            <main className="flex min-h-svh items-center justify-center bg-background p-6">
-                <div className="w-full max-w-xl space-y-10">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                        <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                            <AppLogoIcon className="size-7 fill-current" />
+            <main className="kite-drag relative flex min-h-svh items-center justify-center overflow-hidden bg-background p-6">
+                <div
+                    aria-hidden
+                    className="pointer-events-none absolute -top-40 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--primary)_22%,transparent),transparent)] blur-2xl"
+                />
+                <div
+                    aria-hidden
+                    className="kite-dot-grid pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black_10%,transparent_70%)] opacity-60"
+                />
+                <div className="kite-no-drag relative w-full max-w-xl space-y-10">
+                    <div className="flex flex-col items-center gap-4 text-center">
+                        <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-[oklch(0.62_0.2_310)] text-primary-foreground shadow-kite-lg ring-1 ring-white/20">
+                            <AppLogoIcon className="size-9 fill-current" />
                         </div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
+                        <h1 className="text-4xl font-bold tracking-tight">
                             Welcome to Kite
                         </h1>
-                        <p className="max-w-sm text-sm text-muted-foreground">
+                        <p className="max-w-sm text-[15px] leading-relaxed text-muted-foreground">
                             Kite works directly on a folder of markdown files on
                             your computer. Nothing leaves your machine.
                         </p>
                     </div>
 
-                    <div className="space-y-4 rounded-xl border p-6">
+                    <div className="space-y-4 rounded-2xl border bg-card/80 p-6 shadow-kite-lg backdrop-blur">
                         {canPickFolder && (
                             <Button
                                 className="w-full"
@@ -105,16 +113,23 @@ export default function VaultIndex({ vaults, canPickFolder }: Props) {
 
                     {vaults.length > 0 && (
                         <section className="space-y-2">
-                            <h2 className="px-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                            <h2 className="px-1 text-[11px] font-semibold tracking-wider text-muted-foreground/80 uppercase">
                                 Recent vaults
                             </h2>
-                            <ul className="divide-y rounded-xl border">
+                            <ul className="divide-y overflow-hidden rounded-2xl border bg-card/80 shadow-kite-sm backdrop-blur">
                                 {vaults.map((vault) => (
                                     <li
                                         key={vault.id}
-                                        className="group flex items-center gap-3 px-4 py-3"
+                                        className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/60"
                                     >
-                                        <Notebook className="size-4 shrink-0 text-muted-foreground" />
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-kite-accent-soft text-sm font-semibold text-primary">
+                                            {vault.name
+                                                .trim()
+                                                .charAt(0)
+                                                .toUpperCase() || (
+                                                <Notebook className="size-4" />
+                                            )}
+                                        </span>
                                         <Link
                                             href={show(vault)}
                                             className="min-w-0 flex-1"

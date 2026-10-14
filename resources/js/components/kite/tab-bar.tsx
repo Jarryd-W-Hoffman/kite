@@ -71,7 +71,7 @@ export function TabBar({ vault, note }: Props) {
         <div
             role="tablist"
             aria-label="Open notes"
-            className="kite-drag flex h-9 shrink-0 items-end gap-0.5 overflow-x-auto border-b bg-sidebar px-2"
+            className="kite-drag flex h-10 shrink-0 items-end gap-1 overflow-x-auto border-b bg-sidebar px-2"
             data-test="tab-bar"
         >
             {state.tabs.map((tab) => (
@@ -80,10 +80,10 @@ export function TabBar({ vault, note }: Props) {
                     role="tab"
                     aria-selected={tab.id === note.id}
                     className={cn(
-                        'kite-no-drag group flex h-8 max-w-48 min-w-24 items-center gap-1 rounded-t-md border border-b-0 px-2 text-xs',
+                        'kite-no-drag group relative -mb-px flex h-8 max-w-52 min-w-28 items-center gap-1 rounded-t-lg border border-b-0 px-3 text-[12.5px] transition-colors',
                         tab.id === note.id
-                            ? 'bg-background font-medium'
-                            : 'border-transparent text-muted-foreground hover:bg-background/60',
+                            ? 'border-border bg-background font-medium text-foreground'
+                            : 'border-transparent text-muted-foreground hover:bg-background/50 hover:text-foreground',
                     )}
                 >
                     <Link

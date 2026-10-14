@@ -9,13 +9,14 @@
 
 @theme {
     --font-sans:
-        'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+        sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
     --font-serif:
         'Source Serif 4', ui-serif, Georgia, Cambria, 'Times New Roman', serif;
     --font-mono:
-        'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+        monospace;
 
     --shadow-kite-sm: var(--kite-shadow-sm);
     --shadow-kite-lg: var(--kite-shadow-lg);
@@ -108,8 +109,12 @@
     --sidebar-border: oklch(0.92 0.005 85);
     --sidebar-ring: oklch(0.53 0.2 278 / 45%);
     --kite-accent-soft: oklch(0.53 0.2 278 / 10%);
-    --kite-shadow-sm: 0 1px 2px oklch(0.3 0.02 75 / 6%), 0 1px 1px oklch(0.3 0.02 75 / 4%);
-    --kite-shadow-lg: 0 12px 32px -8px oklch(0.3 0.02 75 / 18%), 0 4px 12px -4px oklch(0.3 0.02 75 / 8%), 0 0 0 1px oklch(0.3 0.02 75 / 6%);
+    --kite-shadow-sm:
+        0 1px 2px oklch(0.3 0.02 75 / 6%), 0 1px 1px oklch(0.3 0.02 75 / 4%);
+    --kite-shadow-lg:
+        0 12px 32px -8px oklch(0.3 0.02 75 / 18%),
+        0 4px 12px -4px oklch(0.3 0.02 75 / 8%),
+        0 0 0 1px oklch(0.3 0.02 75 / 6%);
 }
 
 .dark {
@@ -147,7 +152,8 @@
     --sidebar-ring: oklch(0.66 0.17 282 / 50%);
     --kite-accent-soft: oklch(0.66 0.17 282 / 16%);
     --kite-shadow-sm: 0 1px 2px oklch(0 0 0 / 30%);
-    --kite-shadow-lg: 0 16px 40px -10px oklch(0 0 0 / 60%), 0 0 0 1px oklch(1 0 0 / 7%);
+    --kite-shadow-lg:
+        0 16px 40px -10px oklch(0 0 0 / 60%), 0 0 0 1px oklch(1 0 0 / 7%);
 }
 
 @layer base {
@@ -168,7 +174,8 @@
     /* Quiet scrollbars that only show their thumb. */
     * {
         scrollbar-width: thin;
-        scrollbar-color: color-mix(in oklch, var(--foreground) 18%, transparent) transparent;
+        scrollbar-color: color-mix(in oklch, var(--foreground) 18%, transparent)
+            transparent;
     }
 
     /* One visible focus ring for keyboard users; components with their own ring opt out with outline-none. */
@@ -182,6 +189,45 @@
         outline: 2px solid var(--ring);
         outline-offset: 1px;
     }
+}
+
+/* Kite: native selects styled like the rest of the controls */
+.kite-select {
+    appearance: none;
+    height: 2rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 1px);
+    background-color: var(--background);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5'/%3E%3Cpath d='m7 9 5-5 5 5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    padding: 0 1.75rem 0 0.625rem;
+    font-size: 13px;
+    color: var(--foreground);
+    box-shadow: var(--kite-shadow-sm);
+    transition:
+        background-color 120ms,
+        border-color 120ms;
+    cursor: pointer;
+}
+
+.kite-select:hover {
+    background-color: var(--accent);
+}
+
+.kite-select:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+}
+
+/* Kite: canvas backdrop */
+.kite-dot-grid {
+    background-image: radial-gradient(
+        color-mix(in oklch, var(--foreground) 10%, transparent) 1px,
+        transparent 1.2px
+    );
+    background-size: 22px 22px;
+    background-position: -11px -11px;
 }
 
 /* Kite: window chrome */
@@ -211,20 +257,22 @@
 /* Kite: rendered markdown */
 .kite-prose {
     color: var(--foreground);
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.75;
     overflow-wrap: anywhere;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
 }
 
 .kite-prose > * + * {
-    margin-top: 0.9em;
+    margin-top: 0.85em;
 }
 
 .kite-prose :where(h1, h2, h3, h4, h5, h6) {
-    font-weight: 600;
-    line-height: 1.3;
-    margin-top: 1.6em;
-    letter-spacing: -0.01em;
+    font-weight: 650;
+    line-height: 1.25;
+    margin-top: 1.9em;
+    letter-spacing: -0.015em;
+    color: var(--foreground);
 }
 
 .kite-prose > :first-child {
@@ -232,43 +280,76 @@
 }
 
 .kite-prose h1 {
-    font-size: 1.9em;
+    font-size: 2.2em;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+}
+
+.kite-prose h1 + * {
+    margin-top: 0.75em;
 }
 
 .kite-prose h2 {
-    font-size: 1.45em;
-    padding-bottom: 0.2em;
-    border-bottom: 1px solid var(--border);
+    font-size: 1.5em;
+    letter-spacing: -0.02em;
 }
 
 .kite-prose h3 {
-    font-size: 1.2em;
+    font-size: 1.22em;
+}
+
+.kite-prose :where(h4, h5, h6) {
+    font-size: 1em;
+}
+
+.kite-prose :where(h2, h3, h4) + * {
+    margin-top: 0.5em;
+}
+
+.kite-prose strong {
+    font-weight: 650;
 }
 
 .kite-prose a {
-    color: var(--primary);
+    color: var(--kite-link);
     text-decoration: underline;
-    text-decoration-color: color-mix(in oklch, var(--primary) 35%, transparent);
+    text-decoration-color: color-mix(
+        in oklch,
+        var(--kite-link) 30%,
+        transparent
+    );
+    text-decoration-thickness: 1px;
     text-underline-offset: 3px;
+    transition: text-decoration-color 120ms;
+}
+
+.kite-prose a:hover {
+    text-decoration-color: currentColor;
 }
 
 .kite-prose a.wiki-link {
-    text-decoration: none;
     font-weight: 500;
-    color: oklch(0.55 0.17 260);
-}
-
-.dark .kite-prose a.wiki-link {
-    color: oklch(0.75 0.13 260);
+    text-decoration: none;
+    border-radius: 3px;
+    padding: 0 0.1em;
+    margin: 0 -0.1em;
+    transition: background-color 120ms;
 }
 
 .kite-prose a.wiki-link:hover {
-    text-decoration: underline;
+    background: var(--kite-accent-soft);
 }
 
 .kite-prose a.wiki-link.is-unresolved {
     color: var(--muted-foreground);
-    border-bottom: 1px dashed currentColor;
+    font-weight: 400;
+    text-decoration: underline dashed;
+    text-decoration-color: color-mix(
+        in oklch,
+        var(--muted-foreground) 50%,
+        transparent
+    );
 }
 
 .kite-prose a.wiki-link.is-embed::before {
@@ -277,7 +358,7 @@
 }
 
 .kite-prose :where(ul, ol) {
-    padding-left: 1.5em;
+    padding-left: 1.4em;
 }
 
 .kite-prose ul {
@@ -288,67 +369,144 @@
     list-style: decimal;
 }
 
+.kite-prose li::marker {
+    color: color-mix(in oklch, var(--foreground) 45%, transparent);
+}
+
+.kite-prose ol > li::marker {
+    font-variant-numeric: tabular-nums;
+}
+
 .kite-prose li + li {
-    margin-top: 0.25em;
+    margin-top: 0.3em;
 }
 
 .kite-prose li:has(> input[type='checkbox']) {
     list-style: none;
-    margin-left: -1.5em;
+    margin-left: -1.4em;
+}
+
+.kite-prose li:has(> input[type='checkbox']:checked) {
+    color: var(--muted-foreground);
+    text-decoration: line-through;
+    text-decoration-color: color-mix(
+        in oklch,
+        var(--muted-foreground) 50%,
+        transparent
+    );
 }
 
 .kite-prose input[type='checkbox'] {
-    margin-right: 0.5em;
-    vertical-align: middle;
+    appearance: none;
+    width: 1.05em;
+    height: 1.05em;
+    margin: 0 0.55em 0 0;
+    vertical-align: -0.15em;
+    border: 1.5px solid color-mix(in oklch, var(--foreground) 35%, transparent);
+    border-radius: 4px;
+    display: inline-grid;
+    place-content: center;
+}
+
+.kite-prose input[type='checkbox']:checked {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.kite-prose input[type='checkbox']:checked::after {
+    content: '';
+    width: 0.3em;
+    height: 0.55em;
+    border: solid var(--primary-foreground);
+    border-width: 0 2px 2px 0;
+    transform: translateY(-0.06em) rotate(45deg);
 }
 
 .kite-prose blockquote {
-    border-left: 3px solid var(--border);
-    padding-left: 1em;
-    color: var(--muted-foreground);
+    border-left: 3px solid color-mix(in oklch, var(--primary) 55%, transparent);
+    padding: 0.15em 0 0.15em 1em;
+    color: color-mix(in oklch, var(--foreground) 72%, transparent);
+    font-style: normal;
 }
 
 .kite-prose code {
     font-family: var(--font-mono);
-    font-size: 0.875em;
-    background: var(--muted);
-    padding: 0.15em 0.35em;
-    border-radius: 4px;
+}
+
+.kite-prose :not(pre) > code {
+    font-size: 0.85em;
+    color: oklch(0.55 0.17 20);
+    background: color-mix(in oklch, var(--muted) 85%, transparent);
+    border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+    padding: 0.12em 0.38em;
+    border-radius: 5px;
+}
+
+.dark .kite-prose :not(pre) > code {
+    color: oklch(0.78 0.12 20);
 }
 
 .kite-prose pre {
-    background: var(--muted);
-    padding: 1em;
-    border-radius: 8px;
+    background: color-mix(in oklch, var(--muted) 70%, transparent);
+    border: 1px solid var(--border);
+    padding: 1em 1.15em;
+    border-radius: 10px;
     overflow-x: auto;
-    line-height: 1.6;
+    line-height: 1.65;
+    font-size: 0.9em;
 }
 
 .kite-prose pre code {
-    background: transparent;
-    padding: 0;
+    color: var(--foreground);
+    font-size: 0.95em;
 }
 
 .kite-prose hr {
-    border-color: var(--border);
-    margin: 2em 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 2.25em 0;
 }
 
 .kite-prose table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.925em;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 .kite-prose :where(th, td) {
-    border: 1px solid var(--border);
-    padding: 0.4em 0.75em;
+    padding: 0.55em 0.85em;
     text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.kite-prose :where(th, td) + :where(th, td) {
+    border-left: 1px solid var(--border);
+}
+
+.kite-prose tr:last-child > td {
+    border-bottom: 0;
 }
 
 .kite-prose th {
-    background: var(--muted);
+    background: color-mix(in oklch, var(--muted) 80%, transparent);
     font-weight: 600;
+    font-size: 0.92em;
+    color: color-mix(in oklch, var(--foreground) 85%, transparent);
+}
+
+.kite-prose mark {
+    background: oklch(0.92 0.12 95 / 70%);
+    color: inherit;
+    border-radius: 3px;
+    padding: 0 0.15em;
+}
+
+.dark .kite-prose mark {
+    background: oklch(0.55 0.12 95 / 45%);
 }
 
 .kite-prose img {

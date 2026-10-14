@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { FilePlus2, FileText, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -24,6 +24,7 @@ type Item =
     | { type: 'create'; title: string };
 
 export function CommandPalette({ vault, open, onOpenChange }: Props) {
+    const { kite } = usePage().props;
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
     const [resultsQuery, setResultsQuery] = useState<string | null>(null);
@@ -127,15 +128,15 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
             open={open}
             onOpenChange={(value) => (value ? onOpenChange(true) : close())}
         >
-            <DialogContent className="top-[20%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl [&>button]:hidden">
+            <DialogContent className="top-[16%] translate-y-0 gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-2xl [&>button]:hidden">
                 <DialogTitle className="sr-only">Search notes</DialogTitle>
                 <DialogDescription className="sr-only">
                     Type to search every note in {vault.name}. Press Enter to
                     open, Shift+Enter to open beside the current note, or Ctrl
                     or Cmd+Enter to create a note.
                 </DialogDescription>
-                <div className="flex items-center gap-2 border-b px-4">
-                    <Search className="size-4 shrink-0 text-muted-foreground" />
+                <div className="flex items-center gap-3 border-b px-5">
+                    <Search className="size-[18px] shrink-0 text-muted-foreground" />
                     <input
                         autoFocus
                         value={query}
@@ -152,9 +153,9 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                                 ? `kite-palette-item-${activeIndex}`
                                 : undefined
                         }
-                        className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        className="h-14 w-full bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/70"
                     />
-                    <kbd className="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    <kbd className="rounded-md border bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                         esc
                     </kbd>
                 </div>
@@ -163,10 +164,10 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                     id="kite-palette-results"
                     ref={listRef}
                     role="listbox"
-                    className="max-h-[50vh] overflow-y-auto p-2"
+                    className="max-h-[52vh] overflow-y-auto p-2"
                 >
                     {items.length === 0 && resultsQuery === query && (
-                        <li className="px-3 py-6 text-center text-sm text-muted-foreground">
+                        <li className="px-3 py-10 text-center text-sm text-muted-foreground">
                             {trimmed === ''
                                 ? 'No notes yet. Type a title to create one.'
                                 : 'No notes found.'}
@@ -186,13 +187,21 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                             onMouseMove={() => setActiveIndex(index)}
                             onClick={() => choose(item)}
                             className={cn(
-                                'flex cursor-pointer gap-3 rounded-md px-3 py-2 text-sm',
+                                'flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
                                 index === activeIndex && 'bg-accent',
                             )}
                         >
                             {item.type === 'note' ? (
                                 <>
-                                    <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                                    <span
+                                        className={cn(
+                                            'flex size-7 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground',
+                                            index === activeIndex &&
+                                                'border-primary/30 text-primary',
+                                        )}
+                                    >
+                                        <FileText className="size-4" />
+                                    </span>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-baseline gap-2">
                                             <span className="truncate font-medium">
@@ -214,8 +223,10 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                                 </>
                             ) : (
                                 <>
-                                    <FilePlus2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                                    <span>
+                                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-kite-accent-soft text-primary">
+                                        <FilePlus2 className="size-4" />
+                                    </span>
+                                    <span className="self-center">
                                         Create note{' '}
                                         <span className="font-medium">
                                             “{item.title}”
@@ -226,7 +237,26 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                         </li>
                     ))}
                 </ul>
+                <div className="flex items-center gap-4 border-t bg-muted/40 px-4 py-2 text-[11px] text-muted-foreground">
+                    <Hint keys="↑↓">navigate</Hint>
+                    <Hint keys="↵">open</Hint>
+                    <Hint keys="⇧↵">open beside</Hint>
+                    <Hint keys={kite.platform === 'darwin' ? '⌘↵' : 'Ctrl+↵'}>
+                        create
+                    </Hint>
+                </div>
             </DialogContent>
         </Dialog>
+    );
+}
+
+function Hint({ keys, children }: { keys: string; children: string }) {
+    return (
+        <span className="flex items-center gap-1.5">
+            <kbd className="rounded border bg-background px-1 py-px font-sans text-[10px] font-medium">
+                {keys}
+            </kbd>
+            {children}
+        </span>
     );
 }

@@ -91,7 +91,7 @@ export function NotePreview({
 
     return (
         <div
-            className={cn('kite-prose px-10 py-8', className)}
+            className={cn('kite-prose px-12 pt-14 pb-24', className)}
             onClick={onClick}
             data-test={testId}
             dangerouslySetInnerHTML={{ __html: html }}

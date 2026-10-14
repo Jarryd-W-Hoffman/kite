@@ -501,7 +501,7 @@ export function NotePanel({
                             <Link
                                 key={tag}
                                 href={showTag({ vault: vault.id, tag })}
-                                className="inline-flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-xs hover:ring-1 hover:ring-ring"
+                                className="inline-flex items-center gap-0.5 rounded-md bg-kite-accent-soft px-1.5 py-0.5 text-xs font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
                             >
                                 <Hash className="size-3" />
                                 {tag}
