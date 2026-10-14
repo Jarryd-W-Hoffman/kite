@@ -24,6 +24,7 @@ final readonly class AppMenu
         'graph' => ['Graph view', 'CmdOrCtrl+G'],
         'toggle-preview' => ['Toggle preview', 'CmdOrCtrl+E'],
         'toggle-theme' => ['Toggle dark mode', 'CmdOrCtrl+Shift+L'],
+        'shortcuts' => ['Keyboard shortcuts', 'CmdOrCtrl+/'],
     ];
 
     public function register(): void
@@ -47,6 +48,8 @@ final readonly class AppMenu
                 $this->command('graph'),
                 $this->command('toggle-preview'),
                 $this->command('toggle-theme'),
+                Menu::separator(),
+                $this->command('shortcuts'),
                 Menu::separator(),
                 Menu::reload(),
                 Menu::devTools(),

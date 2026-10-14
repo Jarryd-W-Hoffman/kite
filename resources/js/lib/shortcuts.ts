@@ -4,7 +4,7 @@
 export function formatShortcut(shortcut: string, platform: string): string {
     const mac = platform === 'darwin';
     const names: Record<string, string> = mac
-        ? { Mod: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃' }
+        ? { Mod: '⌘', Shift: '⇧', Alt: '⌥', Ctrl: '⌃', Enter: '↵' }
         : { Mod: 'Ctrl', Shift: 'Shift', Alt: 'Alt', Ctrl: 'Ctrl' };
 
     return shortcut

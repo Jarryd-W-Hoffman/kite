@@ -1,8 +1,9 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { CalendarDays } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { formatShortcut } from '@/lib/shortcuts';
 import { store } from '@/routes/capture';
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
 };
 
 export default function CaptureCreate({ vault }: Props) {
+    const { kite } = usePage().props;
+
     return (
         <>
             <Head title="Quick capture" />
@@ -61,7 +64,10 @@ export default function CaptureCreate({ vault }: Props) {
                                     {processing && <Spinner />}
                                     Capture
                                     <kbd className="text-[10px] opacity-70">
-                                        ⌘↵
+                                        {formatShortcut(
+                                            'Mod+Enter',
+                                            kite.platform,
+                                        )}
                                     </kbd>
                                 </Button>
                             </div>

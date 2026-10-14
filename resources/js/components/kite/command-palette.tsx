@@ -131,8 +131,8 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                 <DialogTitle className="sr-only">Search notes</DialogTitle>
                 <DialogDescription className="sr-only">
                     Type to search every note in {vault.name}. Press Enter to
-                    open, Shift+Enter to open beside the current note, or
-                    Cmd+Enter to create a note.
+                    open, Shift+Enter to open beside the current note, or Ctrl
+                    or Cmd+Enter to create a note.
                 </DialogDescription>
                 <div className="flex items-center gap-2 border-b px-4">
                     <Search className="size-4 shrink-0 text-muted-foreground" />

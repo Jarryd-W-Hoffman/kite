@@ -209,7 +209,7 @@ export default function GraphShow({
                                 />
                                 <Label htmlFor="show-orphans">Orphans</Label>
                             </div>
-                            <label className="flex items-center gap-2 rounded-md border px-2 py-1">
+                            <label className="flex items-center gap-2 rounded-md border px-2 py-1 focus-within:ring-2 focus-within:ring-ring">
                                 <Search className="size-3.5 text-muted-foreground" />
                                 <input
                                     value={query}

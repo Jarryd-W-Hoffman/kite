@@ -6,6 +6,7 @@ import {
     FolderOpen,
     FolderPlus,
     Hash,
+    Keyboard,
     Monitor,
     Moon,
     Network,
@@ -20,7 +21,9 @@ import { FileTree } from '@/components/kite/file-tree';
 import { FolderDialogs } from '@/components/kite/folder-dialogs';
 import type { FolderDialogState } from '@/components/kite/folder-dialogs';
 import { IndexingStatus } from '@/components/kite/indexing-status';
+import { Kbd } from '@/components/kite/kbd';
 import { PreferencesDialog } from '@/components/kite/preferences-dialog';
+import { ShortcutsDialog } from '@/components/kite/shortcuts-dialog';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -39,6 +42,7 @@ import { useAppCommands } from '@/hooks/use-app-commands';
 import { useAppearance } from '@/hooks/use-appearance';
 import type { Appearance } from '@/hooks/use-appearance';
 import type { ColourGroup } from '@/lib/colour-groups';
+import { formatShortcut } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
 import { store } from '@/routes/notes';
@@ -93,6 +97,7 @@ export function WorkspaceSidebar({
 }: Props) {
     const { kite } = usePage().props;
     const [preferencesOpen, setPreferencesOpen] = useState(false);
+    const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const { appearance, resolvedAppearance, updateAppearance } =
         useAppearance();
     const [folderDialog, setFolderDialog] = useState<FolderDialogState>(null);
@@ -105,6 +110,7 @@ export function WorkspaceSidebar({
         'daily-note': () => openDailyNote(vault),
         'open-vault': () => router.visit(vaultsIndex()),
         preferences: () => setPreferencesOpen(true),
+        shortcuts: () => setShortcutsOpen(true),
         search: onSearch,
         graph: () => router.visit(showGraph(vault.id)),
         'toggle-theme': () =>
@@ -166,7 +172,9 @@ export function WorkspaceSidebar({
                             <Plus />
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent>New note (⌘N)</TooltipContent>
+                    <TooltipContent>
+                        New note ({formatShortcut('Mod+N', kite.platform)})
+                    </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                     <TooltipTrigger asChild>
@@ -195,9 +203,7 @@ export function WorkspaceSidebar({
                 >
                     <Search className="size-4" />
                     Search
-                    <kbd className="ml-auto rounded border px-1.5 text-[10px]">
-                        ⌘K
-                    </kbd>
+                    <Kbd shortcut="Mod+K" className="ml-auto py-0" />
                 </button>
                 <button
                     type="button"
@@ -207,9 +213,7 @@ export function WorkspaceSidebar({
                 >
                     <CalendarDays className="size-4" />
                     Today
-                    <kbd className="ml-auto rounded border px-1.5 text-[10px] text-muted-foreground">
-                        ⌘D
-                    </kbd>
+                    <Kbd shortcut="Mod+D" className="ml-auto py-0" />
                 </button>
                 <Link
                     href={showGraph(vault.id)}
@@ -222,9 +226,7 @@ export function WorkspaceSidebar({
                 >
                     <Network className="size-4" />
                     Graph view
-                    <kbd className="ml-auto rounded border px-1.5 text-[10px] text-muted-foreground">
-                        ⌘G
-                    </kbd>
+                    <Kbd shortcut="Mod+G" className="ml-auto py-0" />
                 </Link>
             </div>
 
@@ -291,6 +293,24 @@ export function WorkspaceSidebar({
                     <Settings2 className="size-4" />
                     Preferences
                 </button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 shrink-0 text-muted-foreground"
+                            aria-label="Keyboard shortcuts"
+                            data-test="shortcuts-link"
+                            onClick={() => setShortcutsOpen(true)}
+                        >
+                            <Keyboard className="size-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                        Keyboard shortcuts (
+                        {formatShortcut('Mod+/', kite.platform)})
+                    </TooltipContent>
+                </Tooltip>
                 <ThemeButton
                     appearance={appearance}
                     onChange={updateAppearance}
@@ -308,6 +328,10 @@ export function WorkspaceSidebar({
             <PreferencesDialog
                 open={preferencesOpen}
                 onOpenChange={setPreferencesOpen}
+            />
+            <ShortcutsDialog
+                open={shortcutsOpen}
+                onOpenChange={setShortcutsOpen}
             />
             <IndexingStatus vault={vault} indexing={indexing} />
         </aside>
