@@ -28,6 +28,8 @@ type Props = {
  */
 export function FocusBar({ words, goal, onGoalChange, onExit }: Props) {
     const [editing, setEditing] = useState(false);
+    // Clicking away only sets the goal once it has been typed in.
+    const [touched, setTouched] = useState(false);
     const progress = goal ? Math.min(words / goal, 1) : 0;
     const reached = goal !== null && words >= goal;
 
@@ -35,6 +37,7 @@ export function FocusBar({ words, goal, onGoalChange, onExit }: Props) {
         const next = Math.round(Number(value));
 
         setEditing(false);
+        setTouched(false);
         onGoalChange(Number.isFinite(next) && next > 0 ? next : null);
     };
 
@@ -78,7 +81,12 @@ export function FocusBar({ words, goal, onGoalChange, onExit }: Props) {
                         step={50}
                         aria-label="Word goal"
                         defaultValue={goal ?? 500}
-                        onBlur={(event) => commit(event.target.value)}
+                        onChange={() => setTouched(true)}
+                        onBlur={(event) =>
+                            touched
+                                ? commit(event.target.value)
+                                : setEditing(false)
+                        }
                         onKeyDown={(event) => {
                             if (event.key === 'Enter') {
                                 commit(event.currentTarget.value);
