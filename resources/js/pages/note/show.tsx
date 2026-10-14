@@ -5,7 +5,10 @@ import {
     ChevronRight,
     Columns2,
     Eye,
+    FileCode,
+    FileDown,
     FilePlus2,
+    Globe,
     History,
     LoaderCircle,
     MessageSquare,
@@ -39,6 +42,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -49,7 +53,9 @@ import { useNoteLinkModifiers } from '@/hooks/use-note-link-modifiers';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
 import { cn, editorWidthClass } from '@/lib/utils';
+import { show as noteExport } from '@/routes/note-exports';
 import { update as updatePath } from '@/routes/note-path';
+import { store as publishNote } from '@/routes/note-publications';
 import { store as restoreVersion } from '@/routes/note-version-restores';
 import type { NoteDetail, OutlineItem, WorkspaceProps } from '@/types';
 
@@ -223,7 +229,8 @@ function NoteWorkspace({
     panelOpen,
     onTogglePanel,
 }: NoteWorkspaceProps) {
-    const { editor } = usePage().props.kite;
+    const { kite } = usePage().props;
+    const { editor } = kite;
     const [viewMode, setViewMode] = useState<ViewMode>(storedViewMode);
     const [renaming, setRenaming] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -386,6 +393,21 @@ function NoteWorkspace({
                 },
             ),
         );
+    };
+
+    /** Save first so the export has the latest text, then download it. */
+    const exportNote = async (format: 'html' | 'pdf') => {
+        await save();
+
+        const link = document.createElement('a');
+
+        link.href = noteExport({
+            vault: vault.id,
+            note: note.id,
+            format,
+        }).url;
+        link.download = '';
+        link.click();
     };
 
     const followLink = (target: string) => followWikiLink(vault, tree, target);
@@ -568,6 +590,42 @@ function NoteWorkspace({
                                     <History />
                                     Version history
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onSelect={() => void exportNote('html')}
+                                    data-test="export-html"
+                                >
+                                    <FileCode />
+                                    Export as HTML
+                                </DropdownMenuItem>
+                                {kite.native && (
+                                    <DropdownMenuItem
+                                        onSelect={() => void exportNote('pdf')}
+                                        data-test="export-pdf"
+                                    >
+                                        <FileDown />
+                                        Export as PDF
+                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                    onSelect={() =>
+                                        void save().then(() =>
+                                            router.post(
+                                                publishNote({
+                                                    vault: vault.id,
+                                                    note: note.id,
+                                                }).url,
+                                                {},
+                                                { preserveScroll: true },
+                                            ),
+                                        )
+                                    }
+                                    data-test="publish-note"
+                                >
+                                    <Globe />
+                                    Publish as a web page
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     variant="destructive"
                                     onSelect={() => setDeleting(true)}

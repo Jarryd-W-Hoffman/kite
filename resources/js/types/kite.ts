@@ -135,6 +135,7 @@ export type Preferences = EditorPreferences & {
     daily_format: string;
     daily_template: string | null;
     templates_folder: string | null;
+    publish_folder: string | null;
     capture_shortcut: string | null;
     tree_group_colours: boolean;
 };

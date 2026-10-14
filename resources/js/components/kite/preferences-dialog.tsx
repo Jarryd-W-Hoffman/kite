@@ -137,6 +137,7 @@ function PreferencesForm({
         daily_folder: preferences.daily_folder ?? '',
         daily_template: preferences.daily_template ?? '',
         templates_folder: preferences.templates_folder ?? '',
+        publish_folder: preferences.publish_folder ?? '',
         capture_shortcut: preferences.capture_shortcut ?? '',
     });
 
@@ -361,6 +362,25 @@ function PreferencesForm({
                             value={data.templates_folder}
                             onChange={(event) =>
                                 setData('templates_folder', event.target.value)
+                            }
+                        />
+                    </Field>
+                </Section>
+
+                <Section title="Publishing">
+                    <Field
+                        id="publish_folder"
+                        label="Publish folder"
+                        hint="Absolute path. Published notes go in a subfolder per vault and note. Empty uses Kite Published in your home folder."
+                        error={errors.publish_folder}
+                    >
+                        <Input
+                            id="publish_folder"
+                            placeholder="~/Kite Published"
+                            className="font-mono text-sm"
+                            value={data.publish_folder}
+                            onChange={(event) =>
+                                setData('publish_folder', event.target.value)
                             }
                         />
                     </Field>
