@@ -182,7 +182,7 @@ function EmptyWorkspace({ vault, indexing, watching }: WorkspaceProps) {
                             </Button>
                         </EmptyState>
                         <section
-                            className="w-full max-w-md rounded-xl border p-4"
+                            className="w-full max-w-md rounded-xl border bg-card p-4 shadow-kite-sm"
                             data-test="getting-started"
                         >
                             <h2 className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">

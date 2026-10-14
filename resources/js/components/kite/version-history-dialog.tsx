@@ -125,7 +125,7 @@ function VersionBrowser({
     return (
         <div className="flex min-h-0 flex-1">
             <ul
-                className="w-64 shrink-0 space-y-0.5 overflow-y-auto border-r p-2"
+                className="w-64 shrink-0 space-y-0.5 overflow-y-auto border-r bg-sidebar/50 p-2"
                 data-test="version-list"
             >
                 {versions.map((version, position) => (
@@ -136,8 +136,9 @@ function VersionBrowser({
                             aria-current={version.id === selected}
                             data-test="version"
                             className={cn(
-                                'w-full rounded-md px-3 py-2 text-left text-sm hover:bg-accent',
-                                version.id === selected && 'bg-accent',
+                                'w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors hover:bg-accent',
+                                version.id === selected &&
+                                    'bg-kite-accent-soft text-foreground hover:bg-kite-accent-soft',
                             )}
                         >
                             <span className="block font-medium">
@@ -227,8 +228,8 @@ function VersionView({
                 <ToggleGroup
                     type="single"
                     size="sm"
-                    variant="outline"
                     value={mode}
+                    className="rounded-lg bg-muted p-0.5 [&_[data-slot=toggle-group-item]]:h-7 [&_[data-slot=toggle-group-item]]:rounded-md [&_[data-slot=toggle-group-item]]:px-2.5 [&_[data-slot=toggle-group-item]]:text-[12.5px] [&_[data-slot=toggle-group-item]]:text-muted-foreground [&_[data-slot=toggle-group-item][data-state=on]]:bg-background [&_[data-slot=toggle-group-item][data-state=on]]:text-foreground [&_[data-slot=toggle-group-item][data-state=on]]:shadow-kite-sm"
                     onValueChange={(value) =>
                         value && setMode(value as typeof mode)
                     }

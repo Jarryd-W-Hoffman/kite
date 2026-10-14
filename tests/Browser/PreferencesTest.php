@@ -56,7 +56,7 @@ it('switches the theme from preferences, the sidebar and the keyboard', function
     $page->click('@preferences-link')
         ->click('@appearance-dark')
         ->assertScript($isDark, true)
-        ->assertAttribute('@appearance-dark', 'aria-pressed', 'true')
+        ->assertAttribute('@appearance-dark', 'aria-checked', 'true')
         ->click('Cancel')
         ->assertAttribute('@theme-toggle', 'data-appearance', 'dark')
         ->click('@theme-toggle')
