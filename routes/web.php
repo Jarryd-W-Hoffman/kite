@@ -15,6 +15,8 @@ use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NoteMentionController;
 use App\Http\Controllers\NotePaneController;
 use App\Http\Controllers\NotePathController;
+use App\Http\Controllers\NoteVersionController;
+use App\Http\Controllers\NoteVersionRestoreController;
 use App\Http\Controllers\PreferencesController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TemplateController;
@@ -84,6 +86,9 @@ Route::scopeBindings()->group(function (): void {
     Route::post('vaults/{vault}/notes/{note}/mentions', [NoteMentionController::class, 'store'])->name('note-mentions.store');
     Route::put('vaults/{vault}/notes/{note}/path', [NotePathController::class, 'update'])->name('note-path.update');
     Route::delete('vaults/{vault}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
+    Route::get('vaults/{vault}/notes/{note}/versions', [NoteVersionController::class, 'index'])->name('note-versions.index');
+    Route::get('vaults/{vault}/notes/{note}/versions/{version}', [NoteVersionController::class, 'show'])->whereNumber('version')->name('note-versions.show');
+    Route::post('vaults/{vault}/notes/{note}/versions/{version}/restore', [NoteVersionRestoreController::class, 'store'])->whereNumber('version')->name('note-version-restores.store');
     Route::post('vaults/{vault}/notes/{note}/comments', [NoteCommentController::class, 'store'])->name('note-comments.store');
     Route::put('vaults/{vault}/notes/{note}/comments/{comment}', [NoteCommentController::class, 'update'])->where('comment', '[0-9a-z]{26}')->name('note-comments.update');
     Route::delete('vaults/{vault}/notes/{note}/comments/{comment}', [NoteCommentController::class, 'destroy'])->where('comment', '[0-9a-z]{26}')->name('note-comments.destroy');

@@ -94,5 +94,16 @@ export function useNoteDocument(
         setSaveState('unsaved');
     }, []);
 
-    return { contents, setContents, meta, saveState, save, isDirty };
+    /** Take the server's copy outright, e.g. after restoring an old version. */
+    const adopt = useCallback((fresh: NoteDetail) => {
+        setServerHash(fresh.hash);
+        setContentsState(fresh.contents);
+        setSavedText(fresh.contents);
+        savedContents.current = fresh.contents;
+        latestContents.current = fresh.contents;
+        setMeta(fresh);
+        setSaveState('saved');
+    }, []);
+
+    return { contents, setContents, meta, saveState, save, isDirty, adopt };
 }
