@@ -3,6 +3,8 @@ import {
     CalendarDays,
     Check,
     CheckSquare,
+    ChevronDown,
+    ChevronUp,
     Clock,
     ChevronsUpDown,
     FolderOpen,
@@ -22,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { DailyCalendar } from '@/components/kite/daily-calendar';
 import { FileTree } from '@/components/kite/file-tree';
 import { FolderDialogs } from '@/components/kite/folder-dialogs';
 import type { FolderDialogState } from '@/components/kite/folder-dialogs';
@@ -113,6 +116,9 @@ export function WorkspaceSidebar({
     const { kite } = usePage().props;
     const [preferencesOpen, setPreferencesOpen] = useState(false);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
+    const [calendarOpen, setCalendarOpen] = useState(
+        () => localStorage.getItem('kite:calendar-open') !== 'false',
+    );
     const [templateFolder, setTemplateFolder] = useState<string | null>(null);
     const {
         templates = [],
@@ -120,12 +126,16 @@ export function WorkspaceSidebar({
         table_views: tableViews = [],
         favourites = [],
         recent_notes: recentNotes = [],
+        daily_dates: dailyDates = [],
+        note: openNote,
     } = usePage().props as {
         templates?: NoteTemplate[];
         open_tasks?: number;
         table_views?: { id: number; name: string }[];
         favourites?: NoteLinkSummary[];
         recent_notes?: NoteLinkSummary[];
+        daily_dates?: string[];
+        note?: { daily_date?: string | null } | null;
     };
     const { appearance, resolvedAppearance, updateAppearance } =
         useAppearance();
@@ -231,6 +241,33 @@ export function WorkspaceSidebar({
             </nav>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+                <div className="mb-3">
+                    <SectionHeading title="Calendar">
+                        <SectionAction
+                            label={
+                                calendarOpen ? 'Hide calendar' : 'Show calendar'
+                            }
+                            onClick={() => {
+                                localStorage.setItem(
+                                    'kite:calendar-open',
+                                    String(!calendarOpen),
+                                );
+                                setCalendarOpen(!calendarOpen);
+                            }}
+                            testId="toggle-calendar"
+                        >
+                            {calendarOpen ? <ChevronUp /> : <ChevronDown />}
+                        </SectionAction>
+                    </SectionHeading>
+                    {calendarOpen && (
+                        <DailyCalendar
+                            dates={dailyDates}
+                            activeDate={openNote?.daily_date ?? null}
+                            onOpen={(date) => openDailyNote(vault, date)}
+                        />
+                    )}
+                </div>
+
                 {favourites.length > 0 && (
                     <div className="mb-4" data-test="favourites">
                         <SectionHeading title="Favourites" />

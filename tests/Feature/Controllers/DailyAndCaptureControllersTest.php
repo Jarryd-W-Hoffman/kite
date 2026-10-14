@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\IndexVault;
 use App\Listeners\OpenQuickCapture;
 use App\Models\Note;
 use Carbon\CarbonImmutable;
@@ -61,4 +62,12 @@ it('validates captures', function (): void {
     vaultWithFiles();
 
     $this->post(route('capture.store'), ['text' => ''])->assertSessionHasErrors('text');
+});
+
+it('shares the dates that have daily notes for the calendar', function (): void {
+    $vault = vaultWithFiles(['Daily/2026-10-02.md' => '# a', 'Daily/2026-10-14.md' => '# b', 'Daily/notes.md' => '# c', 'Home.md' => '# Home']);
+    resolve(IndexVault::class)->handle($vault);
+
+    $this->get(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
+        ->assertInertia(fn ($page) => $page->where('daily_dates', ['2026-10-02', '2026-10-14']));
 });
