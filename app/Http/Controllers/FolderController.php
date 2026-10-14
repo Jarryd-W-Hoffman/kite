@@ -11,6 +11,7 @@ use App\Http\Requests\DestroyFolderRequest;
 use App\Http\Requests\StoreFolderRequest;
 use App\Http\Requests\UpdateFolderRequest;
 use App\Models\Vault;
+use App\Services\VaultFilesystem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -44,15 +45,22 @@ final readonly class FolderController
         return back();
     }
 
-    public function destroy(DestroyFolderRequest $request, Vault $vault, DeleteFolder $action): RedirectResponse
+    public function destroy(DestroyFolderRequest $request, Vault $vault, DeleteFolder $action, VaultFilesystem $files): RedirectResponse
     {
+        $path = $request->string('path')->toString();
+
         try {
-            $action->handle($vault, $request->string('path')->toString());
+            $action->handle($vault, $path);
         } catch (InvalidArgumentException $invalidArgumentException) {
             throw ValidationException::withMessages(['path' => $this->message($invalidArgumentException)]);
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Folder deleted.')]);
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $files->usesTrash()
+                ? __('Moved “:name” to the trash.', ['name' => basename($path)])
+                : __('Deleted “:name”.', ['name' => basename($path)]),
+        ]);
 
         // The page that asked may have been showing a note inside the folder, which is now gone.
         return $request->boolean('leave') ? to_route('vaults.show', $vault) : back();

@@ -199,7 +199,7 @@ final readonly class VaultFilesystem
     {
         $absolutePath = $this->absolutePath($vault, $path);
 
-        if (config('nativephp-internal.running')) {
+        if ($this->usesTrash()) {
             Shell::trashFile($absolutePath);
 
             return;
@@ -210,6 +210,14 @@ final readonly class VaultFilesystem
         } else {
             File::delete($absolutePath);
         }
+    }
+
+    /**
+     * Whether deleted files go to the system trash (in the desktop app) rather than being removed.
+     */
+    public function usesTrash(): bool
+    {
+        return (bool) config('nativephp-internal.running');
     }
 
     /**

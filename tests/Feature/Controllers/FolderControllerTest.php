@@ -124,7 +124,7 @@ it('deletes a folder and leaves links to its notes unresolved', function (): voi
     $this->fromRoute('vaults.index')
         ->delete(route('folders.destroy', $vault), ['path' => 'Projects'])
         ->assertRedirectToRoute('vaults.index')
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Folder deleted.']);
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Deleted “Projects”.']);
 
     expect(Note::query()->orderBy('path')->pluck('path')->all())->toBe(['Archive/Old.md', 'Home.md'])
         ->and(Attachment::query()->count())->toBe(0)
@@ -147,7 +147,8 @@ it('sends deleted folders to the trash in the desktop app', function (): void {
 
     $this->withoutMiddleware(PreventRegularBrowserAccess::class)
         ->delete(route('folders.destroy', $vault), ['path' => 'Projects'])
-        ->assertSessionHasNoErrors();
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Moved “Projects” to the trash.']);
 
     Shell::assertTrashedFile($vault->path.'/Projects');
 });

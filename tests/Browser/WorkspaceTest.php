@@ -127,3 +127,31 @@ it('keeps undo history across autosaves', function (): void {
         ->assertDontSeeIn('@note-editor', 'second')
         ->assertNoJavaScriptErrors();
 });
+
+it('deletes a note after confirming in a dialog', function (): void {
+    $vault = vaultWithFiles(['Keep.md' => '# Keep', 'Gone.md' => '# Gone']);
+    resolve(IndexVault::class)->handle($vault);
+
+    visit(route('notes.show', [$vault, Note::query()->where('path', 'Gone.md')->sole()]))
+        ->click('@note-actions')
+        ->click('@delete-note')
+        ->assertSeeIn('@delete-note-dialog', 'Delete “Gone”?')
+        ->assertSeeIn('@delete-note-dialog', 'will be permanently deleted')
+        ->click('Delete note')
+        ->assertSee('Deleted “Gone”.')
+        ->assertNoJavaScriptErrors();
+
+    expect(Note::query()->pluck('path')->all())->toBe(['Keep.md']);
+});
+
+it('shows frontmatter in the editor without heading styles', function (): void {
+    $vault = vaultWithFiles(['Note.md' => "---\nstatus: active\n---\n# Note\n\nTitle\n---"]);
+    resolve(IndexVault::class)->handle($vault);
+
+    $weight = fn (string $text): string => "getComputedStyle([...document.querySelectorAll('.cm-line')].find((line) => line.textContent === '{$text}').firstElementChild).fontWeight";
+
+    visit(route('notes.show', [$vault, Note::query()->sole()]))
+        ->assertScript($weight('status: active'), '400')
+        ->assertScript($weight('Title'), '700')
+        ->assertNoJavaScriptErrors();
+});

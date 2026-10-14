@@ -15,6 +15,7 @@ use App\Http\Requests\UpdateNoteRequest;
 use App\Models\Note;
 use App\Models\Vault;
 use App\Services\DailyNotes;
+use App\Services\VaultFilesystem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
@@ -65,13 +66,15 @@ final readonly class NoteController
         ]);
     }
 
-    public function destroy(Vault $vault, Note $note, DeleteNote $action): RedirectResponse
+    public function destroy(Vault $vault, Note $note, DeleteNote $action, VaultFilesystem $files): RedirectResponse
     {
         $action->handle($note);
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => __('Note deleted.'),
+            'message' => $files->usesTrash()
+                ? __('Moved “:name” to the trash.', ['name' => $note->title])
+                : __('Deleted “:name”.', ['name' => $note->title]),
         ]);
 
         return to_route('vaults.show', $vault);

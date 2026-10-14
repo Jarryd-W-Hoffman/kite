@@ -130,7 +130,7 @@ it('deletes a folder after confirming and leaves it if the open note was inside'
         ->assertSee('Delete “Projects”?')
         ->assertSee('The folder and its 2 notes will be permanently deleted.')
         ->click('Delete folder')
-        ->assertSee('Folder deleted.')
+        ->assertSee('Deleted “Projects”.')
         ->assertMissing('@tree-folder')
         ->assertNoJavaScriptErrors();
 
