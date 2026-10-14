@@ -16,7 +16,7 @@ it('saves the appearance without touching other preferences', function (): void 
         ->assertExactJson(['appearance' => 'dark']);
 
     expect(resolve(Settings::class)->all())
-        ->toMatchArray(['appearance' => 'dark', 'editor_font' => 'mono']);
+        ->toMatchArray(['appearance' => 'dark', 'editor_font' => 'sans']);
 
     Http::assertNothingSent();
 });

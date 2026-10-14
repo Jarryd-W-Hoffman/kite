@@ -143,14 +143,17 @@ export default function GraphShow({
                 />
 
                 <main className="relative flex min-w-0 flex-1 flex-col">
-                    <header className="kite-drag flex h-12 shrink-0 items-center gap-4 border-b px-4">
-                        <h1 className="text-sm font-medium">Graph</h1>
-                        <span className="text-xs text-muted-foreground tabular-nums">
+                    <header className="kite-drag flex h-12 shrink-0 items-center gap-3 border-b border-border/70 px-4">
+                        <h1 className="flex items-center gap-2 text-[13.5px] font-semibold">
+                            <Network className="size-4 text-primary" />
+                            Graph
+                        </h1>
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground tabular-nums">
                             {noteCount} notes · {graph.edges.length} links
                         </span>
 
-                        <div className="kite-no-drag ml-auto flex items-center gap-4">
-                            <label className="flex items-center gap-2 text-sm">
+                        <div className="kite-no-drag ml-auto flex items-center gap-3">
+                            <label className="flex items-center gap-2 text-[13px]">
                                 <span className="text-muted-foreground">
                                     Colour
                                 </span>
@@ -166,7 +169,7 @@ export default function GraphShow({
                                     }
                                     aria-label="Colour nodes by"
                                     data-test="graph-colour"
-                                    className="rounded-md border bg-background px-2 py-1 text-sm"
+                                    className="kite-select"
                                 >
                                     <option value="folder">by folder</option>
                                     <option value="tag">by tag</option>
@@ -180,7 +183,7 @@ export default function GraphShow({
                                 }
                                 aria-label="Highlight a tag"
                                 data-test="graph-tag"
-                                className="max-w-40 rounded-md border bg-background px-2 py-1 text-sm"
+                                className="kite-select max-w-40"
                             >
                                 <option value="">All tags</option>
                                 {tags.map((tag) => (
@@ -189,7 +192,7 @@ export default function GraphShow({
                                     </option>
                                 ))}
                             </select>
-                            <div className="flex items-center gap-2 text-sm">
+                            <div className="flex items-center gap-2 text-[13px]">
                                 <Checkbox
                                     id="show-ghosts"
                                     checked={showGhosts}
@@ -199,7 +202,7 @@ export default function GraphShow({
                                 />
                                 <Label htmlFor="show-ghosts">Unresolved</Label>
                             </div>
-                            <div className="flex items-center gap-2 text-sm">
+                            <div className="flex items-center gap-2 text-[13px]">
                                 <Checkbox
                                     id="show-orphans"
                                     checked={showOrphans}
@@ -209,7 +212,7 @@ export default function GraphShow({
                                 />
                                 <Label htmlFor="show-orphans">Orphans</Label>
                             </div>
-                            <label className="flex items-center gap-2 rounded-md border px-2 py-1 focus-within:ring-2 focus-within:ring-ring">
+                            <label className="flex h-8 items-center gap-2 rounded-md border bg-background px-2.5 shadow-kite-sm focus-within:ring-2 focus-within:ring-ring">
                                 <Search className="size-3.5 text-muted-foreground" />
                                 <input
                                     value={query}
@@ -224,7 +227,7 @@ export default function GraphShow({
                         </div>
                     </header>
 
-                    <div className="relative min-h-0 flex-1">
+                    <div className="kite-dot-grid relative min-h-0 flex-1">
                         {noteCount === 0 ? (
                             <EmptyState
                                 icon={Network}

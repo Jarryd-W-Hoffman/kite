@@ -101,8 +101,8 @@ it('shares whether kite is running as a desktop app', function (bool $native): v
         'native' => $native,
         'platform' => mb_strtolower(PHP_OS_FAMILY),
         'editor' => [
-            'editor_font' => 'mono',
-            'editor_font_size' => 14,
+            'editor_font' => 'sans',
+            'editor_font_size' => 16,
             'editor_width' => 'normal',
             'autosave_ms' => 400,
         ],

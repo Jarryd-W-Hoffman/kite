@@ -14,7 +14,7 @@ it('edits preferences in a modal and applies them to the open note', function ()
 
     $page->click('@preferences-link')
         ->assertVisible('@preferences-dialog')
-        ->assertValue('editor_font', 'mono')
+        ->assertValue('editor_font', 'sans')
         ->select('editor_font', 'serif')
         ->fill('editor_font_size', '18')
         ->fill('ignored_folders', "node_modules\nArchive")

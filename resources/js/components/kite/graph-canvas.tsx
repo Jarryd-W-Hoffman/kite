@@ -63,7 +63,7 @@ function readPalette(element: HTMLElement): Palette {
         muted: read('--muted-foreground', '#888'),
         edge: read('--kite-graph-edge', '#ccc'),
         background: read('--background', '#fff'),
-        accent: 'oklch(0.62 0.19 260)',
+        accent: read('--primary', 'oklch(0.53 0.2 278)'),
         groups: readGroupColours(element),
     };
 }

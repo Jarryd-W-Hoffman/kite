@@ -397,14 +397,19 @@ function FolderContents({
                         data-test="tree-note"
                         data-path={note.path}
                         className={cn(
-                            'flex items-center gap-1.5 rounded-md py-1 pr-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                            'group/note flex items-center gap-2 rounded-md py-[5px] pr-2 text-[13.5px] text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                             note.id === tree.activeNoteId &&
                                 'bg-sidebar-accent font-medium text-sidebar-accent-foreground',
                         )}
                         style={indent}
                         title={note.title}
                     >
-                        <FileText className="size-4 shrink-0 text-muted-foreground" />
+                        <FileText
+                            className={cn(
+                                'size-[15px] shrink-0 text-muted-foreground/70',
+                                note.id === tree.activeNoteId && 'text-primary',
+                            )}
+                        />
                         <span className="truncate">{noteName(note.path)}</span>
                         <GroupDot group={tree.groups.get(note.group ?? -1)} />
                     </Link>
@@ -447,7 +452,7 @@ function FolderItem({
                     onClick={() => tree.onToggle(folder.path)}
                     aria-expanded={!isCollapsed}
                     className={cn(
-                        'flex w-full items-center gap-1.5 rounded-md py-1 pr-8 text-left text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                        'flex w-full items-center gap-1.5 rounded-md py-[5px] pr-8 text-left text-[13.5px] text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                         isDropTarget &&
                             'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-ring',
                     )}
@@ -455,14 +460,14 @@ function FolderItem({
                 >
                     <ChevronRight
                         className={cn(
-                            'size-3.5 shrink-0 transition-transform',
+                            'size-3.5 shrink-0 text-muted-foreground/70 transition-transform',
                             !isCollapsed && 'rotate-90',
                         )}
                     />
                     {isCollapsed ? (
-                        <Folder className="size-4 shrink-0" />
+                        <Folder className="size-[15px] shrink-0 text-muted-foreground/70" />
                     ) : (
-                        <FolderOpen className="size-4 shrink-0" />
+                        <FolderOpen className="size-[15px] shrink-0 text-muted-foreground/70" />
                     )}
                     <span className="truncate">{folder.name}</span>
                 </button>

@@ -53,6 +53,7 @@ import {
     setCommentStyle,
 } from '@/lib/comment-highlights';
 import type { CommentRanges } from '@/lib/comment-highlights';
+import { markdownBlocks, markdownBlocksTheme } from '@/lib/markdown-blocks';
 import { matchNotes, noteName } from '@/lib/note-tree';
 import { cn, editorFontClass, editorWidthClass } from '@/lib/utils';
 import type { TreeNote } from '@/types';
@@ -159,9 +160,19 @@ const frontmatter: NonNullable<
 };
 
 const markdownHighlighting = HighlightStyle.define([
-    { tag: tags.heading1, fontSize: '1.6em', fontWeight: '700' },
-    { tag: tags.heading2, fontSize: '1.35em', fontWeight: '700' },
-    { tag: tags.heading3, fontSize: '1.15em', fontWeight: '600' },
+    {
+        tag: tags.heading1,
+        fontSize: '1.85em',
+        fontWeight: '700',
+        letterSpacing: '-0.02em',
+    },
+    {
+        tag: tags.heading2,
+        fontSize: '1.4em',
+        fontWeight: '650',
+        letterSpacing: '-0.015em',
+    },
+    { tag: tags.heading3, fontSize: '1.18em', fontWeight: '650' },
     {
         tag: [tags.heading4, tags.heading5, tags.heading6],
         fontWeight: '600',
@@ -172,13 +183,17 @@ const markdownHighlighting = HighlightStyle.define([
     { tag: [tags.link, tags.url], color: 'var(--kite-link)' },
     {
         tag: tags.monospace,
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-        fontSize: '0.92em',
+        fontFamily: 'var(--font-mono)',
+        fontSize: '0.88em',
+        color: 'oklch(0.58 0.15 20)',
+        backgroundColor: 'color-mix(in oklch, var(--muted) 85%, transparent)',
+        borderRadius: '4px',
+        padding: '1px 3px',
     },
-    { tag: tags.quote, color: 'var(--muted-foreground)', fontStyle: 'italic' },
+    { tag: tags.quote, fontStyle: 'normal' },
     {
         tag: [tags.processingInstruction, tags.meta, tags.contentSeparator],
-        color: 'var(--muted-foreground)',
+        color: 'color-mix(in oklch, var(--muted-foreground) 70%, transparent)',
     },
 ]);
 
@@ -191,19 +206,20 @@ const kiteTheme = EditorView.theme({
     '&.cm-focused': { outline: 'none' },
     '.cm-scroller': {
         fontFamily: 'inherit',
-        lineHeight: '1.9',
+        lineHeight: '1.8',
         overflow: 'auto',
     },
     '.cm-content': {
         maxWidth: 'var(--kite-editor-width)',
         margin: '0 auto',
-        padding: '32px 40px',
+        padding: '56px 48px 40vh',
         caretColor: 'var(--primary)',
     },
     '.cm-line': { padding: '0' },
-    '.cm-cursor': { borderLeftColor: 'var(--primary)' },
-    '.cm-activeLine': {
-        backgroundColor: 'color-mix(in oklch, var(--muted) 45%, transparent)',
+    '.cm-activeLine': { backgroundColor: 'transparent' },
+    '.cm-cursor, .cm-dropCursor': {
+        borderLeftWidth: '2px',
+        borderLeftColor: 'var(--primary)',
     },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
         backgroundColor:
@@ -490,6 +506,8 @@ export function NoteEditor({
             }),
             placeholder('Start writing… Use [[ to link notes.'),
             kiteTheme,
+            markdownBlocks,
+            markdownBlocksTheme,
             commentField,
             commentTheme,
             ...(commentable.current

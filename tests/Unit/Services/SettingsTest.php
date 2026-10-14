@@ -10,8 +10,8 @@ it('returns defaults from config and built-ins', function (): void {
     config(['kite.daily.folder' => 'Journal']);
 
     expect(resolve(Settings::class)->all())->toMatchArray([
-        'editor_font' => 'mono',
-        'editor_font_size' => 14,
+        'editor_font' => 'sans',
+        'editor_font_size' => 16,
         'daily_folder' => 'Journal',
         'ignored_folders' => ['node_modules'],
         'capture_shortcut' => 'CmdOrCtrl+Shift+Space',
@@ -59,5 +59,5 @@ it('works before the settings table exists', function (): void {
     $settings = resolve(Settings::class);
     $settings->applyToConfig();
 
-    expect($settings->all()['editor_font'])->toBe('mono');
+    expect($settings->all()['editor_font'])->toBe('sans');
 });

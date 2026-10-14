@@ -69,8 +69,15 @@ export default defineConfig({
             ssr: 'resources/js/ssr.tsx',
             refresh: true,
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
+                bunny('Inter', {
+                    weights: [400, 500, 600, 700],
+                }),
+                bunny('Source Serif 4', {
+                    weights: [400, 600, 700],
+                    styles: ['normal', 'italic'],
+                }),
+                bunny('JetBrains Mono', {
+                    weights: [400, 500],
                 }),
             ],
         }),

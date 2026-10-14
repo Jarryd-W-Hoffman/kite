@@ -436,7 +436,7 @@ function NoteWorkspace({
                     vault={vault}
                     note={{ id: note.id, title: meta.title }}
                 />
-                <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b px-4">
+                <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-3">
                     {renaming ? (
                         <input
                             autoFocus
@@ -457,7 +457,7 @@ function NoteWorkspace({
                             type="button"
                             onClick={() => setRenaming(true)}
                             title="Rename or move"
-                            className="kite-no-drag flex min-w-0 items-center gap-1 rounded-md px-1.5 py-1 text-sm hover:bg-accent"
+                            className="kite-no-drag flex min-w-0 items-center gap-1 rounded-md px-2 py-1 text-[13.5px] transition-colors hover:bg-accent"
                         >
                             <span className="truncate text-muted-foreground">
                                 {note.path.includes('/')
@@ -475,11 +475,21 @@ function NoteWorkspace({
 
                     <span
                         className={cn(
-                            'shrink-0 text-xs text-muted-foreground',
+                            'flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground/80',
                             saveState === 'error' && 'text-destructive',
                         )}
                         aria-live="polite"
                     >
+                        <span
+                            aria-hidden
+                            className={cn(
+                                'size-1.5 rounded-full bg-emerald-500/70 transition-colors',
+                                saveState === 'unsaved' && 'bg-amber-500/80',
+                                saveState === 'saving' &&
+                                    'animate-pulse bg-primary/70',
+                                saveState === 'error' && 'bg-destructive',
+                            )}
+                        />
                         {
                             {
                                 saved: 'Saved',
@@ -521,6 +531,7 @@ function NoteWorkspace({
                             value={viewMode}
                             onValueChange={changeViewMode}
                             aria-label="View mode"
+                            className="mr-1 rounded-lg bg-muted p-0.5 [&_[data-slot=toggle-group-item]]:h-7 [&_[data-slot=toggle-group-item]]:rounded-md [&_[data-slot=toggle-group-item]]:px-2 [&_[data-slot=toggle-group-item]]:text-muted-foreground [&_[data-slot=toggle-group-item][data-state=on]]:bg-background [&_[data-slot=toggle-group-item][data-state=on]]:text-foreground [&_[data-slot=toggle-group-item][data-state=on]]:shadow-kite-sm"
                         >
                             <ToggleGroupItem value="edit" aria-label="Edit">
                                 <PencilLine />
@@ -697,7 +708,7 @@ function NoteWorkspace({
             )}
 
             {panelOpen && (
-                <aside className="w-72 shrink-0 overflow-y-auto border-l">
+                <aside className="w-72 shrink-0 overflow-y-auto border-l border-border/70 bg-sidebar/40">
                     <NotePanel
                         vault={vault}
                         note={meta}

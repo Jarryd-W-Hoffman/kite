@@ -50,12 +50,12 @@ export function CommentRail({ notes, error, onSelect, onClose }: Props) {
 
     return (
         <aside
-            className="flex w-80 shrink-0 flex-col border-l bg-sidebar/40"
+            className="flex w-80 shrink-0 flex-col border-l border-border/70 bg-sidebar/40"
             data-test="comment-rail"
         >
-            <div className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-                <h2 className="text-sm font-semibold">Comments</h2>
-                <span className="text-xs text-muted-foreground tabular-nums">
+            <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-4">
+                <h2 className="text-[13.5px] font-semibold">Comments</h2>
+                <span className="rounded-full bg-muted px-1.5 text-[11px] font-medium text-muted-foreground tabular-nums">
                     {open.length}
                 </span>
                 <Button
@@ -206,7 +206,7 @@ function DraftCard({ notes, quote }: { notes: NoteComments; quote: string }) {
 
     return (
         <form
-            className="space-y-2 rounded-lg border bg-background p-3 shadow-sm ring-2 ring-ring/40"
+            className="space-y-2 rounded-xl border border-primary/30 bg-background p-3 shadow-kite-lg ring-4 ring-primary/10"
             data-test="comment-draft"
             onSubmit={(event) => {
                 event.preventDefault();
@@ -282,7 +282,7 @@ function CommentCard({
     return (
         <article
             className={cn(
-                'group space-y-2 rounded-lg border bg-background p-3 text-sm shadow-xs transition-shadow',
+                'group space-y-2 rounded-xl border bg-background p-3 text-sm shadow-kite-sm transition-shadow hover:shadow-kite-lg',
                 active && 'ring-2 ring-[var(--kite-comment)]',
                 comment.resolved && 'opacity-70',
             )}
