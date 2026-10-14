@@ -24,13 +24,13 @@ final class NoteVersionFactory extends Factory
         return [
             'note_id' => Note::factory(),
             'contents' => $contents,
-            'hash' => sha1($contents),
+            'hash' => hash('sha1', $contents),
             'source' => VersionSource::Edit,
         ];
     }
 
     public function contents(string $contents): self
     {
-        return $this->state(fn (): array => ['contents' => $contents, 'hash' => sha1($contents)]);
+        return $this->state(fn (): array => ['contents' => $contents, 'hash' => hash('sha1', $contents)]);
     }
 }

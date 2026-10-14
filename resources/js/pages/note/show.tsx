@@ -6,6 +6,7 @@ import {
     Columns2,
     Eye,
     FilePlus2,
+    History,
     LoaderCircle,
     MessageSquare,
     MoreHorizontal,
@@ -27,6 +28,7 @@ import { NotePanel } from '@/components/kite/note-panel';
 import { NotePreview, scrollToHeading } from '@/components/kite/note-preview';
 import { SplitPane } from '@/components/kite/split-pane';
 import { TabBar } from '@/components/kite/tab-bar';
+import { VersionHistoryDialog } from '@/components/kite/version-history-dialog';
 import {
     WorkspaceSidebar,
     createNote,
@@ -48,6 +50,7 @@ import { useVaultSync } from '@/hooks/use-vault-sync';
 import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
 import { cn, editorWidthClass } from '@/lib/utils';
 import { update as updatePath } from '@/routes/note-path';
+import { store as restoreVersion } from '@/routes/note-version-restores';
 import type { NoteDetail, OutlineItem, WorkspaceProps } from '@/types';
 
 type ViewMode = 'edit' | 'split' | 'preview';
@@ -223,11 +226,12 @@ function NoteWorkspace({
     const [viewMode, setViewMode] = useState<ViewMode>(storedViewMode);
     const [renaming, setRenaming] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
     const [splitNoteId, setSplitNoteId] = useState<number | null>(() =>
         storedSplit(vault.id),
     );
     const editorRef = useRef<NoteEditorHandle>(null);
-    const { contents, setContents, meta, saveState, save, isDirty } =
+    const { contents, setContents, meta, saveState, save, isDirty, adopt } =
         useNoteDocument(vault, note, {
             autosaveMs: editor.autosave_ms,
             onSaved: () =>
@@ -557,6 +561,13 @@ function NoteWorkspace({
                                     Rename or move
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                    onSelect={() => setHistoryOpen(true)}
+                                    data-test="open-history"
+                                >
+                                    <History />
+                                    Version history
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                     variant="destructive"
                                     onSelect={() => setDeleting(true)}
                                     data-test="delete-note"
@@ -638,6 +649,39 @@ function NoteWorkspace({
                     />
                 </aside>
             )}
+
+            <VersionHistoryDialog
+                vault={vault}
+                noteId={note.id}
+                current={contents}
+                open={historyOpen}
+                onOpenChange={setHistoryOpen}
+                onRestore={(versionId) =>
+                    // Save pending edits first so they are in history too.
+                    void save().then(() =>
+                        router.post(
+                            restoreVersion({
+                                vault: vault.id,
+                                note: note.id,
+                                version: versionId,
+                            }).url,
+                            {},
+                            {
+                                onSuccess: (page) => {
+                                    const restored = page.props
+                                        .note as NoteDetail | null;
+
+                                    if (restored) {
+                                        adopt(restored);
+                                    }
+
+                                    setHistoryOpen(false);
+                                },
+                            },
+                        ),
+                    )
+                }
+            />
 
             <DeleteNoteDialog
                 vault={vault}

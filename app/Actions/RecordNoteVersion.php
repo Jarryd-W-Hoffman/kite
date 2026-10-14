@@ -28,17 +28,17 @@ final readonly class RecordNoteVersion
             $latest = $note->versions()->latest('id')->first();
             $keptPrevious = false;
 
-            if ($previous !== null && $latest?->hash !== sha1($previous)) {
+            if ($previous !== null && $latest?->hash !== hash('sha1', $previous)) {
                 $latest = $this->create($note, $previous, VersionSource::External);
                 $keptPrevious = true;
             }
 
-            if ($latest?->hash === sha1($contents)) {
+            if ($latest?->hash === hash('sha1', $contents)) {
                 return;
             }
 
             if (! $keptPrevious && $this->canFold($latest, $source)) {
-                $latest->update(['contents' => $contents, 'hash' => sha1($contents)]);
+                $latest->update(['contents' => $contents, 'hash' => hash('sha1', $contents)]);
             } else {
                 $this->create($note, $contents, $source);
             }
@@ -61,7 +61,7 @@ final readonly class RecordNoteVersion
     {
         return $note->versions()->create([
             'contents' => $contents,
-            'hash' => sha1($contents),
+            'hash' => hash('sha1', $contents),
             'source' => $source,
         ]);
     }
