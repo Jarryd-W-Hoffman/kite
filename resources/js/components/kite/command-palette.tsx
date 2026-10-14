@@ -167,7 +167,9 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                 >
                     {items.length === 0 && resultsQuery === query && (
                         <li className="px-3 py-6 text-center text-sm text-muted-foreground">
-                            No notes found.
+                            {trimmed === ''
+                                ? 'No notes yet. Type a title to create one.'
+                                : 'No notes found.'}
                         </li>
                     )}
                     {items.map((item, index) => (

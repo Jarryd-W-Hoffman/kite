@@ -1,18 +1,23 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import {
+    CalendarDays,
     ChevronLeft,
     ChevronRight,
     Columns2,
     Eye,
     FilePlus2,
+    LoaderCircle,
     MoreHorizontal,
     PanelRight,
     PencilLine,
     Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { CommandPalette } from '@/components/kite/command-palette';
+import { EmptyState } from '@/components/kite/empty-state';
+import { Kbd } from '@/components/kite/kbd';
 import { NoteEditor } from '@/components/kite/note-editor';
 import type { NoteEditorHandle } from '@/components/kite/note-editor';
 import { NotePanel } from '@/components/kite/note-panel';
@@ -111,28 +116,83 @@ export default function NoteShow(props: WorkspaceProps) {
     );
 }
 
+const GETTING_STARTED: { shortcut: string; text: ReactNode }[] = [
+    { shortcut: 'Mod+N', text: 'Create a note' },
+    { shortcut: 'Mod+K', text: 'Search notes, or create one by name' },
+    { shortcut: 'Mod+D', text: "Open today's daily note" },
+    { shortcut: 'Mod+G', text: 'See how your notes connect' },
+    {
+        shortcut: '[[',
+        text: 'Link to another note; missing notes are created on click',
+    },
+    { shortcut: '#', text: 'Tag a note, e.g. #project/kite' },
+];
+
 function EmptyWorkspace({ vault, indexing, watching }: WorkspaceProps) {
     useVaultSync(vault, () => router.reload(), watching);
 
     return (
         <main className="flex flex-1 flex-col">
             <div className="kite-drag h-12 shrink-0 border-b" />
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-                <FilePlus2 className="size-10 text-muted-foreground" />
-                <div className="space-y-1">
-                    <h1 className="text-lg font-semibold">
-                        {indexing
-                            ? `Indexing ${vault.name}…`
-                            : `${vault.name} is empty`}
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Create your first note, or add .md files to{' '}
-                        <code className="font-mono">{vault.path}</code>.
-                    </p>
-                </div>
-                <Button onClick={() => createNote(vault, 'Home')}>
-                    Create a note
-                </Button>
+            <div className="flex flex-1 flex-col items-center justify-center gap-8 overflow-y-auto">
+                {indexing ? (
+                    <EmptyState
+                        icon={LoaderCircle}
+                        iconClassName="animate-spin"
+                        title={`Indexing ${vault.name}…`}
+                        description="Your notes will appear as soon as they are read."
+                    />
+                ) : (
+                    <>
+                        <EmptyState
+                            icon={FilePlus2}
+                            title={`${vault.name} is empty`}
+                            description={
+                                <>
+                                    Create your first note, or add .md files to{' '}
+                                    <code className="font-mono break-all">
+                                        {vault.path}
+                                    </code>
+                                    .
+                                </>
+                            }
+                        >
+                            <Button onClick={() => createNote(vault, 'Home')}>
+                                <FilePlus2 />
+                                Create a note
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => openDailyNote(vault)}
+                            >
+                                <CalendarDays />
+                                Today&apos;s note
+                            </Button>
+                        </EmptyState>
+                        <section
+                            className="w-full max-w-md rounded-xl border p-4"
+                            data-test="getting-started"
+                        >
+                            <h2 className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Getting started
+                            </h2>
+                            <ul className="space-y-2 text-sm">
+                                {GETTING_STARTED.map((tip) => (
+                                    <li
+                                        key={tip.shortcut}
+                                        className="flex items-center gap-3"
+                                    >
+                                        <Kbd
+                                            shortcut={tip.shortcut}
+                                            className="w-14 shrink-0 text-center"
+                                        />
+                                        <span>{tip.text}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
+                    </>
+                )}
             </div>
         </main>
     );
