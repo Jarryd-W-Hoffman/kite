@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\CaptureController;
 use App\Http\Controllers\DailyNoteController;
+use App\Http\Controllers\FolderController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NoteMentionController;
@@ -55,6 +56,7 @@ Route::post('vaults/{vault}/sync', [VaultSyncController::class, 'store'])->name(
 Route::get('vaults/{vault}/search', [VaultSearchController::class, 'index'])->name('vault-search.index');
 Route::post('vaults/{vault}/preview', [VaultPreviewController::class, 'store'])->name('vault-preview.store');
 Route::get('vaults/{vault}/files/{path}', [VaultFileController::class, 'show'])->where('path', '.*')->name('vault-files.show');
+Route::post('vaults/{vault}/folders', [FolderController::class, 'store'])->name('folders.store');
 Route::post('vaults/{vault}/attachments', [VaultAttachmentController::class, 'store'])->name('vault-attachments.store');
 Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->middleware(WatchVault::class)->name('vault-graph.show');
 

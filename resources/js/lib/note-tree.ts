@@ -18,9 +18,13 @@ export function noteFolder(path: string): string {
 }
 
 /**
- * Turn a flat list of note paths into a nested folder tree, folders first, sorted naturally.
+ * Turn a flat list of note paths, plus any folders that exist on disk (including empty ones),
+ * into a nested folder tree, folders first, sorted naturally.
  */
-export function buildTree(notes: TreeNote[]): TreeFolder {
+export function buildTree(
+    notes: TreeNote[],
+    extraFolders: string[] = [],
+): TreeFolder {
     const root: TreeFolder = { name: '', path: '', folders: [], notes: [] };
     const folders = new Map<string, TreeFolder>([['', root]]);
 
@@ -44,6 +48,10 @@ export function buildTree(notes: TreeNote[]): TreeFolder {
 
         return folder;
     };
+
+    for (const path of extraFolders) {
+        folderFor(path);
+    }
 
     for (const note of notes) {
         folderFor(noteFolder(note.path)).notes.push(note);

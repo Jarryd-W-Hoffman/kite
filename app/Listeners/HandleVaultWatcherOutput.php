@@ -51,11 +51,14 @@ final readonly class HandleVaultWatcherOutput
                 continue;
             }
 
-            $this->sync($vault);
+            $this->sync($vault, is_array($message['paths'] ?? null) ? $message['paths'] : []);
         }
     }
 
-    private function sync(Vault $vault): void
+    /**
+     * @param  array<mixed>  $paths
+     */
+    private function sync(Vault $vault, array $paths): void
     {
         if ($this->progress->get($vault) !== null) {
             return;
@@ -63,7 +66,11 @@ final readonly class HandleVaultWatcherOutput
 
         $changes = array_sum($this->indexVault->handle($vault)) + $this->indexAttachments->handle($vault);
 
-        if ($changes > 0) {
+        // Paths without an extension are folders being created, renamed or removed; they change
+        // the file tree even when no note was re-indexed.
+        $foldersChanged = array_any($paths, fn (mixed $path): bool => is_string($path) && pathinfo($path, PATHINFO_EXTENSION) === '');
+
+        if ($changes > 0 || $foldersChanged) {
             event(new VaultChanged($vault->id));
         }
     }

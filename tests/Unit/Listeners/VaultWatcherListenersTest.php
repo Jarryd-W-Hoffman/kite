@@ -77,6 +77,23 @@ it('does not re-index while a background index is running or when nothing change
     Event::assertDispatchedTimes(VaultChanged::class, 1);
 });
 
+it('refreshes the workspace when folders change even if no note did', function (): void {
+    Event::fake([VaultChanged::class]);
+
+    $vault = vaultWithFiles();
+    $listener = resolve(HandleVaultWatcherOutput::class);
+    $line = fn (array $paths): string => json_encode(['root' => $vault->path, 'paths' => $paths]);
+
+    $listener->handle(new MessageReceived(VaultWatcher::ALIAS, $line(['notes.txt'])));
+
+    Event::assertNotDispatched(VaultChanged::class);
+
+    mkdir($vault->path.'/Projects');
+    $listener->handle(new MessageReceived(VaultWatcher::ALIAS, $line(['Projects'])));
+
+    Event::assertDispatchedTimes(VaultChanged::class, 1);
+});
+
 it('falls back to polling when the watcher exits', function (): void {
     Event::fake([VaultWatchStatusChanged::class]);
 
