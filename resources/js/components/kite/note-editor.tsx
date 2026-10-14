@@ -60,10 +60,10 @@ import type { TreeNote } from '@/types';
 export type NoteEditorHandle = {
     jumpToLine: (line: number) => void;
     /** Select a comment's passage and scroll it into view. */
-    revealComment: (id: number) => void;
+    revealComment: (id: string) => void;
 };
 
-export type EditorComment = CommentAnchor & { id: number; resolved: boolean };
+export type EditorComment = CommentAnchor & { id: string; resolved: boolean };
 
 type Props = {
     ref?: Ref<NoteEditorHandle>;
@@ -77,9 +77,9 @@ type Props = {
     testId?: string;
     /** Comments to highlight. Passing onAddComment also offers a Comment button on selections. */
     comments?: EditorComment[];
-    activeCommentId?: number | null;
+    activeCommentId?: string | null;
     onCommentRanges?: (ranges: CommentRanges) => void;
-    onSelectComment?: (id: number) => void;
+    onSelectComment?: (id: string) => void;
     onAddComment?: (anchor: CommentAnchor) => void;
     /** Called with the cursor's 1-based line whenever it moves to another line. */
     onCursorLine?: (line: number) => void;
@@ -98,7 +98,7 @@ function anchorComments(
 ): void {
     const tracked = view.state.field(commentField).ranges;
     const doc = view.state.doc.toString();
-    const ranges = new Map<number, AnchorRange>();
+    const ranges = new Map<string, AnchorRange>();
 
     for (const comment of comments) {
         const range =
@@ -360,7 +360,7 @@ export function NoteEditor({
             });
             view.focus();
         },
-        revealComment: (id: number) => {
+        revealComment: (id: string) => {
             const view = viewRef.current;
             const range = view?.state.field(commentField).ranges.get(id);
 

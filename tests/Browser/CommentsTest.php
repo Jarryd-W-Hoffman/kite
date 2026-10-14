@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Actions\IndexVault;
 use App\Models\Note;
-use App\Models\NoteComment;
 use App\Models\Vault;
+use App\Services\CommentStore;
 
 function commentedNote(string $contents, array $comment = []): array
 {
@@ -14,7 +14,7 @@ function commentedNote(string $contents, array $comment = []): array
     $note = Note::query()->sole();
 
     if ($comment !== []) {
-        NoteComment::factory()->for($note)->create(['body' => 'Check this', ...$comment]);
+        resolve(CommentStore::class)->add($vault, $note->path, ['body' => 'Check this', 'prefix' => '', 'suffix' => '', ...$comment]);
     }
 
     return [$vault, $note];
@@ -23,6 +23,11 @@ function commentedNote(string $contents, array $comment = []): array
 function highlighted(): string
 {
     return "[...document.querySelectorAll('.cm-comment')].map((mark) => mark.textContent).join('|')";
+}
+
+function storedComments(Vault $vault): array
+{
+    return resolve(CommentStore::class)->all($vault, 'Plan.md');
 }
 
 function rewriteNote(Vault $vault, string $contents): void
@@ -46,7 +51,7 @@ it('comments on a selection and lists it in the rail', function (): void {
         ->assertSeeIn('@toggle-comments', '1')
         ->assertNoJavaScriptErrors();
 
-    expect($note->comments()->sole()->only(['quote', 'prefix', 'suffix']))->toBe([
+    expect(collect(storedComments($vault)[0])->only(['quote', 'prefix', 'suffix'])->all())->toBe([
         'quote' => 'Ship the release on Friday.',
         'prefix' => '',
         'suffix' => "\n\nThen rest.",
@@ -74,7 +79,7 @@ it('follows a reworded passage by its context and saves the new anchor', functio
         ->wait(1.5)
         ->assertNoJavaScriptErrors();
 
-    expect(NoteComment::query()->sole()->quote)->toBe('next Monday');
+    expect(storedComments($vault)[0]['quote'])->toBe('next Monday');
 });
 
 it('marks comments whose text is gone as orphaned', function (): void {
@@ -98,7 +103,7 @@ it('keeps comments on their text while editing in kite', function (): void {
         ->wait(1.5)
         ->assertNoJavaScriptErrors();
 
-    expect(NoteComment::query()->sole()->prefix)->toBe('Plan: Ship the release ');
+    expect(storedComments($vault)[0]['prefix'])->toBe('Plan: Ship the release ');
 });
 
 it('resolves, reopens and deletes comments', function (): void {
@@ -116,5 +121,17 @@ it('resolves, reopens and deletes comments', function (): void {
         ->assertMissing('@comment')
         ->assertNoJavaScriptErrors();
 
-    expect(NoteComment::query()->count())->toBe(0);
+    expect(storedComments($vault))->toBe([])
+        ->and(file_exists($vault->path.'/.kite'))->toBeFalse();
+});
+
+it('explains when the comments file is damaged', function (): void {
+    [$vault, $note] = commentedNote('Ship the release on Friday.');
+    mkdir($vault->path.'/.kite/comments', recursive: true);
+    file_put_contents($vault->path.'/.kite/comments/Plan.md.json', '{ broken');
+
+    visit(route('notes.show', [$vault, $note]))
+        ->click('@toggle-comments')
+        ->assertSeeIn('@comments-error', '.kite/comments/Plan.md.json')
+        ->assertNoJavaScriptErrors();
 });

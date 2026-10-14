@@ -4,12 +4,12 @@ import { Decoration, EditorView, showTooltip } from '@codemirror/view';
 import type { DecorationSet, Tooltip } from '@codemirror/view';
 import type { AnchorRange } from '@/lib/comment-anchors';
 
-export type CommentRanges = ReadonlyMap<number, AnchorRange>;
+export type CommentRanges = ReadonlyMap<string, AnchorRange>;
 
 type CommentState = {
     ranges: CommentRanges;
-    resolved: ReadonlySet<number>;
-    active: number | null;
+    resolved: ReadonlySet<string>;
+    active: string | null;
 };
 
 /** Replace the tracked comment positions, e.g. after re-finding them in new text. */
@@ -17,8 +17,8 @@ export const setCommentRanges = StateEffect.define<CommentRanges>();
 
 /** Which comments are resolved (not highlighted) and which one is selected. */
 export const setCommentStyle = StateEffect.define<{
-    resolved: ReadonlySet<number>;
-    active: number | null;
+    resolved: ReadonlySet<string>;
+    active: string | null;
 }>();
 
 /**
@@ -31,7 +31,7 @@ export const commentField = StateField.define<CommentState>({
         let next = state;
 
         if (transaction.docChanged && state.ranges.size > 0) {
-            const ranges = new Map<number, AnchorRange>();
+            const ranges = new Map<string, AnchorRange>();
 
             for (const [id, range] of state.ranges) {
                 const from = transaction.changes.mapPos(range.from, 1);
@@ -67,7 +67,7 @@ export const commentField = StateField.define<CommentState>({
                                 id === state.active
                                     ? 'cm-comment cm-comment-active'
                                     : 'cm-comment',
-                            attributes: { 'data-comment-id': String(id) },
+                            attributes: { 'data-comment-id': id },
                         }).range(range.from, range.to),
                     );
                 }
@@ -78,7 +78,7 @@ export const commentField = StateField.define<CommentState>({
 });
 
 /** The comment under a document position, if any (resolved comments are ignored). */
-export function commentAt(state: EditorState, position: number): number | null {
+export function commentAt(state: EditorState, position: number): string | null {
     const comments = state.field(commentField);
 
     for (const [id, range] of comments.ranges) {
