@@ -49,6 +49,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAppCommands } from '@/hooks/use-app-commands';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { useNoteComments } from '@/hooks/use-note-comments';
 import { useNoteDocument } from '@/hooks/use-note-document';
 import { useNoteLinkModifiers } from '@/hooks/use-note-link-modifiers';
@@ -260,6 +261,11 @@ function NoteWorkspace({
     );
     const pendingReveal = useRef<string | null>(null);
     const [cursorLine, setCursorLine] = useState<number | null>(null);
+    // Side panels float over the note in narrow windows, and split view needs room for two panes.
+    const narrow = useMediaQuery('(max-width: 1279px)');
+    const tooNarrowToSplit = useMediaQuery('(max-width: 1099px)');
+    const shownMode =
+        tooNarrowToSplit && viewMode === 'split' ? 'edit' : viewMode;
     const [starred, setStarred] = useState(note.starred === true);
 
     const toggleStar = () => {
@@ -319,7 +325,7 @@ function NoteWorkspace({
         noteId: note.id,
         initial: initialComments,
         contents,
-        editing: viewMode !== 'preview',
+        editing: shownMode !== 'preview',
     });
     const openComments = noteComments.comments.filter(
         (comment) => !comment.resolved,
@@ -338,7 +344,7 @@ function NoteWorkspace({
     const revealComment = (id: string) => {
         noteComments.setActiveId(id);
 
-        if (viewMode === 'preview') {
+        if (shownMode === 'preview') {
             // The editor holds the positions; open it beside the preview, then reveal.
             pendingReveal.current = id;
             changeViewMode('split');
@@ -528,6 +534,42 @@ function NoteWorkspace({
             `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
         );
     };
+
+    // Narrow windows show one side panel at a time, floating over the note below its header.
+    const sidePanels = (
+        <>
+            {commentsOpen && (
+                <Drawer overlay={narrow} onClose={() => toggleComments(false)}>
+                    <CommentRail
+                        notes={noteComments}
+                        error={commentsError}
+                        onSelect={revealComment}
+                        onClose={() => toggleComments(false)}
+                    />
+                </Drawer>
+            )}
+
+            {panelOpen && !(narrow && commentsOpen) && (
+                <Drawer overlay={narrow} onClose={onTogglePanel}>
+                    <aside className="h-full w-72 shrink-0 overflow-y-auto border-l border-border/70 bg-sidebar/40">
+                        <NotePanel
+                            vault={vault}
+                            note={meta}
+                            backlinks={backlinks}
+                            outgoing={outgoing}
+                            mentions={mentions}
+                            onSelectHeading={selectHeading}
+                            cursorLine={
+                                shownMode === 'preview' ? null : cursorLine
+                            }
+                            properties={properties}
+                            onPropertiesChange={changeProperties}
+                        />
+                    </aside>
+                </Drawer>
+            )}
+        </>
+    );
 
     return (
         <>
@@ -770,8 +812,9 @@ function NoteWorkspace({
                     </div>
                 </header>
 
-                <div className="flex min-h-0 flex-1">
-                    {viewMode !== 'preview' && (
+                <div className="relative flex min-h-0 flex-1">
+                    {narrow && sidePanels}
+                    {shownMode !== 'preview' && (
                         <NoteEditor
                             ref={editorRef}
                             value={contents}
@@ -792,11 +835,11 @@ function NoteWorkspace({
                             }}
                             className={cn(
                                 'min-w-0 flex-1',
-                                viewMode === 'split' && 'border-r',
+                                shownMode === 'split' && 'border-r',
                             )}
                         />
                     )}
-                    {viewMode !== 'edit' && (
+                    {shownMode !== 'edit' && (
                         <div className="min-w-0 flex-1 overflow-y-auto">
                             <NotePreview
                                 vault={vault}
@@ -819,30 +862,7 @@ function NoteWorkspace({
                 </div>
             </main>
 
-            {commentsOpen && (
-                <CommentRail
-                    notes={noteComments}
-                    error={commentsError}
-                    onSelect={revealComment}
-                    onClose={() => toggleComments(false)}
-                />
-            )}
-
-            {panelOpen && (
-                <aside className="w-72 shrink-0 overflow-y-auto border-l border-border/70 bg-sidebar/40">
-                    <NotePanel
-                        vault={vault}
-                        note={meta}
-                        backlinks={backlinks}
-                        outgoing={outgoing}
-                        mentions={mentions}
-                        onSelectHeading={selectHeading}
-                        cursorLine={viewMode === 'preview' ? null : cursorLine}
-                        properties={properties}
-                        onPropertiesChange={changeProperties}
-                    />
-                </aside>
-            )}
+            {!narrow && sidePanels}
 
             <VersionHistoryDialog
                 vault={vault}
@@ -883,6 +903,40 @@ function NoteWorkspace({
                 open={deleting}
                 onOpenChange={setDeleting}
             />
+        </>
+    );
+}
+
+/**
+ * A side panel: in line beside the note, or floating over it (with a click-away backdrop) when
+ * the window is too narrow for both.
+ */
+function Drawer({
+    overlay,
+    onClose,
+    children,
+}: {
+    overlay: boolean;
+    onClose: () => void;
+    children: ReactNode;
+}) {
+    if (!overlay) {
+        return children;
+    }
+
+    return (
+        <>
+            <div
+                className="absolute inset-0 z-30 bg-black/10 dark:bg-black/30"
+                onClick={onClose}
+                aria-hidden
+            />
+            <div
+                className="absolute inset-y-0 right-0 z-40 flex bg-background shadow-kite-lg"
+                data-test="side-drawer"
+            >
+                {children}
+            </div>
         </>
     );
 }
