@@ -1,7 +1,7 @@
 import { http } from '@inertiajs/react';
 import type { RouteDefinition } from '@/wayfinder';
 
-type JsonRoute = RouteDefinition<'get' | 'post' | 'put'>;
+type JsonRoute = RouteDefinition<'get' | 'post' | 'put' | 'delete'>;
 
 /**
  * Send a JSON request through Inertia's HTTP client so CSRF handling stays consistent.
@@ -23,7 +23,8 @@ export async function requestJson<T>(
         },
     });
 
-    return JSON.parse(response.data) as T;
+    // 204 No Content has no body to decode.
+    return (response.data ? JSON.parse(response.data) : undefined) as T;
 }
 
 export function isAbortError(error: unknown): boolean {

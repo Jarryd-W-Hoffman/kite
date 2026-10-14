@@ -42,13 +42,28 @@ import { usePage } from '@inertiajs/react';
 import { tags } from '@lezer/highlight';
 import { useEffect, useImperativeHandle, useRef } from 'react';
 import type { Ref } from 'react';
+import { captureAnchor, findAnchor } from '@/lib/comment-anchors';
+import type { AnchorRange, CommentAnchor } from '@/lib/comment-anchors';
+import {
+    commentAt,
+    commentButton,
+    commentField,
+    commentTheme,
+    setCommentRanges,
+    setCommentStyle,
+} from '@/lib/comment-highlights';
+import type { CommentRanges } from '@/lib/comment-highlights';
 import { matchNotes, noteName } from '@/lib/note-tree';
 import { cn, editorFontClass, editorWidthClass } from '@/lib/utils';
 import type { TreeNote } from '@/types';
 
 export type NoteEditorHandle = {
     jumpToLine: (line: number) => void;
+    /** Select a comment's passage and scroll it into view. */
+    revealComment: (id: number) => void;
 };
+
+export type EditorComment = CommentAnchor & { id: number; resolved: boolean };
 
 type Props = {
     ref?: Ref<NoteEditorHandle>;
@@ -60,7 +75,40 @@ type Props = {
     notes: TreeNote[];
     className?: string;
     testId?: string;
+    /** Comments to highlight. Passing onAddComment also offers a Comment button on selections. */
+    comments?: EditorComment[];
+    activeCommentId?: number | null;
+    onCommentRanges?: (ranges: CommentRanges) => void;
+    onSelectComment?: (id: number) => void;
+    onAddComment?: (anchor: CommentAnchor) => void;
 };
+
+const NO_COMMENTS: EditorComment[] = [];
+
+/**
+ * Re-find comments in the document. Comments already tracked keep their mapped position unless
+ * `refind` is set (the whole text was replaced, so mapping says nothing about where they went).
+ */
+function anchorComments(
+    view: EditorView,
+    comments: EditorComment[],
+    refind: boolean,
+): void {
+    const tracked = view.state.field(commentField).ranges;
+    const doc = view.state.doc.toString();
+    const ranges = new Map<number, AnchorRange>();
+
+    for (const comment of comments) {
+        const range =
+            (!refind && tracked.get(comment.id)) || findAnchor(doc, comment);
+
+        if (range) {
+            ranges.set(comment.id, range);
+        }
+    }
+
+    view.dispatch({ effects: setCommentRanges.of(ranges) });
+}
 
 /**
  * Marks document changes that came from outside the editor (e.g. the file changed on disk),
@@ -248,6 +296,11 @@ export function NoteEditor({
     notes,
     className,
     testId = 'note-editor',
+    comments = NO_COMMENTS,
+    activeCommentId = null,
+    onCommentRanges,
+    onSelectComment,
+    onAddComment,
 }: Props) {
     const { editor } = usePage().props.kite;
     const containerRef = useRef<HTMLDivElement>(null);
@@ -258,12 +311,27 @@ export function NoteEditor({
         onUpload,
         onFollowLink,
         notes,
+        comments,
+        onCommentRanges,
+        onSelectComment,
+        onAddComment,
     });
     const initialValue = useRef(value);
     const initialTestId = useRef(testId);
+    const commentable = useRef(onAddComment !== undefined);
 
     useEffect(() => {
-        callbacks.current = { onChange, onSave, onUpload, onFollowLink, notes };
+        callbacks.current = {
+            onChange,
+            onSave,
+            onUpload,
+            onFollowLink,
+            notes,
+            comments,
+            onCommentRanges,
+            onSelectComment,
+            onAddComment,
+        };
     });
 
     useImperativeHandle(ref, () => ({
@@ -283,6 +351,22 @@ export function NoteEditor({
                 effects: EditorView.scrollIntoView(line.from, {
                     y: 'start',
                     yMargin: 48,
+                }),
+            });
+            view.focus();
+        },
+        revealComment: (id: number) => {
+            const view = viewRef.current;
+            const range = view?.state.field(commentField).ranges.get(id);
+
+            if (!view || !range) {
+                return;
+            }
+
+            view.dispatch({
+                selection: { anchor: range.from, head: range.to },
+                effects: EditorView.scrollIntoView(range.from, {
+                    y: 'center',
                 }),
             });
             view.focus();
@@ -364,6 +448,20 @@ export function NoteEditor({
             });
         };
 
+        const addComment = (view: EditorView): boolean => {
+            const { from, to, empty } = view.state.selection.main;
+
+            if (empty) {
+                return false;
+            }
+
+            callbacks.current.onAddComment?.(
+                captureAnchor(view.state.doc.toString(), from, to),
+            );
+
+            return true;
+        };
+
         const extensions: Extension[] = [
             history(),
             drawSelection(),
@@ -387,6 +485,14 @@ export function NoteEditor({
             }),
             placeholder('Start writing… Use [[ to link notes.'),
             kiteTheme,
+            commentField,
+            commentTheme,
+            ...(commentable.current
+                ? [
+                      commentButton(addComment),
+                      keymap.of([{ key: 'Mod-Alt-m', run: addComment }]),
+                  ]
+                : []),
             keymap.of([
                 { key: 'Mod-s', run: () => (callbacks.current.onSave(), true) },
                 { key: 'Mod-b', run: (view) => wrapSelections(view, '**') },
@@ -429,6 +535,22 @@ export function NoteEditor({
 
                     return true;
                 },
+                click: (event, view) => {
+                    const position = view.posAtCoords({
+                        x: event.clientX,
+                        y: event.clientY,
+                    });
+                    const id =
+                        position === null
+                            ? null
+                            : commentAt(view.state, position);
+
+                    if (id !== null && view.state.selection.main.empty) {
+                        callbacks.current.onSelectComment?.(id);
+                    }
+
+                    return false;
+                },
                 mousedown: (event) => {
                     if (!(event.metaKey || event.ctrlKey)) {
                         return false;
@@ -451,6 +573,12 @@ export function NoteEditor({
                 },
             }),
             EditorView.updateListener.of((update) => {
+                const ranges = update.state.field(commentField).ranges;
+
+                if (ranges !== update.startState.field(commentField).ranges) {
+                    callbacks.current.onCommentRanges?.(ranges);
+                }
+
                 if (update.selectionSet || update.docChanged) {
                     update.view.dom.dataset.cursor = String(
                         update.state.selection.main.head,
@@ -505,7 +633,29 @@ export function NoteEditor({
             selection: { anchor: head },
             annotations: [External.of(true)],
         });
+        anchorComments(view, callbacks.current.comments, true);
     }, [value]);
+
+    useEffect(() => {
+        const view = viewRef.current;
+
+        if (view) {
+            anchorComments(view, comments, false);
+        }
+    }, [comments]);
+
+    useEffect(() => {
+        viewRef.current?.dispatch({
+            effects: setCommentStyle.of({
+                resolved: new Set(
+                    comments
+                        .filter((comment) => comment.resolved)
+                        .map((comment) => comment.id),
+                ),
+                active: activeCommentId,
+            }),
+        });
+    }, [comments, activeCommentId]);
 
     return (
         <div

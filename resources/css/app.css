@@ -358,11 +358,13 @@
 :root {
     --kite-link: oklch(0.55 0.17 260);
     --kite-graph-edge: oklch(0.85 0 0);
+    --kite-comment: oklch(0.82 0.16 85);
 }
 
 .dark {
     --kite-link: oklch(0.75 0.13 260);
     --kite-graph-edge: oklch(0.4 0 0);
+    --kite-comment: oklch(0.75 0.14 85);
 }
 
 /* Kite: embedded notes */

@@ -7,6 +7,7 @@ import {
     Eye,
     FilePlus2,
     LoaderCircle,
+    MessageSquare,
     MoreHorizontal,
     PanelRight,
     PencilLine,
@@ -16,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { CommandPalette } from '@/components/kite/command-palette';
+import { CommentRail } from '@/components/kite/comment-rail';
 import { DeleteNoteDialog } from '@/components/kite/delete-note-dialog';
 import { EmptyState } from '@/components/kite/empty-state';
 import { Kbd } from '@/components/kite/kbd';
@@ -39,6 +41,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAppCommands } from '@/hooks/use-app-commands';
+import { useNoteComments } from '@/hooks/use-note-comments';
 import { useNoteDocument } from '@/hooks/use-note-document';
 import { useNoteLinkModifiers } from '@/hooks/use-note-link-modifiers';
 import { useVaultSync } from '@/hooks/use-vault-sync';
@@ -212,6 +215,7 @@ function NoteWorkspace({
     backlinks,
     outgoing,
     mentions,
+    comments: initialComments = [],
     panelOpen,
     onTogglePanel,
 }: NoteWorkspaceProps) {
@@ -229,6 +233,50 @@ function NoteWorkspace({
             onSaved: () =>
                 router.reload({ only: ['tree', 'tags', 'outgoing'] }),
         });
+
+    const [commentsOpen, setCommentsOpen] = useState(
+        () => localStorage.getItem('kite:comments-open') === 'true',
+    );
+    const pendingReveal = useRef<number | null>(null);
+    const noteComments = useNoteComments({
+        vault,
+        noteId: note.id,
+        initial: initialComments,
+        contents,
+        editing: viewMode !== 'preview',
+    });
+    const openComments = noteComments.comments.filter(
+        (comment) => !comment.resolved,
+    ).length;
+
+    const toggleComments = (open: boolean) => {
+        setCommentsOpen(open);
+        localStorage.setItem('kite:comments-open', String(open));
+    };
+
+    const selectComment = (id: number) => {
+        noteComments.setActiveId(id);
+        toggleComments(true);
+    };
+
+    const revealComment = (id: number) => {
+        noteComments.setActiveId(id);
+
+        if (viewMode === 'preview') {
+            // The editor holds the positions; open it beside the preview, then reveal.
+            pendingReveal.current = id;
+            changeViewMode('split');
+        } else {
+            editorRef.current?.revealComment(id);
+        }
+    };
+
+    useEffect(() => {
+        if (pendingReveal.current !== null && noteComments.ranges) {
+            editorRef.current?.revealComment(pendingReveal.current);
+            pendingReveal.current = null;
+        }
+    }, [noteComments.ranges]);
 
     const openSplit = useCallback(
         (id: number | null) => {
@@ -454,6 +502,23 @@ function NoteWorkspace({
 
                         <Button
                             variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1 px-2"
+                            aria-label="Toggle comments"
+                            aria-pressed={commentsOpen}
+                            data-test="toggle-comments"
+                            onClick={() => toggleComments(!commentsOpen)}
+                        >
+                            <MessageSquare />
+                            {openComments > 0 && (
+                                <span className="text-xs tabular-nums">
+                                    {openComments}
+                                </span>
+                            )}
+                        </Button>
+
+                        <Button
+                            variant="ghost"
                             size="icon"
                             className="size-8"
                             aria-label="Toggle details panel"
@@ -505,6 +570,14 @@ function NoteWorkspace({
                             onUpload={upload}
                             onFollowLink={followLink}
                             notes={tree}
+                            comments={noteComments.editorComments}
+                            activeCommentId={noteComments.activeId}
+                            onCommentRanges={noteComments.setEditorRanges}
+                            onSelectComment={selectComment}
+                            onAddComment={(anchor) => {
+                                noteComments.startDraft(anchor);
+                                toggleComments(true);
+                            }}
                             className={cn(
                                 'min-w-0 flex-1',
                                 viewMode === 'split' && 'border-r',
@@ -533,6 +606,14 @@ function NoteWorkspace({
                     )}
                 </div>
             </main>
+
+            {commentsOpen && (
+                <CommentRail
+                    notes={noteComments}
+                    onSelect={revealComment}
+                    onClose={() => toggleComments(false)}
+                />
+            )}
 
             {panelOpen && (
                 <aside className="w-72 shrink-0 overflow-y-auto border-l">

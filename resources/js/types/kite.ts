@@ -77,6 +77,18 @@ export type WorkspaceProps = {
     backlinks: Backlink[];
     outgoing: OutgoingLink[];
     mentions?: UnlinkedMention[];
+    comments?: NoteComment[];
+};
+
+export type NoteComment = {
+    id: number;
+    body: string;
+    quote: string;
+    prefix: string;
+    suffix: string;
+    resolved: boolean;
+    created_at: string;
+    updated_at: string;
 };
 
 export type UnlinkedMention = {
