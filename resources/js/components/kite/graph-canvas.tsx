@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ForceSimulation, seedPositions } from '@/lib/force-graph';
 import type { SimEdge, SimNode } from '@/lib/force-graph';
+import { WebGLGraphRenderer } from '@/lib/graph-webgl';
 import { cn } from '@/lib/utils';
 
 export type GraphNode = {
@@ -24,6 +25,8 @@ type Props = {
     highlight?: string;
     highlightTag?: string;
     colourBy?: 'folder' | 'tag';
+    renderer?: 'auto' | 'webgl' | 'canvas';
+    webglThreshold?: number;
     onOpen: (node: GraphNode) => void;
     compact?: boolean;
     className?: string;
@@ -57,18 +60,29 @@ function readPalette(element: HTMLElement): Palette {
     };
 }
 
-function groupColour(group: string): string {
+/**
+ * A stable, well-spread hue per top-level group (FNV-1a plus a Murmur3 finaliser).
+ */
+export function groupColour(group: string): string {
     if (group === '') {
         return 'oklch(0.62 0.14 260)';
     }
 
-    let hash = 0;
+    let hash = 0x811c9dc5;
 
     for (const character of group.split('/')[0]) {
-        hash = (hash * 31 + (character.codePointAt(0) ?? 0)) % 360;
+        hash ^= character.codePointAt(0) ?? 0;
+        hash = Math.imul(hash, 0x01000193);
     }
 
-    return `oklch(0.68 0.15 ${hash})`;
+    // MurmurHash3 finaliser: mixes every bit so near-identical names land far apart.
+    hash ^= hash >>> 16;
+    hash = Math.imul(hash, 0x85ebca6b);
+    hash ^= hash >>> 13;
+    hash = Math.imul(hash, 0xc2b2ae35);
+    hash ^= hash >>> 16;
+
+    return `oklch(0.68 0.15 ${(hash >>> 0) % 360})`;
 }
 
 export function GraphCanvas({
@@ -78,11 +92,14 @@ export function GraphCanvas({
     highlight = '',
     highlightTag = '',
     colourBy = 'folder',
+    renderer = 'auto',
+    webglThreshold = 1000,
     onOpen,
     compact = false,
     className,
 }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const glCanvasRef = useRef<HTMLCanvasElement>(null);
     const onOpenRef = useRef(onOpen);
     const highlightRef = useRef(highlight);
     const highlightTagRef = useRef(highlightTag);
@@ -102,10 +119,18 @@ export function GraphCanvas({
     useEffect(() => {
         const canvas = canvasRef.current;
         const context = canvas?.getContext('2d');
+        const glCanvas = glCanvasRef.current;
 
-        if (!canvas || !context) {
+        if (!canvas || !context || !glCanvas) {
             return;
         }
+
+        const wantsWebGL =
+            renderer === 'webgl' ||
+            (renderer === 'auto' && nodes.length >= webglThreshold);
+        const gl = wantsWebGL ? WebGLGraphRenderer.create(glCanvas) : null;
+
+        canvas.dataset.renderer = gl ? 'webgl' : 'canvas';
 
         const byId = new Map<string, RenderNode>();
         const renderNodes: RenderNode[] = nodes.map((data) => {
@@ -213,62 +238,130 @@ export function GraphCanvas({
                     node.data.title.toLowerCase().includes(query)) &&
                 hasTag(node);
 
-            context.lineWidth = 1 / transform.k;
-
-            for (const { source, target } of renderEdges) {
-                const touchesFocus =
-                    focus !== null && (source === focus || target === focus);
-
-                context.globalAlpha =
-                    focus === null && query === '' && tag === ''
-                        ? 0.7
-                        : touchesFocus
-                          ? 1
-                          : 0.12;
-                context.strokeStyle = touchesFocus
+            const edgeAlpha = (touchesFocus: boolean) =>
+                focus === null && query === '' && tag === ''
+                    ? 0.7
+                    : touchesFocus
+                      ? 1
+                      : 0.12;
+            const nodeColour = (node: RenderNode) =>
+                node === focus || node.id === active
                     ? palette.accent
-                    : palette.edge;
-                context.beginPath();
-                context.moveTo(source.x, source.y);
-                context.lineTo(target.x, target.y);
-                context.stroke();
-            }
+                    : groupColour(
+                          colourByRef.current === 'tag'
+                              ? (node.data.tags?.[0] ?? '')
+                              : node.data.folder,
+                      );
 
-            for (const node of renderNodes) {
-                context.globalAlpha = isLit(node) ? 1 : 0.15;
-                context.beginPath();
-                context.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+            if (gl) {
+                const glNodes = [];
 
-                if (node.data.ghost) {
-                    context.fillStyle = palette.background;
-                    context.fill();
-                    context.strokeStyle = palette.muted;
-                    context.lineWidth = 1.2 / transform.k;
-                    context.stroke();
-                } else {
-                    context.fillStyle =
-                        node === focus || node.id === active
-                            ? palette.accent
-                            : groupColour(
-                                  colourByRef.current === 'tag'
-                                      ? (node.data.tags?.[0] ?? '')
-                                      : node.data.folder,
-                              );
-                    context.fill();
+                for (const node of renderNodes) {
+                    if (node.id === active) {
+                        glNodes.push({
+                            x: node.x,
+                            y: node.y,
+                            radius: node.radius + 3 / transform.k,
+                            colour: palette.foreground,
+                            alpha: 1,
+                            hollow: true,
+                        });
+                    }
+
+                    glNodes.push({
+                        x: node.x,
+                        y: node.y,
+                        radius: node.radius,
+                        colour: node.data.ghost
+                            ? palette.muted
+                            : nodeColour(node),
+                        alpha: isLit(node) ? 1 : 0.15,
+                        hollow: node.data.ghost,
+                    });
                 }
 
-                if (node.id === active) {
-                    context.strokeStyle = palette.foreground;
-                    context.lineWidth = 2 / transform.k;
+                gl.draw({
+                    width,
+                    height,
+                    dpr,
+                    transform,
+                    edges: renderEdges.map(({ source, target }) => {
+                        const touchesFocus =
+                            focus !== null &&
+                            (source === focus || target === focus);
+
+                        return {
+                            x1: source.x,
+                            y1: source.y,
+                            x2: target.x,
+                            y2: target.y,
+                            colour: touchesFocus
+                                ? palette.accent
+                                : palette.edge,
+                            alpha: edgeAlpha(touchesFocus),
+                        };
+                    }),
+                    nodes: glNodes,
+                });
+            } else {
+                context.lineWidth = 1 / transform.k;
+
+                for (const { source, target } of renderEdges) {
+                    const touchesFocus =
+                        focus !== null &&
+                        (source === focus || target === focus);
+
+                    context.globalAlpha =
+                        focus === null && query === '' && tag === ''
+                            ? 0.7
+                            : touchesFocus
+                              ? 1
+                              : 0.12;
+                    context.strokeStyle = touchesFocus
+                        ? palette.accent
+                        : palette.edge;
                     context.beginPath();
-                    context.arc(
-                        node.x,
-                        node.y,
-                        node.radius + 3 / transform.k,
-                        0,
-                        Math.PI * 2,
-                    );
+                    context.moveTo(source.x, source.y);
+                    context.lineTo(target.x, target.y);
                     context.stroke();
+                }
+
+                for (const node of renderNodes) {
+                    context.globalAlpha = isLit(node) ? 1 : 0.15;
+                    context.beginPath();
+                    context.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+
+                    if (node.data.ghost) {
+                        context.fillStyle = palette.background;
+                        context.fill();
+                        context.strokeStyle = palette.muted;
+                        context.lineWidth = 1.2 / transform.k;
+                        context.stroke();
+                    } else {
+                        context.fillStyle =
+                            node === focus || node.id === active
+                                ? palette.accent
+                                : groupColour(
+                                      colourByRef.current === 'tag'
+                                          ? (node.data.tags?.[0] ?? '')
+                                          : node.data.folder,
+                                  );
+                        context.fill();
+                    }
+
+                    if (node.id === active) {
+                        context.strokeStyle = palette.foreground;
+                        context.lineWidth = 2 / transform.k;
+                        context.beginPath();
+                        context.arc(
+                            node.x,
+                            node.y,
+                            node.radius + 3 / transform.k,
+                            0,
+                            Math.PI * 2,
+                        );
+                        context.stroke();
+                    }
                 }
             }
 
@@ -338,6 +431,8 @@ export function GraphCanvas({
             height = rect.height;
             canvas.width = Math.round(width * dpr);
             canvas.height = Math.round(height * dpr);
+            glCanvas.width = canvas.width;
+            glCanvas.height = canvas.height;
 
             if (needsFit) {
                 fit();
@@ -510,19 +605,24 @@ export function GraphCanvas({
             canvas.removeEventListener('wheel', onWheel);
             canvas.removeEventListener('dblclick', onDoubleClick);
             redrawRef.current = () => undefined;
+            gl?.destroy();
         };
-    }, [nodes, edges, compact]);
+    }, [nodes, edges, compact, renderer, webglThreshold]);
 
     return (
-        <canvas
-            ref={canvasRef}
-            data-test="graph-canvas"
-            role="img"
-            aria-label={`Graph of ${nodes.length} notes and ${edges.length} links`}
-            className={cn(
-                'block h-full w-full cursor-grab touch-none',
-                className,
-            )}
-        />
+        <div className={cn('relative h-full w-full', className)}>
+            <canvas
+                ref={glCanvasRef}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 h-full w-full"
+            />
+            <canvas
+                ref={canvasRef}
+                data-test="graph-canvas"
+                role="img"
+                aria-label={`Graph of ${nodes.length} notes and ${edges.length} links`}
+                className="relative block h-full w-full cursor-grab touch-none"
+            />
+        </div>
     );
 }
