@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read list<string> $columns
  * @property-read string|null $sort_key
  * @property-read bool $sort_desc
+ * @property-read string $layout
+ * @property-read string|null $group_by
  * @property-read CarbonInterface $created_at
  * @property-read CarbonInterface $updated_at
  * @property-read Vault $vault
@@ -42,6 +44,8 @@ final class TableView extends Model
             'columns' => 'array',
             'sort_key' => 'string',
             'sort_desc' => 'boolean',
+            'layout' => 'string',
+            'group_by' => 'string',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -56,7 +60,7 @@ final class TableView extends Model
     }
 
     /**
-     * @return array{id: int, name: string, query: string, columns: list<string>, sort_key: string|null, sort_desc: bool}
+     * @return array{id: int, name: string, query: string, columns: list<string>, sort_key: string|null, sort_desc: bool, layout: string, group_by: string|null}
      */
     public function toSummary(): array
     {
@@ -67,6 +71,8 @@ final class TableView extends Model
             'columns' => $this->columns,
             'sort_key' => $this->sort_key,
             'sort_desc' => $this->sort_desc,
+            'layout' => $this->layout,
+            'group_by' => $this->group_by,
         ];
     }
 }

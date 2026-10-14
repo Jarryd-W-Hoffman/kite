@@ -25,6 +25,8 @@ final class TableViewFactory extends Factory
             'columns' => [],
             'sort_key' => null,
             'sort_desc' => false,
+            'layout' => 'table',
+            'group_by' => null,
         ];
     }
 }

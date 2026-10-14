@@ -1,5 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, FileText, Settings2, Table2 } from 'lucide-react';
+import {
+    ArrowDown,
+    ArrowUp,
+    Columns3,
+    FileText,
+    Settings2,
+    Table2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CommandPalette } from '@/components/kite/command-palette';
 import { EmptyState } from '@/components/kite/empty-state';
@@ -7,6 +14,7 @@ import { TYPES, typeOf } from '@/components/kite/properties-editor';
 import type { PropertyType } from '@/components/kite/properties-editor';
 import { TableViewDialog } from '@/components/kite/table-view-dialog';
 import type { TableViewSettings } from '@/components/kite/table-view-dialog';
+import { ViewBoard } from '@/components/kite/view-board';
 import { WorkspaceSidebar } from '@/components/kite/workspace-sidebar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -77,7 +85,8 @@ export default function ViewShow({
     keys,
 }: Props) {
     const [paletteOpen, setPaletteOpen] = useState(false);
-    const [editing, setEditing] = useState(
+    // 'board' opens the dialog to pick a property to group by.
+    const [editing, setEditing] = useState<boolean | 'board'>(
         () => new URLSearchParams(window.location.search).get('edit') === '1',
     );
 
@@ -168,10 +177,42 @@ export default function ViewShow({
                                 {view.query}
                             </code>
                         )}
+                        <div
+                            className="kite-no-drag ml-auto flex rounded-lg bg-muted p-0.5"
+                            role="radiogroup"
+                            aria-label="Layout"
+                        >
+                            {(['table', 'board'] as const).map((layout) => (
+                                <button
+                                    key={layout}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={view.layout === layout}
+                                    onClick={() =>
+                                        layout === 'board' && !view.group_by
+                                            ? setEditing('board')
+                                            : saveView({ layout })
+                                    }
+                                    data-test={`layout-${layout}`}
+                                    className={cn(
+                                        'flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] text-muted-foreground capitalize transition-colors',
+                                        view.layout === layout &&
+                                            'bg-background text-foreground shadow-kite-sm',
+                                    )}
+                                >
+                                    {layout === 'table' ? (
+                                        <Table2 className="size-3.5" />
+                                    ) : (
+                                        <Columns3 className="size-3.5" />
+                                    )}
+                                    {layout}
+                                </button>
+                            ))}
+                        </div>
                         <Button
                             variant="outline"
                             size="sm"
-                            className="kite-no-drag ml-auto h-8"
+                            className="kite-no-drag h-8"
                             onClick={() => setEditing(true)}
                             data-test="edit-view"
                         >
@@ -181,7 +222,23 @@ export default function ViewShow({
                     </header>
 
                     <div className="min-h-0 flex-1 overflow-auto p-6">
-                        {rows.length === 0 ? (
+                        {rows.length > 0 &&
+                        view.layout === 'board' &&
+                        view.group_by ? (
+                            <ViewBoard
+                                vaultId={vault.id}
+                                rows={sorted}
+                                groupBy={view.group_by}
+                                columns={view.columns}
+                                onMove={(row, value) =>
+                                    setCell(
+                                        row as Row,
+                                        view.group_by ?? '',
+                                        value,
+                                    )
+                                }
+                            />
+                        ) : rows.length === 0 ? (
                             <EmptyState
                                 icon={Table2}
                                 title="No notes match this view"
@@ -290,8 +347,9 @@ export default function ViewShow({
                 vault={vault}
                 view={view}
                 keys={keys}
-                open={editing}
+                open={editing !== false}
                 onOpenChange={setEditing}
+                initialLayout={editing === 'board' ? 'board' : view.layout}
                 onSave={(settings) => {
                     saveView(settings);
                     setEditing(false);
