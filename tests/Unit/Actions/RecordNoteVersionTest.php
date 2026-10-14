@@ -69,3 +69,12 @@ it('keeps only the newest versions', function (): void {
     expect($this->note->versions()->count())->toBe(RecordNoteVersion::KEEP)
         ->and($this->note->versions()->oldest('id')->value('contents'))->toBe('v6');
 });
+
+it('saves a note whose file disappeared without a previous version', function (): void {
+    unlink($this->vault->path.'/Note.md');
+
+    resolve(SaveNote::class)->handle($this->note, 'back again');
+
+    expect(versions($this->note))->toBe([['edit', 'back again']])
+        ->and(file_get_contents($this->vault->path.'/Note.md'))->toBe('back again');
+});
