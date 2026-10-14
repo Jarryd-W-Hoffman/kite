@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Models\Note;
 use App\Models\NoteLink;
 use App\Models\Vault;
+use App\Services\ColourGroups;
 use App\Services\DailyNotes;
 use App\Services\IndexingProgress;
 use App\Services\Row;
@@ -24,6 +25,7 @@ final readonly class LoadWorkspace
         private IndexingProgress $progress,
         private VaultWatcher $watcher,
         private DailyNotes $daily,
+        private ColourGroups $colourGroups,
     ) {
         //
     }
@@ -33,6 +35,8 @@ final readonly class LoadWorkspace
      */
     public function handle(Vault $vault, ?Note $note = null): array
     {
+        $groups = $this->colourGroups->assign($vault);
+
         return [
             'vault' => $vault->only(['id', 'name', 'path']),
             'vaults' => Vault::query()
@@ -48,9 +52,11 @@ final readonly class LoadWorkspace
                     'id' => Row::int($row, 'id'),
                     'path' => Row::string($row, 'path'),
                     'title' => Row::string($row, 'title'),
+                    'group' => $groups[Row::int($row, 'id')] ?? null,
                 ])
                 ->all(),
             'folders' => fn (): array => $this->files->folders($vault),
+            'colour_groups' => $this->colourGroups->summaries($vault),
             'tags' => DB::table('note_tags')
                 ->where('vault_id', $vault->id)
                 ->groupBy('name')

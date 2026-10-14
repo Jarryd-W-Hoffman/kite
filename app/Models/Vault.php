@@ -65,6 +65,16 @@ final class Vault extends Model
     }
 
     /**
+     * Colour groups in the order they are matched: a note takes the first group it matches.
+     *
+     * @return HasMany<ColourGroup, $this>
+     */
+    public function colourGroups(): HasMany
+    {
+        return $this->hasMany(ColourGroup::class)->orderBy('position')->orderBy('id');
+    }
+
+    /**
      * @return HasMany<NoteTag, $this>
      */
     public function tags(): HasMany

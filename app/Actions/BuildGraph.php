@@ -5,16 +5,23 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Vault;
+use App\Services\ColourGroups;
 use App\Services\Row;
 use Illuminate\Support\Facades\DB;
 
 final readonly class BuildGraph
 {
+    public function __construct(private ColourGroups $colourGroups)
+    {
+        //
+    }
+
     /**
-     * Build the vault's note graph. Unresolved links become "ghost" nodes keyed by their target.
+     * Build the vault's note graph. Unresolved links become "ghost" nodes keyed by their target, and
+     * each note carries the id of the first colour group it matches.
      *
      * @return array{
-     *     nodes: list<array{id: string, note_id: int|null, title: string, path: string|null, folder: string, tags: list<string>, degree: int, ghost: bool}>,
+     *     nodes: list<array{id: string, note_id: int|null, title: string, path: string|null, folder: string, tags: list<string>, group: int|null, degree: int, ghost: bool}>,
      *     edges: list<array{source: string, target: string}>
      * }
      */
@@ -22,6 +29,7 @@ final readonly class BuildGraph
     {
         $nodes = [];
         $tags = [];
+        $groups = $this->colourGroups->assign($vault);
 
         foreach (DB::table('note_tags')->where('vault_id', $vault->id)->orderBy('name')->get(['note_id', 'name']) as $row) {
             $tags[Row::int($row, 'note_id')][] = Row::string($row, 'name');
@@ -38,6 +46,7 @@ final readonly class BuildGraph
                 'path' => $path,
                 'folder' => str_contains($path, '/') ? dirname($path) : '',
                 'tags' => $tags[$id] ?? [],
+                'group' => $groups[$id] ?? null,
                 'degree' => 0,
                 'ghost' => false,
             ];
@@ -66,6 +75,7 @@ final readonly class BuildGraph
                     'path' => null,
                     'folder' => '',
                     'tags' => [],
+                    'group' => null,
                     'degree' => 0,
                     'ghost' => true,
                 ];
