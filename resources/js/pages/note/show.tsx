@@ -238,6 +238,7 @@ function NoteWorkspace({
         () => localStorage.getItem('kite:comments-open') === 'true',
     );
     const pendingReveal = useRef<number | null>(null);
+    const [cursorLine, setCursorLine] = useState<number | null>(null);
     const noteComments = useNoteComments({
         vault,
         noteId: note.id,
@@ -326,6 +327,14 @@ function NoteWorkspace({
 
     useEffect(() => {
         const slug = window.location.hash.slice(1);
+        const lineLink = /^L(\d+)$/.exec(slug);
+
+        if (lineLink) {
+            editorRef.current?.jumpToLine(Number(lineLink[1]));
+
+            return;
+        }
+
         const line = note.outline.find(
             (item) => item.slug === decodeURIComponent(slug),
         )?.line;
@@ -573,6 +582,7 @@ function NoteWorkspace({
                             comments={noteComments.editorComments}
                             activeCommentId={noteComments.activeId}
                             onCommentRanges={noteComments.setEditorRanges}
+                            onCursorLine={setCursorLine}
                             onSelectComment={selectComment}
                             onAddComment={(anchor) => {
                                 noteComments.startDraft(anchor);
@@ -624,6 +634,7 @@ function NoteWorkspace({
                         outgoing={outgoing}
                         mentions={mentions}
                         onSelectHeading={selectHeading}
+                        cursorLine={viewMode === 'preview' ? null : cursorLine}
                     />
                 </aside>
             )}

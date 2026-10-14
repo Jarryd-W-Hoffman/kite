@@ -81,6 +81,8 @@ type Props = {
     onCommentRanges?: (ranges: CommentRanges) => void;
     onSelectComment?: (id: number) => void;
     onAddComment?: (anchor: CommentAnchor) => void;
+    /** Called with the cursor's 1-based line whenever it moves to another line. */
+    onCursorLine?: (line: number) => void;
 };
 
 const NO_COMMENTS: EditorComment[] = [];
@@ -301,6 +303,7 @@ export function NoteEditor({
     onCommentRanges,
     onSelectComment,
     onAddComment,
+    onCursorLine,
 }: Props) {
     const { editor } = usePage().props.kite;
     const containerRef = useRef<HTMLDivElement>(null);
@@ -315,6 +318,7 @@ export function NoteEditor({
         onCommentRanges,
         onSelectComment,
         onAddComment,
+        onCursorLine,
     });
     const initialValue = useRef(value);
     const initialTestId = useRef(testId);
@@ -331,6 +335,7 @@ export function NoteEditor({
             onCommentRanges,
             onSelectComment,
             onAddComment,
+            onCursorLine,
         };
     });
 
@@ -580,9 +585,19 @@ export function NoteEditor({
                 }
 
                 if (update.selectionSet || update.docChanged) {
-                    update.view.dom.dataset.cursor = String(
-                        update.state.selection.main.head,
-                    );
+                    const { head } = update.state.selection.main;
+                    const line = update.state.doc.lineAt(head).number;
+
+                    update.view.dom.dataset.cursor = String(head);
+
+                    if (
+                        line !==
+                        update.startState.doc.lineAt(
+                            update.startState.selection.main.head,
+                        ).number
+                    ) {
+                        callbacks.current.onCursorLine?.(line);
+                    }
                 }
 
                 const isLocal = update.transactions.some(
