@@ -42,7 +42,8 @@ it('opens from the keyboard and picks another template', function (): void {
         ->click('[data-test=template-option]:nth-child(2)')
         ->fill('template-title', 'Ada')
         ->click('Create note')
-        ->assertVisible('@note-editor')
+        ->assertMissing('@template-dialog')
+        ->assertSee('Role:')
         ->assertNoJavaScriptErrors();
 
     expect(file_get_contents($vault->path.'/Ada.md'))->toBe("# Ada\n\nRole:");
