@@ -66,3 +66,23 @@ it('keeps the snippet when the title is all there is, and leaves titles mid-snip
     expect($search->handle($vault, 'only')[0]['snippet'])->toBe('<mark>Only</mark>')
         ->and($search->handle($vault, 'point')[0]['snippet'])->toBe('The Mid <mark>point</mark>');
 });
+
+it('narrows a search with filters', function (): void {
+    $vault = vaultWithFiles([
+        'Work/Standup.md' => "---\nstatus: active\n---\n# Standup #work\n\nDaily sync notes",
+        'Work/Old standup.md' => "# Old standup #work #archived\n\nsync",
+        'Home/Groceries.md' => "# Groceries\n\nsync the list",
+        'Templates/Sync.md' => "# {{title}} #work\n\nsync",
+        'Links.md' => "# Links\n\nSee https://example.com for more",
+    ]);
+    resolve(IndexVault::class)->handle($vault);
+    $titles = fn (string $query): array => array_column(resolve(SearchNotes::class)->handle($vault, $query), 'title');
+
+    expect($titles('sync tag:work'))->toEqualCanonicalizing(['Standup', 'Old standup'])
+        ->and($titles('sync tag:work -tag:archived'))->toBe(['Standup'])
+        ->and($titles('folder:Home'))->toBe(['Groceries'])
+        ->and($titles('status:active'))->toBe(['Standup'])
+        ->and($titles('sync tag:nothing'))->toBe([])
+        ->and($titles('sync tag:'))->toEqualCanonicalizing(['Standup', 'Old standup', 'Groceries', '{{title}}'])
+        ->and($titles('https://example.com'))->toBe(['Links']);
+});
