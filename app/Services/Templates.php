@@ -33,7 +33,7 @@ final readonly class Templates
             return [];
         }
 
-        return DB::table('notes')
+        return array_values(DB::table('notes')
             ->where('vault_id', $vault->id)
             ->where('path', 'like', str_replace(['%', '_'], ['\%', '\_'], $folder).'/%')
             ->orderByRaw('path COLLATE NOCASE')
@@ -43,8 +43,7 @@ final readonly class Templates
                 'path' => Row::string($row, 'path'),
                 'name' => mb_substr(Row::string($row, 'path'), mb_strlen($folder) + 1, -3),
             ])
-            ->values()
-            ->all();
+            ->all());
     }
 
     public function contains(string $path): bool

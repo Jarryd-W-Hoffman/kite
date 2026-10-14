@@ -3,6 +3,7 @@ import { isNativeApp, onNativeEvent } from '@/lib/native-events';
 
 export type AppCommand =
     | 'new-note'
+    | 'new-from-template'
     | 'close-tab'
     | 'daily-note'
     | 'open-vault'
@@ -27,6 +28,7 @@ const SHORTCUTS: Record<string, AppCommand> = {
     g: 'graph',
     e: 'toggle-preview',
     'shift+l': 'toggle-theme',
+    'shift+n': 'new-from-template',
     '/': 'shortcuts',
 };
 

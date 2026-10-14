@@ -6,6 +6,7 @@ import {
     Folder,
     FolderOpen,
     FolderPlus,
+    LayoutTemplate,
     MoreHorizontal,
     Pencil,
     Trash2,
@@ -32,6 +33,7 @@ import type { TreeNote, VaultSummary } from '@/types';
 
 type FolderActions = {
     onNewNote: (folder: string) => void;
+    onNewFromTemplate: (folder: string) => void;
     onNewFolder: (parent: string) => void;
     onRenameFolder: (folder: string) => void;
     onDeleteFolder: (folder: string) => void;
@@ -118,6 +120,7 @@ export function FileTree({
     groups,
     activeNoteId,
     onNewNote,
+    onNewFromTemplate,
     onNewFolder,
     onRenameFolder,
     onDeleteFolder,
@@ -266,6 +269,10 @@ export function FileTree({
         onNewNote: (folder) => {
             setFolderCollapsed(folder, false);
             onNewNote(folder);
+        },
+        onNewFromTemplate: (folder) => {
+            setFolderCollapsed(folder, false);
+            onNewFromTemplate(folder);
         },
         onNewFolder: (parent) => {
             setFolderCollapsed(parent, false);
@@ -477,6 +484,15 @@ function FolderItem({
                         >
                             <FilePlus />
                             New note
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            data-test="tree-new-from-template"
+                            onSelect={() =>
+                                tree.actions.onNewFromTemplate(folder.path)
+                            }
+                        >
+                            <LayoutTemplate />
+                            From template…
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             data-test="tree-new-folder"

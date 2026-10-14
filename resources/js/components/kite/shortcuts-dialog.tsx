@@ -18,6 +18,7 @@ const SECTIONS: { title: string; shortcuts: [string, string][] }[] = [
         shortcuts: [
             ['Mod+K', 'Search notes'],
             ['Mod+N', 'New note'],
+            ['Mod+Shift+N', 'New note from template'],
             ['Mod+D', "Today's note"],
             ['Mod+G', 'Graph view'],
             ['Mod+O', 'Open another vault'],

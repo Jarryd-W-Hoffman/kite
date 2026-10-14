@@ -78,7 +78,10 @@ export type WorkspaceProps = {
     outgoing: OutgoingLink[];
     mentions?: UnlinkedMention[];
     comments?: NoteComment[];
+    templates?: NoteTemplate[];
 };
+
+export type NoteTemplate = { id: number; path: string; name: string };
 
 export type NoteComment = {
     id: number;
@@ -129,6 +132,7 @@ export type Preferences = EditorPreferences & {
     daily_folder: string | null;
     daily_format: string;
     daily_template: string | null;
+    templates_folder: string | null;
     capture_shortcut: string | null;
     tree_group_colours: boolean;
 };
