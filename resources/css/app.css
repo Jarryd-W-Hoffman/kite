@@ -313,3 +313,19 @@
     max-width: 100%;
     border-radius: 8px;
 }
+
+.kite-prose img.attachment-embed {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+    vertical-align: middle;
+}
+
+.kite-prose a.attachment-link::before {
+    content: '📎 ';
+}
+
+.kite-prose a.attachment-link.is-unresolved {
+    color: var(--muted-foreground);
+    text-decoration-style: dashed;
+}

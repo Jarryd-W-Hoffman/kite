@@ -16,6 +16,7 @@ final class PreviewNoteRequest extends FormRequest
     {
         return [
             'contents' => ['present', 'nullable', 'string', 'max:10000000'],
+            'path' => ['nullable', 'string', 'max:1024'],
         ];
     }
 }

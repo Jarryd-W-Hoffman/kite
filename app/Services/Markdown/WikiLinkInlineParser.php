@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Markdown;
 
 use Closure;
+use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
 use League\CommonMark\Node\Inline\Text;
 use League\CommonMark\Parser\Inline\InlineParserInterface;
@@ -15,9 +16,12 @@ final readonly class WikiLinkInlineParser implements InlineParserInterface
 {
     /**
      * @param  Closure(string): (string|null)  $urlForKey
+     * @param  Closure(string): (array{url: string|null, image: bool}|null)|null  $attachmentFor
      */
-    public function __construct(private Closure $urlForKey)
-    {
+    public function __construct(
+        private Closure $urlForKey,
+        private ?Closure $attachmentFor = null,
+    ) {
         //
     }
 
@@ -43,6 +47,20 @@ final readonly class WikiLinkInlineParser implements InlineParserInterface
             return false;
         }
 
+        $attachment = $this->attachmentFor instanceof Closure ? ($this->attachmentFor)($target) : null;
+
+        $node = $attachment === null
+            ? $this->noteLink($target, $heading, $alias, $isEmbed)
+            : $this->attachmentLink($target, $alias, $isEmbed, $attachment);
+
+        $inlineContext->getCursor()->advanceBy($inlineContext->getFullMatchLength());
+        $inlineContext->getContainer()->appendChild($node);
+
+        return true;
+    }
+
+    private function noteLink(string $target, string $heading, string $alias, bool $isEmbed): Link
+    {
         $url = ($this->urlForKey)(WikiLink::keyFor($target));
 
         $label = $alias !== '' ? $alias : ($heading !== '' ? "{$target} › {$heading}" : $target);
@@ -52,9 +70,36 @@ final readonly class WikiLinkInlineParser implements InlineParserInterface
         $link->data->set('attributes/class', 'wiki-link'.($url === null ? ' is-unresolved' : '').($isEmbed ? ' is-embed' : ''));
         $link->data->set('attributes/data-wiki-target', $target);
 
-        $inlineContext->getCursor()->advanceBy($inlineContext->getFullMatchLength());
-        $inlineContext->getContainer()->appendChild($link);
+        return $link;
+    }
 
-        return true;
+    /**
+     * @param  array{url: string|null, image: bool}  $attachment
+     */
+    private function attachmentLink(string $target, string $alias, bool $isEmbed, array $attachment): Image|Link
+    {
+        $isSize = preg_match('/^(\d{1,5})(?:x(\d{1,5}))?$/', $alias, $size) === 1;
+
+        if ($isEmbed && $attachment['image'] && $attachment['url'] !== null) {
+            $image = new Image($attachment['url'], $isSize || $alias === '' ? basename($target) : $alias);
+            $image->data->set('attributes/class', 'attachment-embed');
+
+            if ($isSize) {
+                $image->data->set('attributes/width', $size[1]);
+
+                if (isset($size[2])) {
+                    $image->data->set('attributes/height', $size[2]);
+                }
+            }
+
+            return $image;
+        }
+
+        $link = new Link($attachment['url'] ?? '#');
+        $link->appendChild(new Text($alias !== '' && ! $isSize ? $alias : basename($target)));
+        $link->data->set('attributes/class', 'attachment-link'.($attachment['url'] === null ? ' is-unresolved' : ''));
+        $link->data->set('attributes/data-attachment', $target);
+
+        return $link;
     }
 }

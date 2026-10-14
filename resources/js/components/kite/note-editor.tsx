@@ -9,6 +9,7 @@ type Props = {
     value: string;
     onChange: (value: string) => void;
     onSave: () => void;
+    onUpload?: (files: File[]) => Promise<string[]>;
     notes: TreeNote[];
     className?: string;
 };
@@ -26,6 +27,7 @@ export function NoteEditor({
     value,
     onChange,
     onSave,
+    onUpload,
     notes,
     className,
 }: Props) {
@@ -128,6 +130,28 @@ export function NoteEditor({
         );
     };
 
+    const insertUploads = async (files: File[]) => {
+        const textarea = textareaRef.current;
+
+        if (!textarea || !onUpload || files.length === 0) {
+            return;
+        }
+
+        const { selectionStart: start, selectionEnd: end } = textarea;
+        const embeds = await onUpload(files);
+
+        if (embeds.length === 0) {
+            return;
+        }
+
+        const text = embeds.join('\n');
+
+        replaceRange(start, end, text, start + text.length);
+    };
+
+    const filesFrom = (transfer: DataTransfer | null): File[] =>
+        transfer ? Array.from(transfer.files) : [];
+
     const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (suggestion && matches.length > 0) {
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -195,6 +219,30 @@ export function NoteEditor({
                     }
                 }}
                 onBlur={() => setSuggestion(null)}
+                onPaste={(event) => {
+                    const files = filesFrom(event.clipboardData);
+
+                    if (files.length > 0 && onUpload) {
+                        event.preventDefault();
+                        void insertUploads(files);
+                    }
+                }}
+                onDragOver={(event) => {
+                    if (
+                        onUpload &&
+                        event.dataTransfer.types.includes('Files')
+                    ) {
+                        event.preventDefault();
+                    }
+                }}
+                onDrop={(event) => {
+                    const files = filesFrom(event.dataTransfer);
+
+                    if (files.length > 0 && onUpload) {
+                        event.preventDefault();
+                        void insertUploads(files);
+                    }
+                }}
                 onScroll={(event) => {
                     if (suggestion) {
                         updateSuggestion(event.currentTarget);

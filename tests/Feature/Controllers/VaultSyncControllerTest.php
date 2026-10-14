@@ -7,8 +7,19 @@ it('syncs the vault index with the folder', function (): void {
 
     $this->postJson(route('vault-sync.store', $vault))
         ->assertOk()
-        ->assertExactJson(['added' => 1, 'updated' => 0, 'removed' => 0, 'changed' => true]);
+        ->assertExactJson(['added' => 1, 'updated' => 0, 'removed' => 0, 'attachments' => 0, 'changed' => true]);
 
     $this->postJson(route('vault-sync.store', $vault))
-        ->assertExactJson(['added' => 0, 'updated' => 0, 'removed' => 0, 'changed' => false]);
+        ->assertExactJson(['added' => 0, 'updated' => 0, 'removed' => 0, 'attachments' => 0, 'changed' => false]);
+});
+
+it('reports attachment changes', function (): void {
+    $vault = vaultWithFiles(['A.md' => 'a']);
+
+    $this->postJson(route('vault-sync.store', $vault));
+
+    file_put_contents($vault->path.'/photo.png', 'png');
+
+    $this->postJson(route('vault-sync.store', $vault))
+        ->assertExactJson(['added' => 0, 'updated' => 0, 'removed' => 0, 'attachments' => 1, 'changed' => true]);
 });

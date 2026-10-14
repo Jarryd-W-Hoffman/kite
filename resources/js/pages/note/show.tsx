@@ -27,10 +27,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useVaultSync } from '@/hooks/use-vault-sync';
-import { requestJson } from '@/lib/kite-http';
+import { requestJson, uploadFile } from '@/lib/kite-http';
 import { cn } from '@/lib/utils';
 import { update as updatePath } from '@/routes/note-path';
 import { destroy, update } from '@/routes/notes';
+import { store as storeAttachment } from '@/routes/vault-attachments';
 import type { NoteDetail, NoteMeta, WorkspaceProps } from '@/types';
 
 type ViewMode = 'edit' | 'split' | 'preview';
@@ -271,6 +272,25 @@ function NoteWorkspace({
         );
     };
 
+    const upload = async (files: File[]): Promise<string[]> => {
+        const embeds: string[] = [];
+
+        for (const file of files) {
+            try {
+                const result = await uploadFile<{ embed: string }>(
+                    storeAttachment(vault.id),
+                    file,
+                );
+
+                embeds.push(result.embed);
+            } catch {
+                toast.error(`Could not attach “${file.name}”.`);
+            }
+        }
+
+        return embeds;
+    };
+
     const deleteNote = () => {
         if (window.confirm(`Delete “${meta.title}”? This removes the file.`)) {
             router.delete(destroy({ vault: vault.id, note: note.id }).url);
@@ -406,6 +426,7 @@ function NoteWorkspace({
                                 setSaveState('unsaved');
                             }}
                             onSave={() => void save()}
+                            onUpload={upload}
                             notes={tree}
                             className={cn(
                                 'min-w-0 flex-1',

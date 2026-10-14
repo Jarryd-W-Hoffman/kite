@@ -53,7 +53,7 @@ final readonly class NoteController
         return response()->json([
             ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'hash', 'modified_at']),
             'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
-            'html' => $renderMarkdown->handle($vault, $contents),
+            'html' => $renderMarkdown->handle($vault, $contents, $note->path),
         ]);
     }
 

@@ -57,6 +57,14 @@ final class Vault extends Model
     }
 
     /**
+     * @return HasMany<Attachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(Attachment::class);
+    }
+
+    /**
      * @return HasMany<NoteTag, $this>
      */
     public function tags(): HasMany

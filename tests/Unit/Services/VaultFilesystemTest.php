@@ -41,3 +41,17 @@ it('lists, reads, writes, moves and deletes files inside the vault', function ()
 
     expect($files->exists($vault, 'Moved/New.md'))->toBeFalse();
 });
+
+it('lists files by extension and imports files atomically', function (): void {
+    $vault = vaultWithFiles(['a.PNG' => 'a', 'b.pdf' => 'b', 'c.md' => 'c']);
+    $files = new VaultFilesystem();
+
+    $source = tempnam(sys_get_temp_dir(), 'kite');
+    file_put_contents($source, 'imported');
+    $files->import($vault, 'nested/d.png', $source);
+    unlink($source);
+
+    expect(array_keys($files->filesWithExtensions($vault, ['png', 'pdf'])))->toBe(['a.PNG', 'b.pdf', 'nested/d.png'])
+        ->and($files->filesWithExtensions($vault, []))->toBe([])
+        ->and($files->read($vault, 'nested/d.png'))->toBe('imported');
+});

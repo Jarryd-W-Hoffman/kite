@@ -71,7 +71,7 @@ final readonly class LoadWorkspace
             ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'hash', 'modified_at']),
             'contents' => $contents,
             'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
-            'html' => $this->renderMarkdown->handle($note->vault, $contents),
+            'html' => $this->renderMarkdown->handle($note->vault, $contents, $note->path),
         ];
     }
 
