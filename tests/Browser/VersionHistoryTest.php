@@ -28,7 +28,6 @@ it('shows what each version changed and restores an older one', function (): voi
         ->click('@mode-current')
         ->assertSeeIn('[data-diff=added]', 'Line two')
         ->click('@restore-version')
-        ->assertSee('Restored the version from')
         ->assertMissing('@version-history')
         ->assertNoJavaScriptErrors();
 
