@@ -44,3 +44,12 @@ it('points links at exported pages and flattens the rest', function (): void {
         ->toContain('<span class="wiki-link">Other</span>')
         ->toContain('<span class="wiki-link">Missing</span>');
 });
+
+it('leaves outside images alone and drops ones that escape the vault', function (): void {
+    file_put_contents($this->vault->path.'/Home.md', "![web](https://example.com/a.png) ![sneaky](/vaults/{$this->vault->id}/files/../../secret.png)");
+
+    $html = resolve(NoteExporter::class)->page($this->home);
+
+    expect($html)->toContain('<img src="https://example.com/a.png" alt="web">')
+        ->not->toContain('sneaky');
+});

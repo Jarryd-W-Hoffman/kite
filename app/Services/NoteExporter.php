@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Actions\RenderMarkdown;
 use App\Models\Note;
-use Dom\Document;
 use Dom\Element;
 use Dom\HTMLDocument;
 use Dom\HTMLElement;
@@ -81,7 +80,7 @@ final readonly class NoteExporter
 
         $body->append($main);
 
-        $this->rewriteLinks($main, $note, $pages);
+        $this->rewriteLinks($document, $main, $note, $pages);
         $this->inlineImages($main, $note);
 
         return $document->saveHtml();
@@ -90,7 +89,7 @@ final readonly class NoteExporter
     /**
      * @param  array<int, string>  $pages
      */
-    private function rewriteLinks(Element $root, Note $note, array $pages): void
+    private function rewriteLinks(HTMLDocument $document, Element $root, Note $note, array $pages): void
     {
         $notePrefix = '/vaults/'.$note->vault_id.'/notes/';
 
@@ -117,7 +116,7 @@ final readonly class NoteExporter
             }
 
             if (str_starts_with($href, '/') || $href === '#' || str_contains($class, 'wiki-link') || str_contains($class, 'tag-link') || str_contains($class, 'attachment-link')) {
-                $this->unwrap($link, $class);
+                $this->unwrap($document, $link, $class);
             }
         }
     }
@@ -139,14 +138,8 @@ final readonly class NoteExporter
     /**
      * Swap an app-only link for a span with the same text and class.
      */
-    private function unwrap(Element $link, string $class): void
+    private function unwrap(HTMLDocument $document, Element $link, string $class): void
     {
-        $document = $link->ownerDocument;
-
-        if (! $document instanceof Document) {
-            return;
-        }
-
         $span = $document->createElement('span');
         $span->setAttribute('class', mb_trim(str_replace(['is-unresolved', 'attachment-link'], ['', 'wiki-link'], $class)) ?: 'wiki-link');
 
