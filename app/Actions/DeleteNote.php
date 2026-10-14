@@ -21,7 +21,7 @@ final readonly class DeleteNote
     {
         $vault = $note->vault;
 
-        $this->files->delete($vault, $note->path);
+        $this->files->trash($vault, $note->path);
 
         DB::transaction(function () use ($note, $vault): void {
             $note->delete();

@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Vault;
+use FilesystemIterator;
 use Illuminate\Support\Facades\File;
 use InvalidArgumentException;
+use Native\Desktop\Facades\Shell;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 use Symfony\Component\Finder\Finder;
 
 final readonly class VaultFilesystem
@@ -186,9 +191,62 @@ final readonly class VaultFilesystem
         File::move($temporaryPath, $absolutePath);
     }
 
-    public function delete(Vault $vault, string $path): void
+    /**
+     * Remove a file or folder. In the desktop app it goes to the system trash so it can be
+     * recovered; elsewhere (tests, a plain browser) it is deleted.
+     */
+    public function trash(Vault $vault, string $path): void
     {
-        File::delete($this->absolutePath($vault, $path));
+        $absolutePath = $this->absolutePath($vault, $path);
+
+        if (config('nativephp-internal.running')) {
+            Shell::trashFile($absolutePath);
+
+            return;
+        }
+
+        if (File::isDirectory($absolutePath)) {
+            File::deleteDirectory($absolutePath);
+        } else {
+            File::delete($absolutePath);
+        }
+    }
+
+    /**
+     * Move everything still inside one folder (attachments, hidden and ignored files included) into
+     * another, then remove the emptied source folders.
+     */
+    public function moveFolderContents(Vault $vault, string $from, string $to): void
+    {
+        $source = $this->absolutePath($vault, $from);
+        $destination = $this->absolutePath($vault, $to);
+
+        if (! File::isDirectory($source)) {
+            return;
+        }
+
+        $entries = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($source, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST,
+        );
+
+        /** @var SplFileInfo $entry */
+        foreach ($entries as $entry) {
+            $target = $destination.mb_substr($entry->getPathname(), mb_strlen($source));
+
+            if ($entry->isDir() && ! $entry->isLink()) {
+                File::ensureDirectoryExists($target);
+                @rmdir($entry->getPathname());
+
+                continue;
+            }
+
+            File::ensureDirectoryExists(dirname($target));
+            File::move($entry->getPathname(), $target);
+        }
+
+        File::ensureDirectoryExists($destination);
+        @rmdir($source);
     }
 
     /**

@@ -14,8 +14,9 @@ import {
 import { useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { FileTree } from '@/components/kite/file-tree';
+import { FolderDialogs } from '@/components/kite/folder-dialogs';
+import type { FolderDialogState } from '@/components/kite/folder-dialogs';
 import { IndexingStatus } from '@/components/kite/indexing-status';
-import { NewFolderDialog } from '@/components/kite/new-folder-dialog';
 import { PreferencesDialog } from '@/components/kite/preferences-dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -84,7 +85,9 @@ export function WorkspaceSidebar({
 }: Props) {
     const { kite } = usePage().props;
     const [preferencesOpen, setPreferencesOpen] = useState(false);
-    const [newFolderParent, setNewFolderParent] = useState<string | null>(null);
+    const [folderDialog, setFolderDialog] = useState<FolderDialogState>(null);
+    const notesIn = (folder: string) =>
+        tree.filter((note) => note.path.startsWith(`${folder}/`));
     const insetTrafficLights = kite.native && kite.platform === 'darwin';
 
     useAppCommands({
@@ -161,7 +164,9 @@ export function WorkspaceSidebar({
                             className="kite-no-drag size-8"
                             aria-label="New folder"
                             data-test="new-folder"
-                            onClick={() => setNewFolderParent('')}
+                            onClick={() =>
+                                setFolderDialog({ kind: 'new', path: '' })
+                            }
                         >
                             <FolderPlus />
                         </Button>
@@ -220,7 +225,15 @@ export function WorkspaceSidebar({
                     onNewNote={(folder) =>
                         createNote(vault, 'Untitled', folder)
                     }
-                    onNewFolder={setNewFolderParent}
+                    onNewFolder={(path) =>
+                        setFolderDialog({ kind: 'new', path })
+                    }
+                    onRenameFolder={(path) =>
+                        setFolderDialog({ kind: 'rename', path })
+                    }
+                    onDeleteFolder={(path) =>
+                        setFolderDialog({ kind: 'delete', path })
+                    }
                 />
 
                 {tags.length > 0 && (
@@ -266,10 +279,14 @@ export function WorkspaceSidebar({
                     Preferences
                 </button>
             </div>
-            <NewFolderDialog
+            <FolderDialogs
                 vault={vault}
-                parent={newFolderParent}
-                onClose={() => setNewFolderParent(null)}
+                state={folderDialog}
+                noteCount={(folder) => notesIn(folder).length}
+                containsActiveNote={(folder) =>
+                    notesIn(folder).some((note) => note.id === activeNoteId)
+                }
+                onClose={() => setFolderDialog(null)}
             />
             <PreferencesDialog
                 open={preferencesOpen}

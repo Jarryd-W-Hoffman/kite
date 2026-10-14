@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Services\VaultFilesystem;
+use Native\Desktop\Facades\Shell;
 
 it('normalises safe relative paths', function (string $path, string $expected): void {
     expect(new VaultFilesystem()->normalise($path))->toBe($expected);
@@ -37,7 +38,7 @@ it('lists, reads, writes, moves and deletes files inside the vault', function ()
         ->and($files->exists($vault, 'Nested/New.md'))->toBeFalse()
         ->and($files->absolutePath($vault, 'Moved/New.md'))->toBe($vault->path.'/Moved/New.md');
 
-    $files->delete($vault, 'Moved/New.md');
+    $files->trash($vault, 'Moved/New.md');
 
     expect($files->exists($vault, 'Moved/New.md'))->toBeFalse();
 });
@@ -90,4 +91,37 @@ it('lists every folder including empty ones, skipping dot and ignored folders', 
         ->and($files->isIgnored('src/node_modules/x'))->toBeTrue()
         ->and($files->isIgnored('Archive/Old/Deep'))->toBeTrue()
         ->and($files->isIgnored('Archive'))->toBeFalse();
+});
+
+it('trashes folders, or deletes them outside the desktop app', function (): void {
+    $vault = vaultWithFiles(['Old/Note.md' => '# Note', 'Keep/Note.md' => '# Note']);
+    $files = resolve(VaultFilesystem::class);
+
+    $files->trash($vault, 'Old');
+
+    expect(is_dir($vault->path.'/Old'))->toBeFalse();
+
+    config(['nativephp-internal.running' => true]);
+    Shell::fake();
+
+    $files->trash($vault, 'Keep');
+
+    Shell::assertTrashedFile($vault->path.'/Keep');
+    expect(is_dir($vault->path.'/Keep'))->toBeTrue();
+});
+
+it('moves every remaining file out of a folder and removes it', function (): void {
+    $vault = vaultWithFiles(['From/a.png' => 'png', 'From/.hidden' => 'h', 'From/deep/node_modules/x.js' => 'x']);
+    mkdir($vault->path.'/From/empty');
+    $files = resolve(VaultFilesystem::class);
+
+    $files->moveFolderContents($vault, 'From', 'To/Nested');
+    $files->moveFolderContents($vault, 'Missing', 'Anywhere');
+
+    expect(is_dir($vault->path.'/From'))->toBeFalse()
+        ->and(file_get_contents($vault->path.'/To/Nested/a.png'))->toBe('png')
+        ->and(file_exists($vault->path.'/To/Nested/.hidden'))->toBeTrue()
+        ->and(file_exists($vault->path.'/To/Nested/deep/node_modules/x.js'))->toBeTrue()
+        ->and(is_dir($vault->path.'/To/Nested/empty'))->toBeTrue()
+        ->and(is_dir($vault->path.'/Anywhere'))->toBeFalse();
 });

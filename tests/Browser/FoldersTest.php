@@ -12,10 +12,10 @@ it('creates folders and notes inside them from the file tree', function (): void
     $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
 
     $page->click('@new-folder')
-        ->assertVisible('@new-folder-dialog')
+        ->assertVisible('@folder-dialog')
         ->fill('folder-name', 'Projects')
         ->click('Create folder')
-        ->assertMissing('@new-folder-dialog')
+        ->assertMissing('@folder-dialog')
         ->assertSeeIn('@tree-folder', 'Projects')
         ->click('@tree-folder-actions')
         ->click('@tree-new-note')
@@ -26,7 +26,7 @@ it('creates folders and notes inside them from the file tree', function (): void
         ->assertSee('Create a folder inside Projects.')
         ->fill('folder-name', '2026')
         ->click('Create folder')
-        ->assertMissing('@new-folder-dialog')
+        ->assertMissing('@folder-dialog')
         ->assertSee('2026')
         ->assertNoJavaScriptErrors();
 
@@ -43,7 +43,7 @@ it('explains why a folder could not be created', function (): void {
         ->fill('folder-name', 'Taken')
         ->click('Create folder')
         ->assertSee('A folder or file with that name already exists.')
-        ->assertVisible('@new-folder-dialog')
+        ->assertVisible('@folder-dialog')
         ->assertNoJavaScriptErrors();
 });
 
@@ -95,4 +95,45 @@ it('drops a wiki link when a note is dragged from the tree into the editor', fun
         ->assertNoJavaScriptErrors();
 
     expect(Note::query()->where('path', 'Projects/Plan.md')->exists())->toBeTrue();
+});
+
+it('renames folders from their menu and moves them by dragging', function (): void {
+    $vault = vaultWithFiles([
+        'Home.md' => "# Home\n\n[[Projects/Plan]]",
+        'Projects/Plan.md' => '# Plan',
+        'Archive/Old.md' => '# Old',
+    ]);
+    resolve(IndexVault::class)->handle($vault);
+
+    visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
+        ->click('[data-test=tree-folder][data-path="Projects"] [data-test=tree-folder-actions]')
+        ->click('@tree-rename-folder')
+        ->assertValue('folder-name', 'Projects')
+        ->fill('folder-name', 'Work')
+        ->click('Rename')
+        ->assertMissing('@folder-dialog')
+        ->assertPresent('a[data-path="Work/Plan.md"]')
+        ->drag('[data-test=tree-folder][data-path="Work"] button[draggable]', '[data-test=tree-folder][data-path="Archive"]')
+        ->assertPresent('a[data-path="Archive/Work/Plan.md"]')
+        ->assertNoJavaScriptErrors();
+
+    expect(file_get_contents($vault->path.'/Home.md'))->toContain('[[Archive/Work/Plan]]');
+});
+
+it('deletes a folder after confirming and leaves it if the open note was inside', function (): void {
+    $vault = vaultWithFiles(['Home.md' => '# Home', 'Projects/Plan.md' => '# Plan', 'Projects/Next.md' => '# Next']);
+    resolve(IndexVault::class)->handle($vault);
+
+    visit(route('notes.show', [$vault, Note::query()->where('path', 'Projects/Plan.md')->sole()]))
+        ->click('@tree-folder-actions')
+        ->click('@tree-delete-folder')
+        ->assertSee('Delete “Projects”?')
+        ->assertSee('The folder and its 2 notes will be permanently deleted.')
+        ->click('Delete folder')
+        ->assertSee('Folder deleted.')
+        ->assertMissing('@tree-folder')
+        ->assertNoJavaScriptErrors();
+
+    expect(is_dir($vault->path.'/Projects'))->toBeFalse()
+        ->and(Note::query()->pluck('path')->all())->toBe(['Home.md']);
 });
