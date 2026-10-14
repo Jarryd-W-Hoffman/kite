@@ -9,6 +9,7 @@ use App\Models\Vault;
 use App\Services\ColourGroupQuery;
 use App\Services\ColourGroups;
 use App\Services\Templates;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -46,7 +47,7 @@ final readonly class SearchNotes
         if ($matches[0] === []) {
             return array_values(Note::query()
                 ->where('vault_id', $vault->id)
-                ->when($allowed !== null, fn ($notes) => $notes->whereIn('id', $allowed ?? []))
+                ->when($allowed !== null, fn (Builder $notes): Builder => $notes->whereIn('id', $allowed ?? []))
                 ->latest('modified_at')
                 ->limit($limit)
                 ->get(['id', 'title', 'path'])
