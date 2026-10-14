@@ -1,5 +1,5 @@
 import type { Auth } from '@/types/auth';
-import type { EditorPreferences } from '@/types/kite';
+import type { EditorPreferences, Preferences } from '@/types/kite';
 import type { FlashToast } from '@/types/ui';
 
 declare module 'react' {
@@ -21,6 +21,7 @@ declare module '@inertiajs/core' {
                 platform: string;
                 editor: EditorPreferences;
             };
+            preferences?: Preferences;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };
