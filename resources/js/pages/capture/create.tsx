@@ -1,5 +1,5 @@
 import { Form, Head, usePage } from '@inertiajs/react';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Zap } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -17,11 +17,22 @@ export default function CaptureCreate({ vault }: Props) {
         <>
             <Head title="Quick capture" />
 
-            <main className="kite-drag flex h-svh flex-col bg-background p-4">
+            <main className="kite-drag flex h-svh flex-col bg-background">
+                <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border/70 px-4 text-[13px]">
+                    <span className="flex size-5 items-center justify-center rounded-md bg-gradient-to-br from-primary to-[oklch(0.62_0.2_310)] text-primary-foreground">
+                        <Zap className="size-3" />
+                    </span>
+                    <span className="font-semibold">Quick capture</span>
+                    {vault && (
+                        <span className="truncate text-muted-foreground">
+                            · {vault.name}
+                        </span>
+                    )}
+                </div>
                 <Form
                     {...store.form()}
                     resetOnSuccess={['text']}
-                    className="kite-no-drag flex flex-1 flex-col gap-3"
+                    className="kite-no-drag flex min-h-0 flex-1 flex-col"
                 >
                     {({ processing, errors }) => (
                         <>
@@ -49,10 +60,13 @@ export default function CaptureCreate({ vault }: Props) {
                                         window.close();
                                     }
                                 }}
-                                className="min-h-0 flex-1 resize-none rounded-lg border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                                className="min-h-0 flex-1 resize-none bg-transparent px-5 py-4 text-[16px] leading-relaxed outline-none placeholder:text-muted-foreground/60"
                             />
-                            <InputError message={errors.text} />
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <InputError
+                                message={errors.text}
+                                className="px-5"
+                            />
+                            <div className="flex items-center gap-2 border-t border-border/70 bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
                                 <CalendarDays className="size-3.5" />
                                 Adds a timestamped line to today&apos;s note
                                 <Button

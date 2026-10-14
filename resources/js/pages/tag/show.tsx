@@ -5,6 +5,7 @@ import { CommandPalette } from '@/components/kite/command-palette';
 import { EmptyState } from '@/components/kite/empty-state';
 import { WorkspaceSidebar } from '@/components/kite/workspace-sidebar';
 import { useVaultSync } from '@/hooks/use-vault-sync';
+import { cn } from '@/lib/utils';
 import { show } from '@/routes/notes';
 import { show as showTag } from '@/routes/vault-tags';
 import type { WorkspaceProps } from '@/types';
@@ -64,13 +65,9 @@ export default function TagShow({
                 />
 
                 <main className="flex min-w-0 flex-1 flex-col">
-                    <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b px-4">
-                        <Hash className="size-4 text-muted-foreground" />
-                        <h1 className="text-sm font-medium">{tag}</h1>
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                            {notes.length}{' '}
-                            {notes.length === 1 ? 'note' : 'notes'}
-                        </span>
+                    <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-4 text-[13px] text-muted-foreground">
+                        <Hash className="size-3.5" />
+                        Tags
                     </header>
 
                     <div className="min-h-0 flex-1 overflow-y-auto">
@@ -82,49 +79,78 @@ export default function TagShow({
                                 className="h-full"
                             />
                         ) : (
-                            <ul
-                                className="mx-auto max-w-3xl divide-y px-6 py-4"
-                                data-test="tagged-notes"
-                            >
-                                {notes.map((note) => (
-                                    <li key={note.id} className="py-3">
-                                        <Link
-                                            href={show({
-                                                vault: vault.id,
-                                                note: note.id,
-                                            })}
-                                            className="group flex items-start gap-3"
+                            <div className="mx-auto max-w-3xl px-8 pt-14 pb-24">
+                                <div className="mb-8 flex items-end gap-4">
+                                    <span className="flex size-14 items-center justify-center rounded-2xl bg-kite-accent-soft text-primary">
+                                        <Hash className="size-7" />
+                                    </span>
+                                    <div>
+                                        <h1 className="text-3xl font-bold tracking-tight">
+                                            {tag}
+                                        </h1>
+                                        <p className="text-sm text-muted-foreground tabular-nums">
+                                            {notes.length}{' '}
+                                            {notes.length === 1
+                                                ? 'note'
+                                                : 'notes'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <ul
+                                    className="grid gap-2"
+                                    data-test="tagged-notes"
+                                >
+                                    {notes.map((note) => (
+                                        <li
+                                            key={note.id}
+                                            className="group/card rounded-xl border bg-card p-4 shadow-kite-sm transition-all hover:-translate-y-px hover:border-primary/30 hover:shadow-kite-lg"
                                         >
-                                            <FileText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                                            <div className="min-w-0 flex-1">
-                                                <div className="truncate font-medium group-hover:underline">
-                                                    {note.title}
+                                            <Link
+                                                href={show({
+                                                    vault: vault.id,
+                                                    note: note.id,
+                                                })}
+                                                className="group flex items-start gap-3"
+                                            >
+                                                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-background text-muted-foreground transition-colors group-hover/card:text-primary">
+                                                    <FileText className="size-4" />
+                                                </span>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="truncate font-semibold">
+                                                        {note.title}
+                                                    </div>
+                                                    <div className="truncate text-xs text-muted-foreground">
+                                                        {note.path} ·{' '}
+                                                        {new Date(
+                                                            note.modified_at *
+                                                                1000,
+                                                        ).toLocaleDateString()}
+                                                    </div>
                                                 </div>
-                                                <div className="truncate text-xs text-muted-foreground">
-                                                    {note.path} ·{' '}
-                                                    {new Date(
-                                                        note.modified_at * 1000,
-                                                    ).toLocaleDateString()}
-                                                </div>
+                                            </Link>
+                                            <div className="mt-2.5 ml-11 flex flex-wrap gap-1">
+                                                {note.tags.map((name) => (
+                                                    <Link
+                                                        key={name}
+                                                        href={showTag({
+                                                            vault: vault.id,
+                                                            tag: name,
+                                                        })}
+                                                        className={cn(
+                                                            'rounded-md px-1.5 py-0.5 text-xs transition-colors',
+                                                            name === tag
+                                                                ? 'bg-kite-accent-soft font-medium text-primary'
+                                                                : 'bg-muted text-muted-foreground hover:text-foreground',
+                                                        )}
+                                                    >
+                                                        #{name}
+                                                    </Link>
+                                                ))}
                                             </div>
-                                        </Link>
-                                        <div className="mt-1.5 ml-7 flex flex-wrap gap-1">
-                                            {note.tags.map((name) => (
-                                                <Link
-                                                    key={name}
-                                                    href={showTag({
-                                                        vault: vault.id,
-                                                        tag: name,
-                                                    })}
-                                                    className="rounded-full bg-muted px-2 py-0.5 text-xs hover:ring-1 hover:ring-ring"
-                                                >
-                                                    #{name}
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         )}
                     </div>
                 </main>
