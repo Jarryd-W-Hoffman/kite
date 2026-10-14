@@ -17,7 +17,7 @@ it('jumps to headings from the outline and heading links', function (): void {
     $page->assertSee('Outline')
         ->click('@outline-second-part')
         ->assertScript('window.location.hash', '#second-part')
-        ->assertScript("document.querySelector('[data-test=note-editor]').selectionStart", 16)
+        ->assertScript("document.querySelector('.cm-editor').dataset.cursor", '16')
         ->assertNoJavaScriptErrors();
 
     $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Index.md')->sole()]));

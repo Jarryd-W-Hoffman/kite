@@ -21,7 +21,7 @@ it('saves preferences and applies them to the editor', function (): void {
         ->assertValue('ignored_folders', "node_modules\nArchive")
         ->click('Back to notes')
         ->assertScript("getComputedStyle(document.querySelector('[data-test=note-editor]')).fontSize", '18px')
-        ->assertScript("document.querySelector('[data-test=note-editor]').classList.contains('font-serif')", true)
+        ->assertScript("getComputedStyle(document.querySelector('[data-test=note-editor]')).fontFamily.includes('Georgia')", true)
         ->assertNoJavaScriptErrors();
 
     expect(config('kite.ignored_folders'))->toBe(['node_modules', 'Archive']);

@@ -1,8 +1,47 @@
+import {
+    autocompletion,
+    closeBrackets,
+    closeBracketsKeymap,
+    completionKeymap,
+} from '@codemirror/autocomplete';
+import type { Completion, CompletionContext } from '@codemirror/autocomplete';
+import {
+    defaultKeymap,
+    history,
+    historyKeymap,
+    indentWithTab,
+} from '@codemirror/commands';
+import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
+import {
+    HighlightStyle,
+    bracketMatching,
+    indentOnInput,
+    syntaxHighlighting,
+} from '@codemirror/language';
+import {
+    highlightSelectionMatches,
+    search,
+    searchKeymap,
+} from '@codemirror/search';
+import { Annotation, EditorSelection, EditorState } from '@codemirror/state';
+import type { Extension } from '@codemirror/state';
+import {
+    Decoration,
+    EditorView,
+    MatchDecorator,
+    ViewPlugin,
+    drawSelection,
+    dropCursor,
+    highlightActiveLine,
+    keymap,
+    placeholder,
+    rectangularSelection,
+} from '@codemirror/view';
+import type { DecorationSet, ViewUpdate } from '@codemirror/view';
 import { usePage } from '@inertiajs/react';
-import { FileText } from 'lucide-react';
-import { useImperativeHandle, useRef, useState } from 'react';
+import { tags } from '@lezer/highlight';
+import { useEffect, useImperativeHandle, useRef } from 'react';
 import type { Ref } from 'react';
-import { caretCoordinates } from '@/lib/caret';
 import { matchNotes, noteName } from '@/lib/note-tree';
 import { cn, editorFontClass, editorWidthClass } from '@/lib/utils';
 import type { TreeNote } from '@/types';
@@ -17,18 +56,148 @@ type Props = {
     onChange: (value: string) => void;
     onSave: () => void;
     onUpload?: (files: File[]) => Promise<string[]>;
+    onFollowLink?: (target: string) => void;
     notes: TreeNote[];
     className?: string;
 };
 
-type Suggestion = {
-    start: number;
-    query: string;
-    top: number;
-    left: number;
-};
+/**
+ * Marks document changes that came from outside the editor (e.g. the file changed on disk),
+ * so they are not reported back through onChange or added to the undo history.
+ */
+const External = Annotation.define<boolean>();
 
-const LINK_TRIGGER = /\[\[([^[\]\n|#]*)$/;
+const WIKI_LINK = /!?\[\[([^[\]\n|#]*)[^[\]\n]*\]\]/g;
+
+const markdownHighlighting = HighlightStyle.define([
+    { tag: tags.heading1, fontSize: '1.6em', fontWeight: '700' },
+    { tag: tags.heading2, fontSize: '1.35em', fontWeight: '700' },
+    { tag: tags.heading3, fontSize: '1.15em', fontWeight: '600' },
+    {
+        tag: [tags.heading4, tags.heading5, tags.heading6],
+        fontWeight: '600',
+    },
+    { tag: tags.strong, fontWeight: '700' },
+    { tag: tags.emphasis, fontStyle: 'italic' },
+    { tag: tags.strikethrough, textDecoration: 'line-through' },
+    { tag: [tags.link, tags.url], color: 'var(--kite-link)' },
+    {
+        tag: tags.monospace,
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+        fontSize: '0.92em',
+    },
+    { tag: tags.quote, color: 'var(--muted-foreground)', fontStyle: 'italic' },
+    {
+        tag: [tags.processingInstruction, tags.meta, tags.contentSeparator],
+        color: 'var(--muted-foreground)',
+    },
+]);
+
+const kiteTheme = EditorView.theme({
+    '&': {
+        height: '100%',
+        fontSize: 'inherit',
+        backgroundColor: 'transparent',
+    },
+    '&.cm-focused': { outline: 'none' },
+    '.cm-scroller': {
+        fontFamily: 'inherit',
+        lineHeight: '1.9',
+        overflow: 'auto',
+    },
+    '.cm-content': {
+        maxWidth: 'var(--kite-editor-width)',
+        margin: '0 auto',
+        padding: '32px 40px',
+        caretColor: 'var(--primary)',
+    },
+    '.cm-line': { padding: '0' },
+    '.cm-cursor': { borderLeftColor: 'var(--primary)' },
+    '.cm-activeLine': {
+        backgroundColor: 'color-mix(in oklch, var(--muted) 45%, transparent)',
+    },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
+        backgroundColor:
+            'color-mix(in oklch, var(--primary) 18%, transparent) !important',
+    },
+    '.cm-placeholder': { color: 'var(--muted-foreground)' },
+    '.cm-wikilink': {
+        color: 'var(--kite-link)',
+        textDecoration: 'underline',
+        textDecorationColor:
+            'color-mix(in oklch, var(--kite-link) 35%, transparent)',
+        textUnderlineOffset: '3px',
+    },
+    '.cm-tooltip': {
+        border: '1px solid var(--border)',
+        backgroundColor: 'var(--popover)',
+        color: 'var(--popover-foreground)',
+        borderRadius: '8px',
+        boxShadow: '0 8px 24px rgb(0 0 0 / 0.12)',
+        overflow: 'hidden',
+    },
+    '.cm-tooltip-autocomplete > ul > li': { padding: '4px 10px' },
+    '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+        backgroundColor: 'var(--accent)',
+        color: 'var(--accent-foreground)',
+    },
+    '.cm-completionDetail': {
+        marginLeft: '8px',
+        color: 'var(--muted-foreground)',
+        fontStyle: 'normal',
+    },
+    '.cm-panels': {
+        backgroundColor: 'var(--background)',
+        borderColor: 'var(--border)',
+    },
+});
+
+const wikiLinkDecorator = new MatchDecorator({
+    regexp: WIKI_LINK,
+    decoration: (match) =>
+        Decoration.mark({
+            class: 'cm-wikilink',
+            attributes: { 'data-wiki-target': match[1].trim() },
+        }),
+});
+
+const wikiLinks = ViewPlugin.fromClass(
+    class {
+        decorations: DecorationSet;
+
+        constructor(view: EditorView) {
+            this.decorations = wikiLinkDecorator.createDeco(view);
+        }
+
+        update(update: ViewUpdate) {
+            this.decorations = wikiLinkDecorator.updateDeco(
+                update,
+                this.decorations,
+            );
+        }
+    },
+    { decorations: (plugin) => plugin.decorations },
+);
+
+/**
+ * Wrap every selection range in a markdown marker, e.g. ** for bold.
+ */
+function wrapSelections(view: EditorView, marker: string): boolean {
+    view.dispatch(
+        view.state.changeByRange((range) => ({
+            changes: [
+                { from: range.from, insert: marker },
+                { from: range.to, insert: marker },
+            ],
+            range: EditorSelection.range(
+                range.from + marker.length,
+                range.to + marker.length,
+            ),
+        })),
+    );
+
+    return true;
+}
 
 export function NoteEditor({
     ref,
@@ -36,301 +205,287 @@ export function NoteEditor({
     onChange,
     onSave,
     onUpload,
+    onFollowLink,
     notes,
     className,
 }: Props) {
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
-    const [activeIndex, setActiveIndex] = useState(0);
-
-    const matches = suggestion ? matchNotes(notes, suggestion.query) : [];
     const { editor } = usePage().props.kite;
+    const containerRef = useRef<HTMLDivElement>(null);
+    const viewRef = useRef<EditorView | null>(null);
+    const callbacks = useRef({
+        onChange,
+        onSave,
+        onUpload,
+        onFollowLink,
+        notes,
+    });
+    const initialValue = useRef(value);
+
+    useEffect(() => {
+        callbacks.current = { onChange, onSave, onUpload, onFollowLink, notes };
+    });
 
     useImperativeHandle(ref, () => ({
-        jumpToLine: (line: number) => {
-            const textarea = textareaRef.current;
+        jumpToLine: (lineNumber: number) => {
+            const view = viewRef.current;
 
-            if (!textarea) {
+            if (!view) {
                 return;
             }
 
-            const lines = textarea.value.split('\n');
-            const offset = lines
-                .slice(0, Math.max(0, line - 1))
-                .reduce((total, text) => total + text.length + 1, 0);
-            const lineHeight =
-                Number.parseFloat(getComputedStyle(textarea).lineHeight) || 28;
+            const line = view.state.doc.line(
+                Math.min(Math.max(1, lineNumber), view.state.doc.lines),
+            );
 
-            textarea.focus();
-            textarea.setSelectionRange(offset, offset);
-            textarea.scrollTop = Math.max(0, (line - 3) * lineHeight);
+            view.dispatch({
+                selection: { anchor: line.from },
+                effects: EditorView.scrollIntoView(line.from, {
+                    y: 'start',
+                    yMargin: 48,
+                }),
+            });
+            view.focus();
         },
     }));
 
-    const updateSuggestion = (textarea: HTMLTextAreaElement) => {
-        const caret = textarea.selectionStart;
+    useEffect(() => {
+        const container = containerRef.current;
 
-        if (caret !== textarea.selectionEnd) {
-            setSuggestion(null);
-
+        if (!container) {
             return;
         }
 
-        const match = LINK_TRIGGER.exec(textarea.value.slice(0, caret));
+        const linkCompletions = (context: CompletionContext) => {
+            const match = context.matchBefore(/\[\[[^[\]\n|#]*$/);
 
-        if (!match) {
-            setSuggestion(null);
+            if (!match) {
+                return null;
+            }
 
-            return;
-        }
+            const from = match.from + 2;
+            const query = match.text.slice(2);
 
-        const start = caret - match[1].length;
-        const coordinates = caretCoordinates(textarea, start);
+            return {
+                from,
+                filter: false,
+                options: matchNotes(callbacks.current.notes, query).map(
+                    (note): Completion => ({
+                        label: noteName(note.path),
+                        detail: note.path.includes('/')
+                            ? note.path.slice(0, note.path.lastIndexOf('/'))
+                            : undefined,
+                        apply: (view, completion, applyFrom, to) => {
+                            const closing =
+                                view.state.sliceDoc(to, to + 2) === ']]'
+                                    ? 2
+                                    : 0;
+                            const insert = `${completion.label}]]`;
 
-        if (suggestion?.start !== start || suggestion.query !== match[1]) {
-            setActiveIndex(0);
-        }
+                            view.dispatch({
+                                changes: {
+                                    from: applyFrom,
+                                    to: to + closing,
+                                    insert,
+                                },
+                                selection: {
+                                    anchor: applyFrom + insert.length,
+                                },
+                            });
+                        },
+                    }),
+                ),
+            };
+        };
 
-        setSuggestion({
-            start,
-            query: match[1],
-            top: coordinates.top + coordinates.height,
-            left: coordinates.left,
-        });
-    };
+        const insertUploads = async (
+            view: EditorView,
+            files: File[],
+            position?: number,
+        ) => {
+            const upload = callbacks.current.onUpload;
 
-    const replaceRange = (
-        start: number,
-        end: number,
-        text: string,
-        selectFrom: number,
-        selectTo: number = selectFrom,
-    ) => {
-        const textarea = textareaRef.current;
+            if (!upload || files.length === 0) {
+                return;
+            }
 
-        if (!textarea) {
-            return;
-        }
+            const embeds = await upload(files);
 
-        onChange(value.slice(0, start) + text + value.slice(end));
+            if (embeds.length === 0) {
+                return;
+            }
 
-        requestAnimationFrame(() => {
-            textarea.focus();
-            textarea.setSelectionRange(selectFrom, selectTo);
-        });
-    };
+            const at = position ?? view.state.selection.main.head;
+            const insert = embeds.join('\n');
 
-    const insertLink = (note: TreeNote) => {
-        const textarea = textareaRef.current;
+            view.dispatch({
+                changes: { from: at, insert },
+                selection: { anchor: at + insert.length },
+            });
+        };
 
-        if (!textarea || !suggestion) {
-            return;
-        }
+        const extensions: Extension[] = [
+            history(),
+            drawSelection(),
+            dropCursor(),
+            rectangularSelection(),
+            highlightActiveLine(),
+            highlightSelectionMatches(),
+            indentOnInput(),
+            bracketMatching(),
+            closeBrackets(),
+            search({ top: true }),
+            EditorView.lineWrapping,
+            EditorState.allowMultipleSelections.of(true),
+            markdown({ base: markdownLanguage }),
+            syntaxHighlighting(markdownHighlighting),
+            wikiLinks,
+            autocompletion({
+                override: [linkCompletions],
+                icons: false,
+                activateOnTyping: true,
+            }),
+            placeholder('Start writing… Use [[ to link notes.'),
+            kiteTheme,
+            keymap.of([
+                { key: 'Mod-s', run: () => (callbacks.current.onSave(), true) },
+                { key: 'Mod-b', run: (view) => wrapSelections(view, '**') },
+                { key: 'Mod-i', run: (view) => wrapSelections(view, '_') },
+                ...closeBracketsKeymap,
+                ...completionKeymap,
+                ...searchKeymap,
+                ...historyKeymap,
+                indentWithTab,
+                ...defaultKeymap,
+            ]),
+            EditorView.domEventHandlers({
+                paste: (event, view) => {
+                    const files = Array.from(event.clipboardData?.files ?? []);
 
-        const caret = textarea.selectionStart;
-        const name = noteName(note.path);
-        const closing = value.slice(caret, caret + 2) === ']]' ? 2 : 0;
-        const inserted = `${name}]]`;
+                    if (files.length === 0 || !callbacks.current.onUpload) {
+                        return false;
+                    }
 
-        replaceRange(
-            suggestion.start,
-            caret + closing,
-            inserted,
-            suggestion.start + inserted.length,
-        );
-        setSuggestion(null);
-    };
+                    event.preventDefault();
+                    void insertUploads(view, files);
 
-    const wrapSelection = (marker: string) => {
-        const textarea = textareaRef.current;
+                    return true;
+                },
+                drop: (event, view) => {
+                    const files = Array.from(event.dataTransfer?.files ?? []);
 
-        if (!textarea) {
-            return;
-        }
+                    if (files.length === 0 || !callbacks.current.onUpload) {
+                        return false;
+                    }
 
-        const { selectionStart: start, selectionEnd: end } = textarea;
-        const selected = value.slice(start, end);
+                    event.preventDefault();
+                    const position =
+                        view.posAtCoords({
+                            x: event.clientX,
+                            y: event.clientY,
+                        }) ?? undefined;
+                    void insertUploads(view, files, position);
 
-        replaceRange(
-            start,
-            end,
-            `${marker}${selected}${marker}`,
-            start + marker.length,
-            end + marker.length,
-        );
-    };
+                    return true;
+                },
+                mousedown: (event) => {
+                    if (!(event.metaKey || event.ctrlKey)) {
+                        return false;
+                    }
 
-    const insertUploads = async (files: File[]) => {
-        const textarea = textareaRef.current;
+                    const link =
+                        event.target instanceof Element
+                            ? event.target.closest<HTMLElement>('.cm-wikilink')
+                            : null;
+                    const target = link?.dataset.wikiTarget;
 
-        if (!textarea || !onUpload || files.length === 0) {
-            return;
-        }
+                    if (!target || !callbacks.current.onFollowLink) {
+                        return false;
+                    }
 
-        const { selectionStart: start, selectionEnd: end } = textarea;
-        const embeds = await onUpload(files);
+                    event.preventDefault();
+                    callbacks.current.onFollowLink(target);
 
-        if (embeds.length === 0) {
-            return;
-        }
+                    return true;
+                },
+            }),
+            EditorView.updateListener.of((update) => {
+                if (update.selectionSet || update.docChanged) {
+                    update.view.dom.dataset.cursor = String(
+                        update.state.selection.main.head,
+                    );
+                }
 
-        const text = embeds.join('\n');
-
-        replaceRange(start, end, text, start + text.length);
-    };
-
-    const filesFrom = (transfer: DataTransfer | null): File[] =>
-        transfer ? Array.from(transfer.files) : [];
-
-    const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (suggestion && matches.length > 0) {
-            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                event.preventDefault();
-                const delta = event.key === 'ArrowDown' ? 1 : -1;
-                setActiveIndex(
-                    (index) =>
-                        (index + delta + matches.length) % matches.length,
+                const isLocal = update.transactions.some(
+                    (transaction) =>
+                        transaction.docChanged &&
+                        !transaction.annotation(External),
                 );
 
-                return;
-            }
+                if (isLocal) {
+                    callbacks.current.onChange(update.state.doc.toString());
+                }
+            }),
+            EditorView.contentAttributes.of({
+                'aria-label': 'Note contents',
+                'data-test': 'note-editor',
+                spellcheck: 'true',
+            }),
+        ];
 
-            if (event.key === 'Enter' || event.key === 'Tab') {
-                event.preventDefault();
-                insertLink(matches[activeIndex] ?? matches[0]);
+        const view = new EditorView({
+            parent: container,
+            state: EditorState.create({
+                doc: initialValue.current,
+                extensions,
+            }),
+        });
 
-                return;
-            }
-        }
+        view.dom.dataset.cursor = '0';
+        viewRef.current = view;
 
-        if (event.key === 'Escape' && suggestion) {
-            event.preventDefault();
-            setSuggestion(null);
+        return () => {
+            view.destroy();
+            viewRef.current = null;
+        };
+    }, []);
 
+    useEffect(() => {
+        const view = viewRef.current;
+
+        if (!view || view.state.doc.toString() === value) {
             return;
         }
 
-        const modifier = event.metaKey || event.ctrlKey;
+        const head = Math.min(view.state.selection.main.head, value.length);
 
-        if (modifier && event.key === 's') {
-            event.preventDefault();
-            onSave();
-        } else if (modifier && event.key === 'b') {
-            event.preventDefault();
-            wrapSelection('**');
-        } else if (modifier && event.key === 'i') {
-            event.preventDefault();
-            wrapSelection('_');
-        } else if (event.key === 'Tab' && !modifier) {
-            event.preventDefault();
-            const { selectionStart: start, selectionEnd: end } =
-                event.currentTarget;
-            replaceRange(start, end, '    ', start + 4);
-        }
-    };
+        view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: value },
+            selection: { anchor: head },
+            annotations: [External.of(true)],
+        });
+    }, [value]);
 
     return (
-        <div className={cn('relative h-full', className)}>
-            <textarea
-                ref={textareaRef}
-                value={value}
-                onChange={(event) => {
-                    onChange(event.target.value);
-                    updateSuggestion(event.target);
-                }}
-                onKeyDown={onKeyDown}
-                onClick={(event) => updateSuggestion(event.currentTarget)}
-                onKeyUp={(event) => {
-                    if (
-                        event.key === 'ArrowLeft' ||
-                        event.key === 'ArrowRight'
-                    ) {
-                        updateSuggestion(event.currentTarget);
-                    }
-                }}
-                onBlur={() => setSuggestion(null)}
-                onPaste={(event) => {
-                    const files = filesFrom(event.clipboardData);
-
-                    if (files.length > 0 && onUpload) {
-                        event.preventDefault();
-                        void insertUploads(files);
-                    }
-                }}
-                onDragOver={(event) => {
-                    if (
-                        onUpload &&
-                        event.dataTransfer.types.includes('Files')
-                    ) {
-                        event.preventDefault();
-                    }
-                }}
-                onDrop={(event) => {
-                    const files = filesFrom(event.dataTransfer);
-
-                    if (files.length > 0 && onUpload) {
-                        event.preventDefault();
-                        void insertUploads(files);
-                    }
-                }}
-                onScroll={(event) => {
-                    if (suggestion) {
-                        updateSuggestion(event.currentTarget);
-                    }
-                }}
-                spellCheck
-                aria-label="Note contents"
-                data-test="note-editor"
-                placeholder="Start writing… Use [[ to link notes."
-                style={{ fontSize: `${editor.editor_font_size}px` }}
-                className={cn(
-                    'kite-editor mx-auto block h-full w-full resize-none bg-transparent px-10 py-8 leading-[1.9] text-foreground outline-none placeholder:text-muted-foreground',
-                    editorFontClass[editor.editor_font],
-                    editorWidthClass[editor.editor_width],
-                )}
-            />
-
-            {suggestion && matches.length > 0 && (
-                <ul
-                    role="listbox"
-                    aria-label="Link suggestions"
-                    className="absolute z-20 w-72 overflow-hidden rounded-md border bg-popover p-1 text-sm text-popover-foreground shadow-md"
-                    style={{
-                        top: suggestion.top + 4,
-                        left: Math.max(8, suggestion.left),
-                    }}
-                >
-                    {matches.map((note, index) => (
-                        <li
-                            key={note.id}
-                            role="option"
-                            aria-selected={index === activeIndex}
-                            onMouseDown={(event) => {
-                                event.preventDefault();
-                                insertLink(note);
-                            }}
-                            onMouseMove={() => setActiveIndex(index)}
-                            className={cn(
-                                'flex cursor-pointer items-center gap-2 rounded px-2 py-1.5',
-                                index === activeIndex && 'bg-accent',
-                            )}
-                        >
-                            <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-                            <span className="truncate">
-                                {noteName(note.path)}
-                            </span>
-                            {note.path.includes('/') && (
-                                <span className="ml-auto truncate text-xs text-muted-foreground">
-                                    {note.path.slice(
-                                        0,
-                                        note.path.lastIndexOf('/'),
-                                    )}
-                                </span>
-                            )}
-                        </li>
-                    ))}
-                </ul>
+        <div
+            ref={containerRef}
+            className={cn(
+                'kite-editor relative h-full min-h-0 overflow-hidden text-foreground',
+                editorFontClass[editor.editor_font],
+                className,
             )}
-        </div>
+            style={
+                {
+                    fontSize: `${editor.editor_font_size}px`,
+                    '--kite-editor-width': editorMaxWidth[editor.editor_width],
+                } as React.CSSProperties
+            }
+        />
     );
 }
+
+const editorMaxWidth: Record<keyof typeof editorWidthClass, string> = {
+    narrow: '42rem',
+    normal: '48rem',
+    wide: '64rem',
+    full: 'none',
+};

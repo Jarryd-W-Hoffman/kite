@@ -46,12 +46,12 @@ it('follows wiki links and creates notes from unresolved ones', function (): voi
 
     $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'A.md')->sole()]));
 
-    $page->click('B')
+    $page->click('a.wiki-link[data-wiki-target="B"]')
         ->assertDontSeeIn('@note-preview', 'Go to')
         ->assertSeeIn('@note-preview', 'Beta page')
         ->assertSee('Alpha')
         ->navigate(route('notes.show', [$vault, Note::query()->where('path', 'A.md')->sole()]))
-        ->click('Brand New')
+        ->click('a.wiki-link[data-wiki-target="Brand New"]')
         ->assertDontSeeIn('@note-preview', 'Go to')
         ->assertSeeIn('@note-preview', 'Brand New')
         ->assertNoJavaScriptErrors();
@@ -85,9 +85,45 @@ it('suggests notes while typing a wiki link', function (): void {
 
     $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
 
-    $page->fill('@note-editor', 'See [[Road')
-        ->assertSee('Roadmap')
+    $page->click('@note-editor')
+        ->typeSlowly('@note-editor', 'See [[Road', 20)
+        ->assertSeeIn('.cm-tooltip-autocomplete', 'Roadmap')
+        ->assertSeeIn('.cm-tooltip-autocomplete', 'Projects')
+        ->wait(0.2)
         ->keys('@note-editor', 'Enter')
-        ->assertValue('@note-editor', 'See [[Roadmap]]')
+        ->assertSeeIn('@note-editor', 'See [[Roadmap]]')
+        ->assertScript("document.querySelector('[data-test=note-editor]').textContent", 'See [[Roadmap]]')
+        ->assertNoJavaScriptErrors();
+});
+
+it('follows wiki links from the editor with cmd or ctrl click', function (): void {
+    $vault = vaultWithFiles([
+        'Home.md' => 'Go to [[Projects/Roadmap|the roadmap]] and [[Ideas]].',
+        'Projects/Roadmap.md' => '# Roadmap',
+    ]);
+    resolve(IndexVault::class)->handle($vault);
+
+    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
+
+    $page->withKeyDown('Control', fn ($page) => $page->click('.cm-wikilink[data-wiki-target="Projects/Roadmap"]'))
+        ->assertSeeIn('@note-preview', 'Roadmap')
+        ->assertPathIs('/vaults/'.$vault->id.'/notes/'.Note::query()->where('path', 'Projects/Roadmap.md')->value('id'))
+        ->assertNoJavaScriptErrors();
+});
+
+it('keeps undo history across autosaves', function (): void {
+    $vault = vaultWithFiles(['Note.md' => 'First']);
+    resolve(IndexVault::class)->handle($vault);
+
+    $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
+
+    $page->click('@note-editor')
+        ->keys('@note-editor', 'End')
+        ->typeSlowly('@note-editor', ' second', 20)
+        ->assertSee('Saved')
+        ->assertSeeIn('@note-preview', 'First second')
+        ->keys('@note-editor', 'Control+z')
+        ->assertSeeIn('@note-editor', 'First')
+        ->assertDontSeeIn('@note-editor', 'second')
         ->assertNoJavaScriptErrors();
 });
