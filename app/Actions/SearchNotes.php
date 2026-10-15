@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Models\Note;
 use App\Models\Vault;
 use App\Services\ColourGroupQuery;
-use App\Services\ColourGroups;
+use App\Services\Row;
 use App\Services\Templates;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -22,10 +21,8 @@ final readonly class SearchNotes
     /** A `field:value` filter term (optionally negated or quoted); `//` keeps URLs out. */
     private const string FILTER = '/(?<!\S)-?[\p{L}_][\p{L}\p{N}_-]*:(?!\/\/)(?:"[^"]*"|\S+)/u';
 
-    public function __construct(
-        private ColourGroups $notes,
-        private Templates $templates,
-    ) {
+    public function __construct(private Templates $templates)
+    {
         //
     }
 
@@ -36,25 +33,19 @@ final readonly class SearchNotes
      */
     public function handle(Vault $vault, string $query, int $limit = 20): array
     {
-        [$query, $allowed] = $this->applyFilters($vault, $query);
-
-        if ($allowed === []) {
-            return [];
-        }
+        [$query, $filter] = $this->splitFilters($query);
 
         preg_match_all('/[\p{L}\p{N}_]+/u', $query, $matches);
 
         if ($matches[0] === []) {
-            return array_values(Note::query()
-                ->where('vault_id', $vault->id)
-                ->when($allowed !== null, fn (Builder $notes): Builder => $notes->whereIn('id', $allowed ?? []))
+            return array_values($this->filtered(DB::table('notes')->where('vault_id', $vault->id), $filter)
                 ->latest('modified_at')
                 ->limit($limit)
                 ->get(['id', 'title', 'path'])
-                ->map(fn (Note $note): array => [
-                    'id' => $note->id,
-                    'title' => $note->title,
-                    'path' => $note->path,
+                ->map(fn (object $row): array => [
+                    'id' => Row::int($row, 'id'),
+                    'title' => Row::string($row, 'title'),
+                    'path' => Row::string($row, 'path'),
                     'snippet' => '',
                 ])
                 ->all());
@@ -62,37 +53,34 @@ final readonly class SearchNotes
 
         $match = implode(' ', array_map(fn (string $term): string => '"'.$term.'"*', $matches[0]));
 
-        /** @var list<object{id: int, title: string, path: string, snippet: string}> $rows */
-        $rows = DB::select(
-            'SELECT notes.id, notes.title, notes.path, snippet(notes_fts, 1, ?, ?, ?, 16) AS snippet
-            FROM notes_fts
-            JOIN notes ON notes.id = notes_fts.rowid
-            WHERE notes_fts MATCH ? AND notes.vault_id = ?'.($allowed === null ? '' : ' AND notes.id IN ('.implode(',', array_fill(0, count($allowed), '?')).')').'
-            ORDER BY bm25(notes_fts, 10.0, 1.0)
-            LIMIT ?',
-            [self::MARK_START, self::MARK_END, '…', $match, $vault->id, ...($allowed ?? []), $limit],
-        );
+        $rows = $this->filtered(DB::table('notes_fts')->join('notes', 'notes.id', '=', 'notes_fts.rowid'), $filter)
+            ->selectRaw('notes.id, notes.title, notes.path, snippet(notes_fts, 1, ?, ?, ?, 16) AS snippet', [self::MARK_START, self::MARK_END, '…'])
+            ->whereRaw('notes_fts MATCH ?', [$match])
+            ->where('notes.vault_id', $vault->id)
+            ->orderByRaw('bm25(notes_fts, 10.0, 1.0)')
+            ->limit($limit)
+            ->get();
 
-        return array_map(fn (object $row): array => [
-            'id' => (int) $row->id,
-            'title' => (string) $row->title,
-            'path' => (string) $row->path,
+        return array_values($rows->map(fn (object $row): array => [
+            'id' => Row::int($row, 'id'),
+            'title' => Row::string($row, 'title'),
+            'path' => Row::string($row, 'path'),
             'snippet' => str_replace(
                 [self::MARK_START, self::MARK_END],
                 ['<mark>', '</mark>'],
-                e($this->withoutTitle($this->plainText((string) $row->snippet), (string) $row->title)),
+                e($this->withoutTitle($this->plainText(Row::string($row, 'snippet')), Row::string($row, 'title'))),
             ),
-        ], $rows);
+        ])->all());
     }
 
     /**
      * Pull filter terms (`tag:work`, `folder:Projects`, `-tag:archived`, `status:active`) out of a
-     * search, returning the rest of the text and the ids of the notes the filters allow (null when
-     * there are no filters). Filters that don't parse are searched for as ordinary text.
+     * search, returning the rest of the text and the parsed filter (null when there is none).
+     * Filters that don't parse are searched for as ordinary text.
      *
-     * @return array{0: string, 1: list<int>|null}
+     * @return array{0: string, 1: ColourGroupQuery|null}
      */
-    private function applyFilters(Vault $vault, string $query): array
+    private function splitFilters(string $query): array
     {
         // A filter still being typed ("tag:") shouldn't empty the results while it's unfinished.
         $query = (string) preg_replace('/(?<!\S)-?[\p{L}_][\p{L}\p{N}_-]*:(?=\s|$)/u', '', $query);
@@ -109,15 +97,19 @@ final readonly class SearchNotes
             return [$query, null];
         }
 
-        $allowed = [];
+        return [mb_trim((string) preg_replace(self::FILTER, '', $query)), $filter];
+    }
 
-        foreach ($this->notes->notes($vault) as $id => $note) {
-            if (! $this->templates->contains($note['path']) && $filter->matches($note)) {
-                $allowed[] = $id;
-            }
+    /**
+     * Narrow a search to the notes a filter allows, leaving templates out as filtered lists do.
+     */
+    private function filtered(Builder $notes, ?ColourGroupQuery $filter): Builder
+    {
+        if (! $filter instanceof ColourGroupQuery) {
+            return $notes;
         }
 
-        return [mb_trim((string) preg_replace(self::FILTER, '', $query)), $allowed];
+        return $filter->applyTo($this->templates->exclude($notes, 'notes.path'));
     }
 
     /**
