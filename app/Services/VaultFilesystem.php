@@ -290,17 +290,13 @@ final readonly class VaultFilesystem
             return false;
         }
 
-        while (($resolved = realpath($existing)) === false) {
-            $parent = dirname($existing);
-
-            if ($parent === $existing) {
-                return false;
-            }
-
-            $existing = $parent;
+        // Walk up to the nearest part of the path that exists (for a path in the vault, at most
+        // the vault folder itself).
+        while (($resolved = realpath($existing)) === false && dirname($existing) !== $existing) {
+            $existing = dirname($existing);
         }
 
-        return $resolved === $root || str_starts_with($resolved, $root.DIRECTORY_SEPARATOR);
+        return $resolved !== false && ($resolved === $root || str_starts_with($resolved, $root.DIRECTORY_SEPARATOR));
     }
 
     /**
