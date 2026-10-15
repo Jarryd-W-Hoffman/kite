@@ -14,7 +14,6 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Events\ConnectionEstablished;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -31,7 +30,10 @@ final class AppServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        //
+        // Listening before any provider boots means every connection is covered. Functions are
+        // added just before a connection's first query, so configuring one never opens it (the
+        // database may not exist yet, e.g. while packages are discovered).
+        Event::listen(ConnectionEstablished::class, fn (ConnectionEstablished $event) => $this->registerSqlFunctionsOnUse($event->connection));
     }
 
     public function boot(): void
@@ -54,14 +56,6 @@ final class AppServiceProvider extends ServiceProvider
         // Guessing a vault's passphrase or recovery key, per vault.
         RateLimiter::for('vault-passphrase', fn (Request $request): Limit => Limit::perMinute(10)
             ->by('vault-passphrase:'.$request->route()?->originalParameter('vault')));
-
-        // Added just before a connection's first query, so configuring one never opens it (the
-        // database may not exist yet, e.g. while packages are discovered).
-        Event::listen(ConnectionEstablished::class, fn (ConnectionEstablished $event) => $this->registerSqlFunctionsOnUse($event->connection));
-
-        foreach (DB::getConnections() as $connection) {
-            $this->registerSqlFunctionsOnUse($connection);
-        }
     }
 
     private function registerSqlFunctionsOnUse(Connection $connection): void
