@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Vault;
+use App\Services\ColourGroupQuery;
 use App\Services\ColourGroups;
 use App\Services\Row;
 use App\Services\Templates;
@@ -21,14 +22,15 @@ final readonly class BuildGraph
 
     /**
      * Build the vault's note graph. Unresolved links become "ghost" nodes keyed by their target, and
-     * each note carries the id of the first colour group it matches.
+     * each note carries the id of the first colour group it matches. With a filter, only the
+     * notes it matches are drawn, with the links between them and their unresolved links.
      *
      * @return array{
      *     nodes: list<array{id: string, note_id: int|null, title: string, path: string|null, folder: string, tags: list<string>, group: int|null, degree: int, ghost: bool}>,
      *     edges: list<array{source: string, target: string}>
      * }
      */
-    public function handle(Vault $vault): array
+    public function handle(Vault $vault, ?ColourGroupQuery $filter = null): array
     {
         $nodes = [];
         $tags = [];
@@ -38,7 +40,9 @@ final readonly class BuildGraph
             $tags[Row::int($row, 'note_id')][] = Row::string($row, 'name');
         }
 
-        foreach ($this->templates->exclude(DB::table('notes')->where('vault_id', $vault->id))->orderBy('id')->get(['id', 'title', 'path']) as $row) {
+        $notes = $this->templates->exclude(DB::table('notes')->where('vault_id', $vault->id));
+
+        foreach (($filter?->applyTo($notes) ?? $notes)->orderBy('id')->get(['id', 'title', 'path']) as $row) {
             $id = Row::int($row, 'id');
             $path = Row::string($row, 'path');
 
@@ -68,7 +72,7 @@ final readonly class BuildGraph
             $source = 'n'.Row::int($link, 'source_note_id');
             $targetNoteId = Row::nullableInt($link, 'target_note_id');
 
-            // Links from or to templates aren't part of the vault's graph.
+            // Links from or to templates, or notes the filter leaves out, aren't drawn.
             if (! isset($nodes[$source]) || ($targetNoteId !== null && ! isset($nodes['n'.$targetNoteId]))) {
                 continue;
             }
