@@ -49,6 +49,7 @@ it('shows a canvas with what its file cards point at', function (): void {
         canvasNode('p', ['type' => 'file', 'file' => 'attachments/report.pdf']),
         canvasNode('m', ['type' => 'file', 'file' => 'Gone.md']),
         canvasNode('x', ['type' => 'file', 'file' => '../../etc/passwd']),
+        canvasNode('y', ['type' => 'file', 'file' => 'attachments/../../outside.png']),
     ], [['id' => 'e', 'fromNode' => 'a', 'toNode' => 'n']], ['version' => '1.0']);
 
     $this->get(route('canvases.show', [$this->vault, 'Board.canvas']))
@@ -69,7 +70,8 @@ it('shows a canvas with what its file cards point at', function (): void {
                     ->and($files['attachments/photo.png'])->toBe(['kind' => 'image', 'url' => route('vault-files.show', [$this->vault, 'attachments/photo.png'], false)])
                     ->and($files['attachments/report.pdf']['kind'])->toBe('file')
                     ->and($files['Gone.md'])->toBe(['kind' => 'missing'])
-                    ->and($files['../../etc/passwd'])->toBe(['kind' => 'missing']);
+                    ->and($files['../../etc/passwd'])->toBe(['kind' => 'missing'])
+                    ->and($files['attachments/../../outside.png'])->toBe(['kind' => 'missing']);
 
                 return true;
             })
