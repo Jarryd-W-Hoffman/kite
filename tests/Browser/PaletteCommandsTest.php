@@ -51,7 +51,8 @@ it('filters search results by tag, folder and property', function (): void {
         ->typeSlowly('@command-palette-input', 'sync tag:work')
         ->assertSeeIn('@palette-filters', 'tag:work')
         ->assertSeeIn('#kite-palette-item-0', 'Work/Standup.md')
-        ->assertMissing('#kite-palette-item-2')
+        ->assertSeeIn('#kite-palette-item-2', 'Save search “sync tag:work”')
+        ->assertMissing('#kite-palette-item-3')
         ->assertDontSeeIn('#kite-palette-results', 'Home/Groceries.md')
         ->assertNoJavaScriptErrors();
 });
