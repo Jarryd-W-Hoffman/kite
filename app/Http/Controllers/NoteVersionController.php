@@ -18,7 +18,7 @@ final readonly class NoteVersionController
         return response()->json([
             'versions' => $note->versions()
                 ->latest('id')
-                ->get()
+                ->get(['id', 'source', 'size', 'updated_at'])
                 ->map(fn (NoteVersion $version): array => $version->toSummary())
                 ->all(),
         ]);
@@ -30,7 +30,7 @@ final readonly class NoteVersionController
      */
     public function show(Request $request, Vault $vault, Note $note, NoteVersion $version, NoteLocks $locks): JsonResponse
     {
-        $previous = $note->versions()->where('id', '<', $version->id)->latest('id')->value('contents');
+        $previous = $note->versions()->where('id', '<', $version->id)->latest('id')->first()?->contents;
         $key = $locks->keyFrom($vault, $request->header(NoteLocks::HEADER));
 
         $open = function (?string $contents) use ($locks, $key): ?string {

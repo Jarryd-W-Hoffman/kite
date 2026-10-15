@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\CompressedText;
 use App\Enums\VersionSource;
 use Carbon\CarbonInterface;
 use Database\Factories\NoteVersionFactory;
@@ -12,12 +13,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A snapshot of a note's text.
+ * A snapshot of a note's text, stored compressed. `size` is the text's length in characters, so
+ * a note's history can be listed without reading every version.
  *
  * @property-read int $id
  * @property-read int $note_id
  * @property-read string $contents
  * @property-read string $hash
+ * @property-read int $size
  * @property-read VersionSource $source
  * @property-read CarbonInterface $created_at
  * @property-read CarbonInterface $updated_at
@@ -36,8 +39,9 @@ final class NoteVersion extends Model
         return [
             'id' => 'integer',
             'note_id' => 'integer',
-            'contents' => 'string',
+            'contents' => CompressedText::class.':size',
             'hash' => 'string',
+            'size' => 'integer',
             'source' => VersionSource::class,
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
@@ -60,7 +64,7 @@ final class NoteVersion extends Model
         return [
             'id' => $this->id,
             'source' => $this->source->value,
-            'size' => mb_strlen($this->contents),
+            'size' => $this->size,
             // Folded saves move a version forward, so the last save is what matters.
             'saved_at' => $this->updated_at->toIso8601String(),
         ];
