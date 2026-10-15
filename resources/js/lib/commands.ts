@@ -5,6 +5,7 @@ import {
     FileDown,
     FilePlus2,
     FolderOpen,
+    GraduationCap,
     Globe,
     History,
     KeyRound,
@@ -69,6 +70,12 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         label: 'Open tasks',
         icon: CheckSquare,
         keywords: 'todo checklist',
+    },
+    {
+        id: 'flashcards',
+        label: 'Review flashcards',
+        icon: GraduationCap,
+        keywords: 'study learn spaced repetition cards deck',
     },
     { id: 'graph', label: 'Open graph view', icon: Network, shortcut: 'Mod+G' },
     {

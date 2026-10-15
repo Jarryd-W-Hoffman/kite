@@ -3,6 +3,7 @@ import {
     CalendarDays,
     Check,
     CheckSquare,
+    GraduationCap,
     ChevronDown,
     ChevronUp,
     Clock,
@@ -54,6 +55,7 @@ import { useAppCommands } from '@/hooks/use-app-commands';
 import { useAppearance } from '@/hooks/use-appearance';
 import type { Appearance } from '@/hooks/use-appearance';
 import type { ColourGroup } from '@/lib/colour-groups';
+import { flashcardsUrl } from '@/lib/flashcards';
 import { formatShortcut } from '@/lib/shortcuts';
 import { booleanCodec, useStoredState } from '@/lib/storage';
 import { cn } from '@/lib/utils';
@@ -86,6 +88,7 @@ type Props = {
     indexing?: IndexingProgress | null;
     graphActive?: boolean;
     tasksActive?: boolean;
+    flashcardsActive?: boolean;
     activeViewId?: number | null;
     activeCanvasPath?: string | null;
     activeTag?: string | null;
@@ -115,6 +118,7 @@ export function WorkspaceSidebar({
     indexing = null,
     graphActive = false,
     tasksActive = false,
+    flashcardsActive = false,
     activeViewId = null,
     activeCanvasPath = null,
     activeTag = null,
@@ -164,6 +168,7 @@ export function WorkspaceSidebar({
         shortcuts: () => setShortcutsOpen(true),
         'new-from-template': () => setTemplateFolder(''),
         tasks: () => router.visit(tasksIndex(vault.id)),
+        flashcards: () => router.visit(flashcardsUrl(vault.id)),
         'new-view': () => router.post(storeView(vault.id).url),
         'new-canvas': () => router.post(storeCanvas(vault.id).url),
         search: onSearch,
@@ -249,6 +254,13 @@ export function WorkspaceSidebar({
                     active={tasksActive}
                     badge={openTasks}
                     testId="tasks-link"
+                />
+                <NavItem
+                    icon={GraduationCap}
+                    label="Flashcards"
+                    href={flashcardsUrl(vault.id)}
+                    active={flashcardsActive}
+                    testId="flashcards-link"
                 />
                 <NavItem
                     icon={Network}
