@@ -11,6 +11,7 @@ import {
     Globe,
     History,
     LoaderCircle,
+    Merge,
     MessageSquare,
     MoreHorizontal,
     PanelRight,
@@ -27,10 +28,17 @@ import { DeleteNoteDialog } from '@/components/kite/delete-note-dialog';
 import { EmptyState } from '@/components/kite/empty-state';
 import { Kbd } from '@/components/kite/kbd';
 import { NoteEditor } from '@/components/kite/note-editor';
-import type { NoteEditorHandle } from '@/components/kite/note-editor';
+import type {
+    EditorSelectionText,
+    NoteEditorHandle,
+} from '@/components/kite/note-editor';
 import { NotePanel } from '@/components/kite/note-panel';
 import { NotePreview, scrollToHeading } from '@/components/kite/note-preview';
 import type { Properties } from '@/components/kite/properties-editor';
+import {
+    ExtractNoteDialog,
+    MergeNoteDialog,
+} from '@/components/kite/refactor-dialogs';
 import { SplitPane } from '@/components/kite/split-pane';
 import { TabBar } from '@/components/kite/tab-bar';
 import { VersionHistoryDialog } from '@/components/kite/version-history-dialog';
@@ -247,6 +255,10 @@ function NoteWorkspace({
     const [renaming, setRenaming] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
+    const [merging, setMerging] = useState(false);
+    const [extracting, setExtracting] = useState<EditorSelectionText | null>(
+        null,
+    );
     const [splitNoteId, setSplitNoteId] = useState<number | null>(() =>
         storedSplit(vault.id),
     );
@@ -447,6 +459,16 @@ function NoteWorkspace({
         'toggle-comments': () => toggleComments(!commentsOpen),
         'toggle-panel': onTogglePanel,
         'version-history': () => setHistoryOpen(true),
+        'extract-selection': () => {
+            const selection = editorRef.current?.selection() ?? null;
+
+            if (selection) {
+                setExtracting(selection);
+            } else {
+                toast.info('Select the text to extract first.');
+            }
+        },
+        'merge-note': () => setMerging(true),
         'export-html': () => void exportNote('html'),
         'export-pdf': () => void exportNote('pdf'),
         publish: () =>
@@ -773,6 +795,13 @@ function NoteWorkspace({
                                     Rename or move
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                    onSelect={() => setMerging(true)}
+                                    data-test="merge-note"
+                                >
+                                    <Merge />
+                                    Merge into…
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                     onSelect={() => setHistoryOpen(true)}
                                     data-test="open-history"
                                 >
@@ -849,6 +878,7 @@ function NoteWorkspace({
                                 noteComments.startDraft(anchor);
                                 toggleComments(true);
                             }}
+                            onExtract={setExtracting}
                             className={cn(
                                 'min-w-0 flex-1',
                                 shownMode === 'split' && 'border-r',
@@ -918,6 +948,45 @@ function NoteWorkspace({
                 note={{ id: note.id, title: meta.title }}
                 open={deleting}
                 onOpenChange={setDeleting}
+            />
+
+            <ExtractNoteDialog
+                vault={vault}
+                note={note}
+                text={extracting?.text ?? ''}
+                open={extracting !== null}
+                onOpenChange={(open) => !open && setExtracting(null)}
+                onExtracted={(extracted) => {
+                    if (
+                        extracting &&
+                        !editorRef.current?.replacePassage(
+                            extracting,
+                            `[[${extracted.link}]]`,
+                        )
+                    ) {
+                        toast.warning(
+                            `Created “${extracted.title}”, but the passage had changed, so it wasn't replaced.`,
+                        );
+                    } else {
+                        toast.success(`Extracted to “${extracted.title}”.`, {
+                            action: {
+                                label: 'Open',
+                                onClick: () => router.visit(extracted.url),
+                            },
+                        });
+                    }
+
+                    setExtracting(null);
+                }}
+            />
+
+            <MergeNoteDialog
+                vault={vault}
+                note={{ id: note.id, title: meta.title }}
+                notes={tree}
+                open={merging}
+                onOpenChange={setMerging}
+                beforeMerge={save}
             />
         </>
     );

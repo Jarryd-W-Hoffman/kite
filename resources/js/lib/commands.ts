@@ -18,6 +18,8 @@ import {
     Table2,
     X,
     Eye,
+    Merge,
+    Scissors,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AppCommand } from '@/hooks/use-app-commands';
@@ -134,6 +136,20 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         icon: History,
         note: true,
         keywords: 'revisions restore diff',
+    },
+    {
+        id: 'extract-selection',
+        label: 'Extract selection to a new note',
+        icon: Scissors,
+        note: true,
+        keywords: 'refactor split move',
+    },
+    {
+        id: 'merge-note',
+        label: 'Merge into another note…',
+        icon: Merge,
+        note: true,
+        keywords: 'refactor combine join',
     },
     {
         id: 'export-html',

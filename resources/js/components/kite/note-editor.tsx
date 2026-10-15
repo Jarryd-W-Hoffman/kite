@@ -51,12 +51,13 @@ import { captureAnchor, findAnchor } from '@/lib/comment-anchors';
 import type { AnchorRange, CommentAnchor } from '@/lib/comment-anchors';
 import {
     commentAt,
-    commentButton,
     commentField,
     commentTheme,
     setCommentRanges,
+    selectionButtons,
     setCommentStyle,
 } from '@/lib/comment-highlights';
+import type { SelectionAction } from '@/lib/comment-highlights';
 import type { CommentRanges } from '@/lib/comment-highlights';
 import { livePreview, livePreviewTheme } from '@/lib/live-preview';
 import { markdownBlocks, markdownBlocksTheme } from '@/lib/markdown-blocks';
@@ -70,8 +71,17 @@ import type { SlashCommand } from '@/lib/slash-commands';
 import { cn, editorFontClass, editorWidthClass } from '@/lib/utils';
 import type { TreeNote } from '@/types';
 
+export type EditorSelectionText = { from: number; to: number; text: string };
+
 export type NoteEditorHandle = {
     jumpToLine: (line: number) => void;
+    /** The main selection, or null when nothing is selected. */
+    selection: () => EditorSelectionText | null;
+    /**
+     * Swap a passage for other text. When the text has moved since it was read, its first
+     * occurrence is replaced instead; returns false when it can't be found.
+     */
+    replacePassage: (passage: EditorSelectionText, insert: string) => boolean;
     /** Select a comment's passage and scroll it into view. */
     revealComment: (id: string) => void;
 };
@@ -94,6 +104,8 @@ type Props = {
     onCommentRanges?: (ranges: CommentRanges) => void;
     onSelectComment?: (id: string) => void;
     onAddComment?: (anchor: CommentAnchor) => void;
+    /** Passing this offers an Extract button on selections, to move them into a new note. */
+    onExtract?: (selection: EditorSelectionText) => void;
     /** Called with the cursor's 1-based line whenever it moves to another line. */
     onCursorLine?: (line: number) => void;
     /** Commands offered after typing `/`; the built-in blocks when not given. */
@@ -101,6 +113,12 @@ type Props = {
 };
 
 const NO_COMMENTS: EditorComment[] = [];
+
+function selectionOf(view: EditorView): EditorSelectionText | null {
+    const { from, to, empty } = view.state.selection.main;
+
+    return empty ? null : { from, to, text: view.state.sliceDoc(from, to) };
+}
 
 /** Live preview can be switched on and off without rebuilding the editor. */
 const livePreviewMode = new Compartment();
@@ -386,6 +404,7 @@ export function NoteEditor({
     onCommentRanges,
     onSelectComment,
     onAddComment,
+    onExtract,
     onCursorLine,
     slashCommands,
 }: Props) {
@@ -402,12 +421,14 @@ export function NoteEditor({
         onCommentRanges,
         onSelectComment,
         onAddComment,
+        onExtract,
         onCursorLine,
         slashCommands,
     });
     const initialValue = useRef(value);
     const initialTestId = useRef(testId);
     const commentable = useRef(onAddComment !== undefined);
+    const extractable = useRef(onExtract !== undefined);
     const initialLivePreview = useRef(editor.live_preview);
 
     useEffect(() => {
@@ -421,12 +442,40 @@ export function NoteEditor({
             onCommentRanges,
             onSelectComment,
             onAddComment,
+            onExtract,
             onCursorLine,
             slashCommands,
         };
     });
 
     useImperativeHandle(ref, () => ({
+        selection: () =>
+            viewRef.current ? selectionOf(viewRef.current) : null,
+        replacePassage: (passage, insert) => {
+            const view = viewRef.current;
+
+            if (!view) {
+                return false;
+            }
+
+            const doc = view.state.doc.toString();
+            const from =
+                doc.slice(passage.from, passage.to) === passage.text
+                    ? passage.from
+                    : doc.indexOf(passage.text);
+
+            if (from === -1) {
+                return false;
+            }
+
+            view.dispatch({
+                changes: { from, to: from + passage.text.length, insert },
+                selection: { anchor: from + insert.length },
+                scrollIntoView: true,
+            });
+
+            return true;
+        },
         jumpToLine: (lineNumber: number) => {
             const view = viewRef.current;
 
@@ -554,6 +603,20 @@ export function NoteEditor({
             return true;
         };
 
+        const selectionActions = [
+            commentable.current && {
+                label: 'Comment',
+                testId: 'add-comment',
+                run: addComment,
+            },
+            extractable.current && {
+                label: 'Extract to note',
+                testId: 'extract-selection',
+                run: (view: EditorView) =>
+                    callbacks.current.onExtract?.(selectionOf(view)!),
+            },
+        ].filter((action): action is SelectionAction => !!action);
+
         const extensions: Extension[] = [
             history(),
             drawSelection(),
@@ -589,11 +652,11 @@ export function NoteEditor({
             livePreviewMode.of(initialLivePreview.current ? livePreview : []),
             commentField,
             commentTheme,
+            ...(selectionActions.length > 0
+                ? [selectionButtons(selectionActions)]
+                : []),
             ...(commentable.current
-                ? [
-                      commentButton(addComment),
-                      keymap.of([{ key: 'Mod-Alt-m', run: addComment }]),
-                  ]
+                ? [keymap.of([{ key: 'Mod-Alt-m', run: addComment }])]
                 : []),
             keymap.of([
                 { key: 'Mod-s', run: () => (callbacks.current.onSave(), true) },

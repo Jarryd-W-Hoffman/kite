@@ -19,6 +19,8 @@ export type AppCommand =
     | 'toggle-comments'
     | 'toggle-panel'
     | 'version-history'
+    | 'extract-selection'
+    | 'merge-note'
     | 'export-html'
     | 'export-pdf'
     | 'publish';
