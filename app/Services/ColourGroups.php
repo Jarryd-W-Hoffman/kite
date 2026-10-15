@@ -58,13 +58,7 @@ final readonly class ColourGroups
      */
     public function count(Vault $vault, ColourGroupQuery $query): int
     {
-        $count = 0;
-
-        foreach ($this->notes($vault) as $note) {
-            $count += $query->matches($note) ? 1 : 0;
-        }
-
-        return $count;
+        return $query->applyTo(DB::table('notes')->where('vault_id', $vault->id))->count();
     }
 
     /**
