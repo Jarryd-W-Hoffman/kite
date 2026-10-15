@@ -1,0 +1,188 @@
+import {
+    CalendarDays,
+    CheckSquare,
+    Code2,
+    FileDown,
+    FilePlus2,
+    FolderOpen,
+    Globe,
+    History,
+    Keyboard,
+    LayoutTemplate,
+    MessageSquare,
+    Moon,
+    Network,
+    PanelRight,
+    Settings2,
+    Star,
+    Table2,
+    X,
+    Eye,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { AppCommand } from '@/hooks/use-app-commands';
+
+export type PaletteCommand = {
+    id: AppCommand;
+    label: string;
+    icon: LucideIcon;
+    shortcut?: string;
+    /** Only offered while a note is open. */
+    note?: boolean;
+    /** Only offered in the desktop app. */
+    desktop?: boolean;
+    keywords?: string;
+};
+
+/**
+ * Everything the command palette can run after typing ">".
+ */
+export const PALETTE_COMMANDS: PaletteCommand[] = [
+    {
+        id: 'new-note',
+        label: 'New note',
+        icon: FilePlus2,
+        shortcut: 'Mod+N',
+        keywords: 'create add',
+    },
+    {
+        id: 'new-from-template',
+        label: 'New note from template',
+        icon: LayoutTemplate,
+        shortcut: 'Mod+Shift+N',
+    },
+    {
+        id: 'daily-note',
+        label: 'Open today’s note',
+        icon: CalendarDays,
+        shortcut: 'Mod+D',
+        keywords: 'daily journal',
+    },
+    {
+        id: 'tasks',
+        label: 'Open tasks',
+        icon: CheckSquare,
+        keywords: 'todo checklist',
+    },
+    { id: 'graph', label: 'Open graph view', icon: Network, shortcut: 'Mod+G' },
+    {
+        id: 'new-view',
+        label: 'New table view',
+        icon: Table2,
+        keywords: 'database base',
+    },
+    {
+        id: 'toggle-theme',
+        label: 'Toggle dark mode',
+        icon: Moon,
+        shortcut: 'Mod+Shift+L',
+        keywords: 'theme light appearance',
+    },
+    {
+        id: 'preferences',
+        label: 'Open preferences',
+        icon: Settings2,
+        shortcut: 'Mod+,',
+        keywords: 'settings options',
+    },
+    {
+        id: 'shortcuts',
+        label: 'Show keyboard shortcuts',
+        icon: Keyboard,
+        shortcut: 'Mod+/',
+        keywords: 'keys help',
+    },
+    {
+        id: 'open-vault',
+        label: 'Open another vault',
+        icon: FolderOpen,
+        shortcut: 'Mod+O',
+        keywords: 'switch',
+    },
+    {
+        id: 'toggle-preview',
+        label: 'Toggle preview',
+        icon: Eye,
+        shortcut: 'Mod+E',
+        note: true,
+        keywords: 'reading view',
+    },
+    {
+        id: 'toggle-star',
+        label: 'Add or remove from favourites',
+        icon: Star,
+        note: true,
+        keywords: 'star bookmark pin',
+    },
+    {
+        id: 'toggle-comments',
+        label: 'Toggle comments',
+        icon: MessageSquare,
+        note: true,
+        keywords: 'annotations',
+    },
+    {
+        id: 'toggle-panel',
+        label: 'Toggle details panel',
+        icon: PanelRight,
+        note: true,
+        keywords: 'backlinks outline properties sidebar',
+    },
+    {
+        id: 'version-history',
+        label: 'Show version history',
+        icon: History,
+        note: true,
+        keywords: 'revisions restore diff',
+    },
+    {
+        id: 'export-html',
+        label: 'Export as HTML',
+        icon: Code2,
+        note: true,
+        keywords: 'download save',
+    },
+    {
+        id: 'export-pdf',
+        label: 'Export as PDF',
+        icon: FileDown,
+        note: true,
+        desktop: true,
+        keywords: 'download print',
+    },
+    {
+        id: 'publish',
+        label: 'Publish as a web page',
+        icon: Globe,
+        note: true,
+        keywords: 'share site',
+    },
+    {
+        id: 'close-tab',
+        label: 'Close tab',
+        icon: X,
+        shortcut: 'Mod+W',
+        note: true,
+    },
+];
+
+/**
+ * Commands that match every word typed, in their listed order.
+ */
+export function matchCommands(
+    query: string,
+    { noteOpen, desktop }: { noteOpen: boolean; desktop: boolean },
+): PaletteCommand[] {
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+
+    return PALETTE_COMMANDS.filter(
+        (command) =>
+            (noteOpen || !command.note) &&
+            (desktop || !command.desktop) &&
+            words.every((word) =>
+                `${command.label} ${command.keywords ?? ''}`
+                    .toLowerCase()
+                    .includes(word),
+            ),
+    );
+}

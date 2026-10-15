@@ -12,7 +12,25 @@ export type AppCommand =
     | 'graph'
     | 'toggle-preview'
     | 'toggle-theme'
-    | 'shortcuts';
+    | 'shortcuts'
+    | 'tasks'
+    | 'new-view'
+    | 'toggle-star'
+    | 'toggle-comments'
+    | 'toggle-panel'
+    | 'version-history'
+    | 'export-html'
+    | 'export-pdf'
+    | 'publish';
+
+const COMMAND_EVENT = 'kite:command';
+
+/**
+ * Run a command as if it was chosen from the menu, e.g. from the command palette.
+ */
+export function runAppCommand(command: AppCommand): void {
+    window.dispatchEvent(new CustomEvent(COMMAND_EVENT, { detail: command }));
+}
 
 /**
  * Keyboard equivalents of the native menu. In the desktop app the menu owns these accelerators,
@@ -50,13 +68,23 @@ export function useAppCommands(handlers: Handlers): void {
             return handler !== undefined;
         };
 
+        const onCommand = (event: Event) =>
+            run((event as CustomEvent<string>).detail);
+
+        window.addEventListener(COMMAND_EVENT, onCommand);
+
         if (isNativeApp()) {
-            return onNativeEvent<{ command: string }>(
+            const stopListening = onNativeEvent<{ command: string }>(
                 'App\\Events\\MenuCommandSelected',
                 (payload) => {
                     run(payload.command);
                 },
             );
+
+            return () => {
+                stopListening();
+                window.removeEventListener(COMMAND_EVENT, onCommand);
+            };
         }
 
         const onKeyDown = (event: KeyboardEvent) => {
@@ -77,6 +105,9 @@ export function useAppCommands(handlers: Handlers): void {
 
         window.addEventListener('keydown', onKeyDown);
 
-        return () => window.removeEventListener('keydown', onKeyDown);
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+            window.removeEventListener(COMMAND_EVENT, onCommand);
+        };
     }, []);
 }

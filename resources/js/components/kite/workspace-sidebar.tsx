@@ -141,6 +141,8 @@ export function WorkspaceSidebar({
         preferences: () => setPreferencesOpen(true),
         shortcuts: () => setShortcutsOpen(true),
         'new-from-template': () => setTemplateFolder(''),
+        tasks: () => router.visit(tasksIndex(vault.id)),
+        'new-view': () => router.post(storeView(vault.id).url),
         search: onSearch,
         graph: () => router.visit(showGraph(vault.id)),
         'toggle-theme': () =>

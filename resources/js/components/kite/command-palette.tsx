@@ -7,7 +7,11 @@ import {
     DialogDescription,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { runAppCommand } from '@/hooks/use-app-commands';
+import { matchCommands } from '@/lib/commands';
+import type { PaletteCommand } from '@/lib/commands';
 import { isAbortError, requestJson } from '@/lib/kite-http';
+import { formatShortcut } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 import { show, store } from '@/routes/notes';
 import { index as search } from '@/routes/vault-search';
@@ -17,13 +21,21 @@ type Props = {
     vault: VaultSummary;
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    /** Offer the commands that act on the open note. */
+    noteOpen?: boolean;
 };
 
 type Item =
     | { type: 'note'; result: SearchResult }
-    | { type: 'create'; title: string };
+    | { type: 'create'; title: string }
+    | { type: 'command'; command: PaletteCommand };
 
-export function CommandPalette({ vault, open, onOpenChange }: Props) {
+export function CommandPalette({
+    vault,
+    open,
+    onOpenChange,
+    noteOpen = false,
+}: Props) {
     const { kite } = usePage().props;
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
@@ -31,8 +43,10 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
     const [activeIndex, setActiveIndex] = useState(0);
     const listRef = useRef<HTMLUListElement>(null);
 
+    const commandMode = query.startsWith('>');
+
     useEffect(() => {
-        if (!open) {
+        if (!open || commandMode) {
             return;
         }
 
@@ -59,19 +73,28 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
             window.clearTimeout(timeout);
             controller.abort();
         };
-    }, [open, query, vault.id]);
+    }, [open, query, vault.id, commandMode]);
 
     const trimmed = query.trim();
-    const items: Item[] = [
-        ...results.map((result) => ({ type: 'note' as const, result })),
-        ...(trimmed !== '' &&
-        resultsQuery === query &&
-        !results.some(
-            (result) => result.title.toLowerCase() === trimmed.toLowerCase(),
-        )
-            ? [{ type: 'create' as const, title: trimmed }]
-            : []),
-    ];
+    const commandItems: Item[] = commandMode
+        ? matchCommands(query.slice(1), {
+              noteOpen,
+              desktop: kite.native,
+          }).map((command) => ({ type: 'command' as const, command }))
+        : [];
+    const items: Item[] = commandMode
+        ? commandItems
+        : [
+              ...results.map((result) => ({ type: 'note' as const, result })),
+              ...(trimmed !== '' &&
+              resultsQuery === query &&
+              !results.some(
+                  (result) =>
+                      result.title.toLowerCase() === trimmed.toLowerCase(),
+              )
+                  ? [{ type: 'create' as const, title: trimmed }]
+                  : []),
+          ];
 
     const close = () => {
         onOpenChange(false);
@@ -86,7 +109,10 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
 
         close();
 
-        if (item.type === 'note' && inSplit) {
+        if (item.type === 'command') {
+            // Let the palette close before the command opens anything of its own.
+            window.setTimeout(() => runAppCommand(item.command.id), 0);
+        } else if (item.type === 'note' && inSplit) {
             window.dispatchEvent(
                 new CustomEvent('kite:open-split', { detail: item.result.id }),
             );
@@ -115,7 +141,11 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
         if (event.key === 'Enter') {
             event.preventDefault();
 
-            if ((event.metaKey || event.ctrlKey) && trimmed !== '') {
+            if (
+                (event.metaKey || event.ctrlKey) &&
+                trimmed !== '' &&
+                !commandMode
+            ) {
                 choose({ type: 'create', title: trimmed });
             } else {
                 choose(items[activeIndex], event.shiftKey);
@@ -142,7 +172,11 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
                         onKeyDown={onKeyDown}
-                        placeholder="Search or create a note…"
+                        placeholder={
+                            commandMode
+                                ? 'Run a command…'
+                                : 'Search or create a note… (> for commands)'
+                        }
                         aria-label="Search notes"
                         data-test="command-palette-input"
                         role="combobox"
@@ -166,19 +200,24 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                     role="listbox"
                     className="max-h-[52vh] overflow-y-auto p-2"
                 >
-                    {items.length === 0 && resultsQuery === query && (
-                        <li className="px-3 py-10 text-center text-sm text-muted-foreground">
-                            {trimmed === ''
-                                ? 'No notes yet. Type a title to create one.'
-                                : 'No notes found.'}
-                        </li>
-                    )}
+                    {items.length === 0 &&
+                        (commandMode || resultsQuery === query) && (
+                            <li className="px-3 py-10 text-center text-sm text-muted-foreground">
+                                {commandMode
+                                    ? 'No commands match.'
+                                    : trimmed === ''
+                                      ? 'No notes yet. Type a title to create one.'
+                                      : 'No notes found.'}
+                            </li>
+                        )}
                     {items.map((item, index) => (
                         <li
                             key={
                                 item.type === 'note'
                                     ? item.result.id
-                                    : `create-${item.title}`
+                                    : item.type === 'command'
+                                      ? `command-${item.command.id}`
+                                      : `create-${item.title}`
                             }
                             id={`kite-palette-item-${index}`}
                             data-index={index}
@@ -221,6 +260,32 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                                         )}
                                     </div>
                                 </>
+                            ) : item.type === 'command' ? (
+                                <>
+                                    <span
+                                        className={cn(
+                                            'flex size-7 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground',
+                                            index === activeIndex &&
+                                                'border-primary/30 text-primary',
+                                        )}
+                                    >
+                                        <item.command.icon className="size-4" />
+                                    </span>
+                                    <span
+                                        className="flex-1 self-center"
+                                        data-test="palette-command"
+                                    >
+                                        {item.command.label}
+                                    </span>
+                                    {item.command.shortcut && (
+                                        <kbd className="self-center rounded border bg-background px-1.5 py-0.5 font-sans text-[10px] text-muted-foreground">
+                                            {formatShortcut(
+                                                item.command.shortcut,
+                                                kite.platform,
+                                            )}
+                                        </kbd>
+                                    )}
+                                </>
                             ) : (
                                 <>
                                     <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-kite-accent-soft text-primary">
@@ -239,11 +304,22 @@ export function CommandPalette({ vault, open, onOpenChange }: Props) {
                 </ul>
                 <div className="flex items-center gap-4 border-t bg-muted/40 px-4 py-2 text-[11px] text-muted-foreground">
                     <Hint keys="↑↓">navigate</Hint>
-                    <Hint keys="↵">open</Hint>
-                    <Hint keys="⇧↵">open beside</Hint>
-                    <Hint keys={kite.platform === 'darwin' ? '⌘↵' : 'Ctrl+↵'}>
-                        create
-                    </Hint>
+                    {commandMode ? (
+                        <Hint keys="↵">run</Hint>
+                    ) : (
+                        <>
+                            <Hint keys="↵">open</Hint>
+                            <Hint keys="⇧↵">open beside</Hint>
+                            <Hint
+                                keys={
+                                    kite.platform === 'darwin' ? '⌘↵' : 'Ctrl+↵'
+                                }
+                            >
+                                create
+                            </Hint>
+                            <Hint keys=">">commands</Hint>
+                        </>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
