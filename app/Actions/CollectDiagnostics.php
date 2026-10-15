@@ -83,15 +83,8 @@ final readonly class CollectDiagnostics
         $errors = [];
 
         foreach ($files as $file) {
-            $handle = fopen($file, 'r');
-
-            if ($handle === false) {
-                continue;
-            }
-
-            fseek($handle, max(0, (int) filesize($file) - self::LOG_TAIL_BYTES));
-            $tail = (string) stream_get_contents($handle);
-            fclose($handle);
+            // Only the end of each file: logs can be large, and recent errors are at the end.
+            $tail = (string) @file_get_contents($file, offset: max(0, (int) filesize($file) - self::LOG_TAIL_BYTES));
 
             preg_match_all('/^\[([^\]]+)\] \w+\.(ERROR|CRITICAL|ALERT|EMERGENCY): (.*)$/m', $tail, $matches, PREG_SET_ORDER);
 
