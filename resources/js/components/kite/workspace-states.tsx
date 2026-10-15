@@ -114,7 +114,7 @@ export function LockedWorkspace({
             <TabBar vault={vault} note={{ id: note.id, title: note.title }} />
             <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-3 text-sm">
                 <LockKeyhole className="size-3.5 text-muted-foreground" />
-                <span className="truncate font-medium">{note.title}</span>
+                <h1 className="truncate font-medium">{note.title}</h1>
             </header>
             <LockedNoteScreen
                 vault={vault}

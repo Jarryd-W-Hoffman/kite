@@ -233,7 +233,7 @@ export default function TasksIndex({
                                     >
                                         <h2
                                             className={cn(
-                                                'mb-2 flex items-center gap-2 px-1 text-[11px] font-semibold tracking-wider text-muted-foreground/80 uppercase',
+                                                'mb-2 flex items-center gap-2 px-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase',
                                                 group.name === 'Overdue' &&
                                                     'text-destructive-foreground',
                                             )}
@@ -333,7 +333,7 @@ function TaskRow({
                         </span>
                     )}
                     {task.tags.map((name) => (
-                        <span key={name} className="text-primary/80">
+                        <span key={name} className="text-primary">
                             #{name}
                         </span>
                     ))}

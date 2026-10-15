@@ -86,7 +86,8 @@
     --secondary: oklch(0.96 0.004 85);
     --secondary-foreground: oklch(0.32 0.008 75);
     --muted: oklch(0.962 0.004 85);
-    --muted-foreground: oklch(0.55 0.008 75);
+    /* Dark enough for small text on --muted backgrounds (4.5:1). */
+    --muted-foreground: oklch(0.52 0.008 75);
     --accent: oklch(0.948 0.005 85);
     --accent-foreground: oklch(0.27 0.008 75);
     --destructive: oklch(0.58 0.21 25);
@@ -124,8 +125,9 @@
     --card-foreground: oklch(0.925 0.006 285);
     --popover: oklch(0.245 0.008 285);
     --popover-foreground: oklch(0.925 0.006 285);
-    --primary: oklch(0.66 0.17 282);
-    --primary-foreground: oklch(0.99 0.005 282);
+    --primary: oklch(0.72 0.15 282);
+    /* Dark text on the light dark-mode accent: white on it falls short of 4.5:1. */
+    --primary-foreground: oklch(0.2 0.03 282);
     --secondary: oklch(0.27 0.008 285);
     --secondary-foreground: oklch(0.925 0.006 285);
     --muted: oklch(0.255 0.007 285);
@@ -632,7 +634,8 @@
     align-items: center;
     gap: 0.5em;
     font-weight: 650;
-    color: var(--callout);
+    /* The callout's colour, pulled toward the text colour so the title stays readable. */
+    color: color-mix(in oklch, var(--callout) 60%, var(--foreground));
 }
 
 .kite-prose .callout-title::before {
@@ -841,4 +844,17 @@
     border: solid var(--primary-foreground);
     border-width: 0 2px 2px 0;
     transform: translateY(-0.06rem) rotate(45deg);
+}
+
+/*
+ * When the system asks for less motion, things change in place instead of sliding or fading.
+ * Spinners and pulses keep going: they show that something is happening.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
 }

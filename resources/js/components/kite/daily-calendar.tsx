@@ -88,7 +88,7 @@ export function DailyCalendar({ dates, activeDate = null, onOpen }: Props) {
                 {WEEKDAYS.map((weekday) => (
                     <div
                         key={weekday}
-                        className="pb-0.5 font-medium text-muted-foreground/70"
+                        className="pb-0.5 font-medium text-muted-foreground"
                     >
                         {weekday}
                     </div>
@@ -111,7 +111,7 @@ export function DailyCalendar({ dates, activeDate = null, onOpen }: Props) {
                             data-has-note={hasNote}
                             className={cn(
                                 'relative mx-auto flex size-7 items-center justify-center rounded-md text-[12px] tabular-nums transition-colors hover:bg-sidebar-accent',
-                                !inMonth && 'text-muted-foreground/40',
+                                !inMonth && 'text-muted-foreground',
                                 date === today && 'font-semibold text-primary',
                                 date === activeDate &&
                                     'bg-primary text-primary-foreground hover:bg-primary',

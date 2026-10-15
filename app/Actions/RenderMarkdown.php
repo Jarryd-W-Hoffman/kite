@@ -25,6 +25,7 @@ use App\Services\Markdown\OutlineCollector;
 use App\Services\Markdown\RelativeLinkRewriter;
 use App\Services\Markdown\RenderedMarkdown;
 use App\Services\Markdown\TagInlineParser;
+use App\Services\Markdown\TaskCheckboxLabeller;
 use App\Services\Markdown\WikiLink;
 use App\Services\Markdown\WikiLinkInlineParser;
 use App\Services\Row;
@@ -133,6 +134,7 @@ final readonly class RenderMarkdown
         $environment->addRenderer(MathInline::class, new MathRenderer());
         $environment->addRenderer(MathBlock::class, new MathRenderer());
         $environment->addEventListener(DocumentParsedEvent::class, new CalloutTransformer(), 5);
+        $environment->addEventListener(DocumentParsedEvent::class, new TaskCheckboxLabeller());
 
         $environment->addRenderer(NoteEmbed::class, new NoteEmbedRenderer());
         $environment->addEventListener(DocumentParsedEvent::class, new NoteEmbedTransformer(

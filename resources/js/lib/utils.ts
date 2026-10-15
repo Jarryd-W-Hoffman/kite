@@ -23,3 +23,8 @@ export const editorFontClass = {
     serif: 'font-serif',
     mono: 'font-mono',
 } as const;
+
+/** Whether the system asks for less motion: scroll and move things instantly instead. */
+export function prefersReducedMotion(): boolean {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}

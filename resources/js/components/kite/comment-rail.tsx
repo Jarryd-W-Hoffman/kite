@@ -50,6 +50,7 @@ export function CommentRail({ notes, error, onSelect, onClose }: Props) {
 
     return (
         <aside
+            aria-label="Comments"
             className="flex w-80 shrink-0 flex-col border-l border-border/70 bg-sidebar/40"
             data-test="comment-rail"
         >
