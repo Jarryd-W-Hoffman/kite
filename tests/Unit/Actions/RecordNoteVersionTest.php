@@ -7,6 +7,7 @@ use App\Actions\RecordNoteVersion;
 use App\Actions\SaveNote;
 use App\Enums\VersionSource;
 use App\Models\Note;
+use Carbon\CarbonInterface;
 
 beforeEach(function (): void {
     $this->vault = vaultWithFiles(['Note.md' => 'original']);
@@ -77,4 +78,28 @@ it('saves a note whose file disappeared without a previous version', function ()
 
     expect(versions($this->note))->toBe([['edit', 'back again']])
         ->and(file_get_contents($this->vault->path.'/Note.md'))->toBe('back again');
+});
+
+it('thins older history to one version an hour, a day, then a week', function (): void {
+    $this->freezeTime();
+    $record = resolve(RecordNoteVersion::class);
+    $saveAt = function (CarbonInterface $at, string $contents) use ($record): void {
+        $this->travelTo($at);
+        $record->handle($this->note, null, $contents, VersionSource::Restore);
+    };
+    $now = now();
+
+    // Restores are never folded, so each of these is its own version.
+    $saveAt($now->subWeeks(20)->startOfWeek()->addHour(), 'week a1');
+    $saveAt($now->subWeeks(20)->startOfWeek()->addHours(2), 'week a2');
+    $saveAt($now->subDays(30)->setTime(9, 0), 'day b1');
+    $saveAt($now->subDays(30)->setTime(17, 0), 'day b2');
+    $saveAt($now->subDays(3)->setTime(9, 5), 'hour c1');
+    $saveAt($now->subDays(3)->setTime(9, 50), 'hour c2');
+    $saveAt($now->subDays(3)->setTime(10, 5), 'hour d');
+    $saveAt($now->subHours(5), 'recent e1');
+    $saveAt($now->subHours(4), 'recent e2');
+    $saveAt($now, 'latest');
+
+    expect(array_column(versions($this->note), 1))->toBe(['week a2', 'day b2', 'hour c2', 'hour d', 'recent e1', 'recent e2', 'latest']);
 });

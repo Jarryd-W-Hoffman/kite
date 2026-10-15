@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Enums\VersionSource;
 use App\Models\Note;
 use App\Models\NoteVersion;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 final readonly class RecordNoteVersion
@@ -14,7 +15,7 @@ final readonly class RecordNoteVersion
     /** Saves this soon after a version was started are folded into it, so autosave doesn't flood history. */
     public const int FOLD_MINUTES = 5;
 
-    /** Versions kept per note; older ones are dropped. */
+    /** At most this many versions are kept per note; older ones are dropped. */
     public const int KEEP = 100;
 
     /**
@@ -66,12 +67,43 @@ final readonly class RecordNoteVersion
         ]);
     }
 
+    /**
+     * Thin out older history: every version from the last day, then the last one of each hour
+     * for a week, of each day for 90 days and of each week after that, up to KEEP in all.
+     */
     private function prune(Note $note): void
     {
-        $oldestKept = $note->versions()->latest('id')->skip(self::KEEP - 1)->value('id');
+        $now = now();
+        $kept = [];
+        $dropped = [];
 
-        if ($oldestKept !== null) {
-            $note->versions()->where('id', '<', $oldestKept)->delete();
+        foreach ($note->versions()->latest('id')->get(['id', 'updated_at']) as $version) {
+            $period = $this->period($version->updated_at, $now);
+
+            if (count($kept) >= self::KEEP || ($period !== null && isset($kept[$period]))) {
+                $dropped[] = $version->id;
+            } else {
+                $kept[$period ?? 'version '.$version->id] = true;
+            }
         }
+
+        if ($dropped !== []) {
+            NoteVersion::query()->whereKey($dropped)->delete();
+            DB::statement('PRAGMA incremental_vacuum');
+        }
+    }
+
+    /**
+     * The stretch of time a version shares with others, keeping only the newest; null for
+     * versions recent enough to all be kept.
+     */
+    private function period(CarbonInterface $savedAt, CarbonInterface $now): ?string
+    {
+        return match (true) {
+            $savedAt->greaterThan($now->subDay()) => null,
+            $savedAt->greaterThan($now->subWeek()) => 'hour '.$savedAt->format('Y-m-d H'),
+            $savedAt->greaterThan($now->subDays(90)) => 'day '.$savedAt->format('Y-m-d'),
+            default => 'week '.$savedAt->format('o-W'),
+        };
     }
 }

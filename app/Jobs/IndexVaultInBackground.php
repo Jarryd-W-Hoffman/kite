@@ -13,6 +13,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 #[Timeout(3600)]
@@ -36,6 +37,10 @@ final class IndexVaultInBackground implements ShouldBeUnique, ShouldQueue
         try {
             $indexVault->handle($this->vault, fn (int $done, int $total) => $progress->update($this->vault, $done, $total));
             $indexAttachments->handle($this->vault);
+
+            // Give back space freed by removed notes and let SQLite refresh its query planner stats.
+            DB::statement('PRAGMA incremental_vacuum');
+            DB::statement('PRAGMA optimize');
         } finally {
             $progress->finish($this->vault);
         }
