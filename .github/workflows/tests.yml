@@ -65,6 +65,11 @@ jobs:
       - name: Install Bun Dependencies
         run: bun install
 
+      - name: Audit Dependencies
+        run: |
+          composer audit --locked --abandoned=report
+          bun audit
+
       - name: Build Assets
         run: bun run build
 
@@ -113,3 +118,63 @@ jobs:
         with:
           name: browser-screenshots
           path: tests/Browser/Screenshots
+
+  # Kite ships for macOS and Windows: run the unit and feature tests there too, where paths use
+  # backslashes, file systems ignore case and symlinks behave differently. Browser tests and
+  # coverage stay on the Linux job above.
+  cross-platform:
+    name: tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          tools: composer:v2
+          coverage: none
+          extensions: fileinfo, mbstring, pdo_sqlite, sodium, sqlite3
+          ini-values: zend.assertions=1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.21.1
+        with:
+          node-version: 24
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v6
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-progress --no-scripts
+          composer run-script post-autoload-dump
+          bun install
+
+      - name: Prepare Application
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          bun run build
+
+      - name: Tests
+        run: php artisan test --compact --parallel --testsuite=Unit,Feature
