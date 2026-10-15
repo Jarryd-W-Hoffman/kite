@@ -24,6 +24,8 @@ export type AppCommand =
     | 'focus-mode'
     | 'lock-note'
     | 'lock-vault'
+    | 'change-passphrase'
+    | 'recovery-key'
     | 'export-html'
     | 'export-pdf'
     | 'publish';
