@@ -7,6 +7,7 @@ import {
     FolderOpen,
     Globe,
     History,
+    KeyRound,
     Keyboard,
     LayoutTemplate,
     MessageSquare,
@@ -174,6 +175,20 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         icon: LockKeyhole,
         note: true,
         keywords: 'encrypt close secure',
+    },
+    {
+        id: 'change-passphrase',
+        label: 'Change the vault passphrase…',
+        icon: KeyRound,
+        note: true,
+        keywords: 'password locked notes encrypt',
+    },
+    {
+        id: 'recovery-key',
+        label: 'New recovery key…',
+        icon: KeyRound,
+        note: true,
+        keywords: 'forgot passphrase password reset locked notes',
     },
     {
         id: 'export-html',

@@ -85,6 +85,7 @@ final readonly class LoadWorkspace
             'indexing' => $this->progress->get($vault),
             'watching' => $this->watcher->isWatching($vault),
             'passphrase_set' => fn (): bool => $this->locks->isSetUp($vault),
+            'recovery_key_set' => fn (): bool => $this->locks->hasRecoveryKey($vault),
             'note' => $note instanceof Note ? $this->noteDetail($note, $key) : null,
             'backlinks' => $note instanceof Note ? $this->backlinks($note) : [],
             'outgoing' => $note instanceof Note ? $this->outgoing($note) : [],
