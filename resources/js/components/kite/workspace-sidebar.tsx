@@ -54,6 +54,7 @@ import { useAppearance } from '@/hooks/use-appearance';
 import type { Appearance } from '@/hooks/use-appearance';
 import type { ColourGroup } from '@/lib/colour-groups';
 import { formatShortcut } from '@/lib/shortcuts';
+import { booleanCodec, useStoredState } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { store as openDaily } from '@/routes/daily-notes';
 import { show as showNote } from '@/routes/notes';
@@ -119,8 +120,10 @@ export function WorkspaceSidebar({
     const [preferencesOpen, setPreferencesOpen] = useState(false);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const [importing, setImporting] = useState(false);
-    const [calendarOpen, setCalendarOpen] = useState(
-        () => localStorage.getItem('kite:calendar-open') !== 'false',
+    const [calendarOpen, setCalendarOpen] = useStoredState(
+        'kite:calendar-open',
+        booleanCodec,
+        true,
     );
     const [templateFolder, setTemplateFolder] = useState<string | null>(null);
     const {
@@ -257,13 +260,7 @@ export function WorkspaceSidebar({
                             label={
                                 calendarOpen ? 'Hide calendar' : 'Show calendar'
                             }
-                            onClick={() => {
-                                localStorage.setItem(
-                                    'kite:calendar-open',
-                                    String(!calendarOpen),
-                                );
-                                setCalendarOpen(!calendarOpen);
-                            }}
+                            onClick={() => setCalendarOpen(!calendarOpen)}
                             testId="toggle-calendar"
                         >
                             {calendarOpen ? <ChevronUp /> : <ChevronDown />}

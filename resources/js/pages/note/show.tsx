@@ -84,6 +84,14 @@ import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
 import { formatShortcut } from '@/lib/shortcuts';
 import { BASE_COMMANDS } from '@/lib/slash-commands';
 import type { SlashCommand } from '@/lib/slash-commands';
+import {
+    booleanCodec,
+    idCodec,
+    oneOfCodec,
+    readStored,
+    useStoredState,
+    writeStored,
+} from '@/lib/storage';
 import { cn, editorWidthClass } from '@/lib/utils';
 import { isUnlocked, lockVault, onBeforeVaultLock } from '@/lib/vault-keys';
 import { show as noteExport } from '@/routes/note-exports';
@@ -96,27 +104,21 @@ import { store as restoreVersion } from '@/routes/note-version-restores';
 import { show as showTemplate } from '@/routes/templates';
 import type { NoteDetail, OutlineItem, WorkspaceProps } from '@/types';
 
-type ViewMode = 'edit' | 'split' | 'preview';
+const VIEW_MODES = ['edit', 'split', 'preview'] as const;
 
-function storedSplit(vaultId: number): number | null {
-    const stored = Number(localStorage.getItem(`kite:split:${vaultId}`));
+type ViewMode = (typeof VIEW_MODES)[number];
 
-    return Number.isInteger(stored) && stored > 0 ? stored : null;
-}
+const viewModeCodec = oneOfCodec(VIEW_MODES);
+const panelCodec = oneOfCodec(['open', 'closed'] as const);
 
-function storedViewMode(): ViewMode {
-    const stored = localStorage.getItem('kite:view-mode');
-
-    // Live preview makes the editor read like the note, so it's the default view.
-    return stored === 'split' || stored === 'preview' ? stored : 'edit';
-}
+const splitKey = (vaultId: number) => `kite:split:${vaultId}`;
 
 export default function NoteShow(props: WorkspaceProps) {
     const { vault, vaults, tree, folders, tags, note, indexing } = props;
     const colourGroups = props.colour_groups;
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [panelOpen, setPanelOpen] = useState(
-        () => localStorage.getItem('kite:panel') !== 'closed',
+        () => readStored('kite:panel', panelCodec, 'open') === 'open',
     );
 
     // Focus mode hides everything but the note; it lasts until left, across notes.
@@ -124,7 +126,7 @@ export default function NoteShow(props: WorkspaceProps) {
 
     const togglePanel = () => {
         setPanelOpen((open) => {
-            localStorage.setItem('kite:panel', open ? 'closed' : 'open');
+            writeStored('kite:panel', panelCodec, open ? 'closed' : 'open');
 
             return !open;
         });
@@ -310,7 +312,10 @@ function NoteWorkspace({
 }: NoteWorkspaceProps) {
     const { kite } = usePage().props;
     const { editor } = kite;
-    const [viewMode, setViewMode] = useState<ViewMode>(storedViewMode);
+    // Live preview makes the editor read like the note, so it's the default view.
+    const [viewMode, setViewMode] = useState<ViewMode>(() =>
+        readStored('kite:view-mode', viewModeCodec, 'edit'),
+    );
     const [renaming, setRenaming] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
@@ -324,7 +329,7 @@ function NoteWorkspace({
         null,
     );
     const [splitNoteId, setSplitNoteId] = useState<number | null>(() =>
-        storedSplit(vault.id),
+        readStored(splitKey(vault.id), idCodec, null),
     );
     const editorRef = useRef<NoteEditorHandle>(null);
     const { contents, setContents, meta, saveState, save, isDirty, adopt } =
@@ -340,8 +345,10 @@ function NoteWorkspace({
                 }),
         });
 
-    const [commentsOpen, setCommentsOpen] = useState(
-        () => localStorage.getItem('kite:comments-open') === 'true',
+    const [commentsOpen, setCommentsOpen] = useStoredState(
+        'kite:comments-open',
+        booleanCodec,
+        false,
     );
     const pendingReveal = useRef<string | null>(null);
     const [cursorLine, setCursorLine] = useState<number | null>(null);
@@ -471,10 +478,7 @@ function NoteWorkspace({
         (comment) => !comment.resolved,
     ).length;
 
-    const toggleComments = (open: boolean) => {
-        setCommentsOpen(open);
-        localStorage.setItem('kite:comments-open', String(open));
-    };
+    const toggleComments = (open: boolean) => setCommentsOpen(open);
 
     const selectComment = (id: string) => {
         noteComments.setActiveId(id);
@@ -503,12 +507,7 @@ function NoteWorkspace({
     const openSplit = useCallback(
         (id: number | null) => {
             setSplitNoteId(id);
-
-            if (id === null) {
-                localStorage.removeItem(`kite:split:${vault.id}`);
-            } else {
-                localStorage.setItem(`kite:split:${vault.id}`, String(id));
-            }
+            writeStored(splitKey(vault.id), idCodec, id);
         },
         [vault.id],
     );
@@ -572,9 +571,11 @@ function NoteWorkspace({
     };
 
     const changeViewMode = (mode: string) => {
-        if (mode === 'edit' || mode === 'split' || mode === 'preview') {
-            setViewMode(mode);
-            localStorage.setItem('kite:view-mode', mode);
+        const parsed = viewModeCodec.parse(mode);
+
+        if (parsed !== undefined) {
+            setViewMode(parsed);
+            writeStored('kite:view-mode', viewModeCodec, parsed);
         }
     };
 
