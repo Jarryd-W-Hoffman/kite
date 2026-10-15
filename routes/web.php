@@ -25,6 +25,7 @@ use App\Http\Controllers\NoteStarController;
 use App\Http\Controllers\NoteTaskController;
 use App\Http\Controllers\NoteVersionController;
 use App\Http\Controllers\NoteVersionRestoreController;
+use App\Http\Controllers\NotionImportController;
 use App\Http\Controllers\PreferencesController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TableViewController;
@@ -85,6 +86,7 @@ Route::get('vaults/{vault}/colour-groups/preview', [ColourGroupPreviewController
 Route::post('vaults/{vault}/colour-groups', [ColourGroupController::class, 'store'])->name('colour-groups.store');
 Route::put('vaults/{vault}/colour-groups/order', [ColourGroupOrderController::class, 'update'])->name('colour-group-order.update');
 Route::post('vaults/{vault}/views', [TableViewController::class, 'store'])->name('table-views.store');
+Route::post('vaults/{vault}/imports/notion', [NotionImportController::class, 'store'])->name('notion-imports.store');
 Route::get('vaults/{vault}/tasks', [TaskController::class, 'index'])->middleware(WatchVault::class)->name('tasks.index');
 Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->middleware(WatchVault::class)->name('vault-graph.show');
 
