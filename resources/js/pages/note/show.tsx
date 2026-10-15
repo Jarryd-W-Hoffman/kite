@@ -12,6 +12,8 @@ import {
     Globe,
     History,
     LoaderCircle,
+    LockKeyhole,
+    LockKeyholeOpen,
     Merge,
     MessageSquare,
     MoreHorizontal,
@@ -29,6 +31,12 @@ import { DeleteNoteDialog } from '@/components/kite/delete-note-dialog';
 import { EmptyState } from '@/components/kite/empty-state';
 import { countWords, FocusBar } from '@/components/kite/focus-bar';
 import { Kbd } from '@/components/kite/kbd';
+import {
+    LockedNoteScreen,
+    SetPassphraseDialog,
+    UnlockDialog,
+    useVaultUnlocked,
+} from '@/components/kite/lock-dialogs';
 import { NoteEditor } from '@/components/kite/note-editor';
 import type {
     EditorSelectionText,
@@ -71,7 +79,9 @@ import { formatShortcut } from '@/lib/shortcuts';
 import { BASE_COMMANDS } from '@/lib/slash-commands';
 import type { SlashCommand } from '@/lib/slash-commands';
 import { cn, editorWidthClass } from '@/lib/utils';
+import { isUnlocked, lockVault, onBeforeVaultLock } from '@/lib/vault-keys';
 import { show as noteExport } from '@/routes/note-exports';
+import { update as updateLock } from '@/routes/note-lock';
 import { update as updatePath } from '@/routes/note-path';
 import { update as updateProperties } from '@/routes/note-properties';
 import { store as publishNote } from '@/routes/note-publications';
@@ -133,9 +143,11 @@ export default function NoteShow(props: WorkspaceProps) {
                     />
                 )}
 
-                {note ? (
+                {note?.locked && !note.unlocked ? (
+                    <LockedWorkspace {...props} note={note} />
+                ) : note ? (
                     <NoteWorkspace
-                        key={note.id}
+                        key={`${note.id}:${note.unlocked === true}`}
                         {...props}
                         note={note}
                         panelOpen={panelOpen}
@@ -240,6 +252,29 @@ function EmptyWorkspace({ vault, indexing, watching }: WorkspaceProps) {
     );
 }
 
+/**
+ * A locked note while its vault is locked: its name, and the passphrase field to open it.
+ */
+function LockedWorkspace({
+    vault,
+    note,
+}: WorkspaceProps & { note: NoteDetail }) {
+    return (
+        <main className="flex min-w-0 flex-1 flex-col">
+            <TabBar vault={vault} note={{ id: note.id, title: note.title }} />
+            <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-3 text-sm">
+                <LockKeyhole className="size-3.5 text-muted-foreground" />
+                <span className="truncate font-medium">{note.title}</span>
+            </header>
+            <LockedNoteScreen
+                vault={vault}
+                title={note.title}
+                onUnlocked={() => router.reload()}
+            />
+        </main>
+    );
+}
+
 type NoteWorkspaceProps = WorkspaceProps & {
     note: NoteDetail;
     panelOpen: boolean;
@@ -259,6 +294,7 @@ function NoteWorkspace({
     comments: initialComments = [],
     comments_error: commentsError,
     templates = [],
+    passphrase_set: passphraseSet = false,
     panelOpen,
     onTogglePanel,
     focus,
@@ -271,6 +307,11 @@ function NoteWorkspace({
     const [deleting, setDeleting] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [merging, setMerging] = useState(false);
+    const locked = note.locked === true;
+    const vaultUnlocked = useVaultUnlocked(vault.id);
+    const [lockStep, setLockStep] = useState<'passphrase' | 'unlock' | null>(
+        null,
+    );
     const [extracting, setExtracting] = useState<EditorSelectionText | null>(
         null,
     );
@@ -297,6 +338,40 @@ function NoteWorkspace({
     const shownMode =
         (tooNarrowToSplit || focus) && viewMode === 'split' ? 'edit' : viewMode;
     const [starred, setStarred] = useState(note.starred === true);
+
+    // Save a locked note before its vault locks, then close it.
+    useEffect(
+        () =>
+            onBeforeVaultLock((vaultId) =>
+                locked && vaultId === vault.id ? save() : undefined,
+            ),
+        [locked, vault.id, save],
+    );
+
+    useEffect(() => {
+        if (locked && !vaultUnlocked) {
+            router.reload();
+        }
+    }, [locked, vaultUnlocked]);
+
+    const lockUrl = updateLock({ vault: vault.id, note: note.id }).url;
+    const lockNow = () =>
+        void save().then(() =>
+            router.put(lockUrl, {}, { preserveScroll: true }),
+        );
+    const lockNote = () => {
+        if (!passphraseSet) {
+            setLockStep('passphrase');
+        } else if (!isUnlocked(vault.id)) {
+            setLockStep('unlock');
+        } else {
+            lockNow();
+        }
+    };
+    const removeLock = () =>
+        void save().then(() =>
+            router.delete(lockUrl, { preserveScroll: true }),
+        );
 
     useEffect(() => {
         if (!focus) {
@@ -493,7 +568,11 @@ function NoteWorkspace({
         'toggle-preview': () =>
             setViewMode((mode) => (mode === 'preview' ? 'edit' : 'preview')),
         'toggle-star': () => toggleStar(),
-        'toggle-comments': () => toggleComments(!commentsOpen),
+        'toggle-comments': locked
+            ? undefined
+            : () => toggleComments(!commentsOpen),
+        'lock-note': locked ? removeLock : lockNote,
+        'lock-vault': () => void lockVault(vault.id),
         'toggle-panel': onTogglePanel,
         'version-history': () => setHistoryOpen(true),
         'extract-selection': () => {
@@ -505,18 +584,20 @@ function NoteWorkspace({
                 toast.info('Select the text to extract first.');
             }
         },
-        'merge-note': () => setMerging(true),
+        'merge-note': locked ? undefined : () => setMerging(true),
         'focus-mode': onToggleFocus,
-        'export-html': () => void exportNote('html'),
-        'export-pdf': () => void exportNote('pdf'),
-        publish: () =>
-            void save().then(() =>
-                router.post(
-                    publishNote({ vault: vault.id, note: note.id }).url,
-                    {},
-                    { preserveScroll: true },
-                ),
-            ),
+        'export-html': locked ? undefined : () => void exportNote('html'),
+        'export-pdf': locked ? undefined : () => void exportNote('pdf'),
+        publish: locked
+            ? undefined
+            : () =>
+                  void save().then(() =>
+                      router.post(
+                          publishNote({ vault: vault.id, note: note.id }).url,
+                          {},
+                          { preserveScroll: true },
+                      ),
+                  ),
     });
 
     const submitRename = (path: string) => {
@@ -614,7 +695,7 @@ function NoteWorkspace({
     // Narrow windows show one side panel at a time, floating over the note below its header.
     const sidePanels = (
         <>
-            {commentsOpen && (
+            {commentsOpen && !locked && (
                 <Drawer overlay={narrow} onClose={() => toggleComments(false)}>
                     <CommentRail
                         notes={noteComments}
@@ -700,6 +781,17 @@ function NoteWorkspace({
                                     ?.replace(/\.md$/i, '')}
                             </span>
                         </button>
+                    )}
+
+                    {locked && (
+                        <span
+                            className="flex shrink-0 items-center gap-1 rounded-md bg-kite-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                            title="Encrypted on disk with the vault’s passphrase"
+                            data-test="locked-badge"
+                        >
+                            <LockKeyhole className="size-3" />
+                            Locked
+                        </span>
                     )}
 
                     <span
@@ -796,22 +888,24 @@ function NoteWorkspace({
                             <Star className={cn(starred && 'fill-current')} />
                         </Button>
 
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 gap-1 px-2"
-                            aria-label="Toggle comments"
-                            aria-pressed={commentsOpen}
-                            data-test="toggle-comments"
-                            onClick={() => toggleComments(!commentsOpen)}
-                        >
-                            <MessageSquare />
-                            {openComments > 0 && (
-                                <span className="text-xs tabular-nums">
-                                    {openComments}
-                                </span>
-                            )}
-                        </Button>
+                        {!locked && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 px-2"
+                                aria-label="Toggle comments"
+                                aria-pressed={commentsOpen}
+                                data-test="toggle-comments"
+                                onClick={() => toggleComments(!commentsOpen)}
+                            >
+                                <MessageSquare />
+                                {openComments > 0 && (
+                                    <span className="text-xs tabular-nums">
+                                        {openComments}
+                                    </span>
+                                )}
+                            </Button>
+                        )}
 
                         <Button
                             variant="ghost"
@@ -856,13 +950,15 @@ function NoteWorkspace({
                                         )}
                                     </DropdownMenuShortcut>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onSelect={() => setMerging(true)}
-                                    data-test="merge-note"
-                                >
-                                    <Merge />
-                                    Merge into…
-                                </DropdownMenuItem>
+                                {!locked && (
+                                    <DropdownMenuItem
+                                        onSelect={() => setMerging(true)}
+                                        data-test="merge-note"
+                                    >
+                                        <Merge />
+                                        Merge into…
+                                    </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                     onSelect={() => setHistoryOpen(true)}
                                     data-test="open-history"
@@ -871,40 +967,79 @@ function NoteWorkspace({
                                     Version history
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onSelect={() => void exportNote('html')}
-                                    data-test="export-html"
-                                >
-                                    <FileCode />
-                                    Export as HTML
-                                </DropdownMenuItem>
-                                {kite.native && (
+                                {locked ? (
+                                    <>
+                                        <DropdownMenuItem
+                                            onSelect={removeLock}
+                                            data-test="remove-lock"
+                                        >
+                                            <LockKeyholeOpen />
+                                            Remove lock
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                void lockVault(vault.id)
+                                            }
+                                            data-test="lock-vault"
+                                        >
+                                            <LockKeyhole />
+                                            Lock vault now
+                                        </DropdownMenuItem>
+                                    </>
+                                ) : (
                                     <DropdownMenuItem
-                                        onSelect={() => void exportNote('pdf')}
-                                        data-test="export-pdf"
+                                        onSelect={lockNote}
+                                        data-test="lock-note"
                                     >
-                                        <FileDown />
-                                        Export as PDF
+                                        <LockKeyhole />
+                                        Lock note…
                                     </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem
-                                    onSelect={() =>
-                                        void save().then(() =>
-                                            router.post(
-                                                publishNote({
-                                                    vault: vault.id,
-                                                    note: note.id,
-                                                }).url,
-                                                {},
-                                                { preserveScroll: true },
-                                            ),
-                                        )
-                                    }
-                                    data-test="publish-note"
-                                >
-                                    <Globe />
-                                    Publish as a web page
-                                </DropdownMenuItem>
+                                {!locked && (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                void exportNote('html')
+                                            }
+                                            data-test="export-html"
+                                        >
+                                            <FileCode />
+                                            Export as HTML
+                                        </DropdownMenuItem>
+                                        {kite.native && (
+                                            <DropdownMenuItem
+                                                onSelect={() =>
+                                                    void exportNote('pdf')
+                                                }
+                                                data-test="export-pdf"
+                                            >
+                                                <FileDown />
+                                                Export as PDF
+                                            </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                void save().then(() =>
+                                                    router.post(
+                                                        publishNote({
+                                                            vault: vault.id,
+                                                            note: note.id,
+                                                        }).url,
+                                                        {},
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    ),
+                                                )
+                                            }
+                                            data-test="publish-note"
+                                        >
+                                            <Globe />
+                                            Publish as a web page
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     variant="destructive"
@@ -936,10 +1071,14 @@ function NoteWorkspace({
                             onCursorLine={setCursorLine}
                             slashCommands={slashCommands}
                             onSelectComment={selectComment}
-                            onAddComment={(anchor) => {
-                                noteComments.startDraft(anchor);
-                                toggleComments(true);
-                            }}
+                            onAddComment={
+                                locked
+                                    ? undefined
+                                    : (anchor) => {
+                                          noteComments.startDraft(anchor);
+                                          toggleComments(true);
+                                      }
+                            }
                             onExtract={setExtracting}
                             typewriter={focus}
                             className={cn(
@@ -1065,6 +1204,20 @@ function NoteWorkspace({
 
                     setExtracting(null);
                 }}
+            />
+
+            <SetPassphraseDialog
+                vault={vault}
+                open={lockStep === 'passphrase'}
+                onOpenChange={(open) => !open && setLockStep(null)}
+                onDone={lockNow}
+            />
+
+            <UnlockDialog
+                vault={vault}
+                open={lockStep === 'unlock'}
+                onOpenChange={(open) => !open && setLockStep(null)}
+                onUnlocked={lockNow}
             />
 
             <MergeNoteDialog

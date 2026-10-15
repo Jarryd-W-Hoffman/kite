@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use InvalidArgumentException;
 use Native\Desktop\Facades\Window;
 
 final readonly class CaptureController
@@ -34,7 +35,11 @@ final readonly class CaptureController
             throw ValidationException::withMessages(['text' => __('Open a vault in Kite first.')]);
         }
 
-        $note = $action->handle($vault, $request->string('text')->toString());
+        try {
+            $note = $action->handle($vault, $request->string('text')->toString());
+        } catch (InvalidArgumentException) {
+            throw ValidationException::withMessages(['text' => __('Today’s note is locked, so captures can’t be added to it.')]);
+        }
 
         if (config('nativephp-internal.running')) {
             Window::close(OpenQuickCapture::WINDOW);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Markdown;
 
+use App\Services\NoteLocks;
 use DateTimeInterface;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
@@ -16,8 +17,26 @@ final readonly class MarkdownParser
 
     private const string TASK_PATTERN = '/^\s*(?:[-*+]|\d+[.)])\s+\[([ xX])\]\s+(\S.*)$/u';
 
+    public function __construct(private NoteLocks $locks = new NoteLocks)
+    {
+        //
+    }
+
     public function parse(string $contents, string $path): ParsedNote
     {
+        // A locked note shows nothing of itself: no text, links, tags, tasks or properties.
+        if ($this->locks->isLocked($contents)) {
+            return new ParsedNote(
+                title: $this->title([], '', $path),
+                body: '',
+                frontmatter: [],
+                links: [],
+                tags: [],
+                wordCount: 0,
+                locked: true,
+            );
+        }
+
         $contents = $this->normalise($contents);
 
         [$frontmatter, $frontmatterLines] = $this->extractFrontmatter($contents);

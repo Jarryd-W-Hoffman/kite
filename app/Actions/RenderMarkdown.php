@@ -152,7 +152,7 @@ final readonly class RenderMarkdown
      */
     private function embed(Vault $vault, ?int $noteId, ?string $heading, int $depth, array $embedding): ?NoteEmbed
     {
-        $note = $noteId === null ? null : Note::query()->where('vault_id', $vault->id)->find($noteId, ['id', 'path', 'title']);
+        $note = $noteId === null ? null : Note::query()->where('vault_id', $vault->id)->find($noteId, ['id', 'path', 'title', 'locked']);
 
         if (! $note instanceof Note || ! $this->files->exists($vault, $note->path)) {
             return null;
@@ -168,6 +168,10 @@ final readonly class RenderMarkdown
 
         if ($depth >= self::MAX_EMBED_DEPTH) {
             return new NoteEmbed($title, $url, '', NoteEmbed::TOO_DEEP);
+        }
+
+        if ($note->locked) {
+            return new NoteEmbed($title, $url, '', NoteEmbed::LOCKED);
         }
 
         $contents = $this->files->read($vault, $note->path);

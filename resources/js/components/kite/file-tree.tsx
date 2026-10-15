@@ -3,6 +3,7 @@ import {
     ChevronRight,
     FilePlus,
     FileText,
+    LockKeyhole,
     Folder,
     FolderOpen,
     FolderPlus,
@@ -411,6 +412,13 @@ function FolderContents({
                             )}
                         />
                         <span className="truncate">{noteName(note.path)}</span>
+                        {note.locked && (
+                            <LockKeyhole
+                                aria-label="Locked"
+                                className="size-3 shrink-0 text-muted-foreground/70"
+                                data-test="tree-lock"
+                            />
+                        )}
                         <GroupDot group={tree.groups.get(note.group ?? -1)} />
                     </Link>
                 </li>

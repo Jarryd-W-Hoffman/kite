@@ -21,6 +21,7 @@ final readonly class ParsedNote
         public int $wordCount,
         public int $bodyStartLine = 0,
         public array $tasks = [],
+        public bool $locked = false,
     ) {
         //
     }

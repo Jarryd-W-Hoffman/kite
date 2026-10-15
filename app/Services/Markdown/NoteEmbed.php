@@ -19,6 +19,9 @@ final class NoteEmbed extends AbstractBlock
 
     public const string MISSING_SECTION = 'missing-section';
 
+    /** The embedded note is locked, so its text stays out of other notes. */
+    public const string LOCKED = 'locked';
+
     public function __construct(
         public readonly string $title,
         public readonly string $url,

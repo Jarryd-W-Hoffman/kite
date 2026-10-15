@@ -12,12 +12,18 @@ use App\Services\CommentStore;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 final readonly class NoteCommentController
 {
     public function store(StoreNoteCommentRequest $request, Vault $vault, Note $note, CommentStore $comments): JsonResponse
     {
+        // Comments quote the text they're on, which would leave it readable beside the note.
+        throw_if($note->locked, ValidationException::withMessages([
+            'body' => __('Locked notes can’t have comments.'),
+        ]));
+
         return response()->json($this->guard(fn (): array => $comments->add($vault, $note->path, [
             'body' => mb_trim($request->string('body')->toString()),
             'quote' => $request->string('quote')->toString(),

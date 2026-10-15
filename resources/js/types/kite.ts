@@ -12,6 +12,7 @@ export type TreeNote = {
     title: string;
     /** First colour group the note matches, if any. */
     group?: number | null;
+    locked?: boolean;
 };
 
 export type TagCount = {
@@ -43,6 +44,10 @@ export type NoteMeta = {
 export type NoteDetail = NoteMeta & {
     contents: string;
     starred?: boolean;
+    /** The note is encrypted on disk. */
+    locked?: boolean;
+    /** A locked note opened with the vault's key; its contents are the real text. */
+    unlocked?: boolean;
 };
 
 export type NoteLinkSummary = { id: number; title: string; path: string };
@@ -84,6 +89,8 @@ export type WorkspaceProps = {
     /** Set when the note's comments file exists but can't be read. */
     comments_error?: string;
     templates?: NoteTemplate[];
+    /** The vault has a passphrase for locked notes. */
+    passphrase_set?: boolean;
 };
 
 export type NoteTemplate = { id: number; path: string; name: string };

@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read string $title
  * @property-read array<string, mixed> $frontmatter
  * @property-read int $word_count
+ * @property-read bool $locked
  * @property-read int $size
  * @property-read int $modified_at
  * @property-read string $hash
@@ -48,6 +49,7 @@ final class Note extends Model
             'title' => 'string',
             'frontmatter' => 'array',
             'word_count' => 'integer',
+            'locked' => 'boolean',
             'size' => 'integer',
             'modified_at' => 'integer',
             'hash' => 'string',
