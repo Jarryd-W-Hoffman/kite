@@ -34,6 +34,7 @@ const SECTIONS: { title: string; shortcuts: [string, string][] }[] = [
             ['Ctrl+Shift+Tab', 'Previous tab'],
             ['Mod+W', 'Close tab'],
             ['Mod+E', 'Toggle preview'],
+            ['Mod+Shift+F', 'Focus mode (Esc to leave)'],
         ],
     },
     {
