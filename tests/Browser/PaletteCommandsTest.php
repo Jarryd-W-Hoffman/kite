@@ -38,3 +38,20 @@ it('only offers note commands while a note is open', function (): void {
         ->assertSee('No commands match.')
         ->assertNoJavaScriptErrors();
 });
+
+it('filters search results by tag, folder and property', function (): void {
+    $vault = vaultWithFiles([
+        'Work/Standup.md' => "---\nstatus: active\n---\n# Standup #work\n\nsync",
+        'Home/Groceries.md' => "# Groceries\n\nsync",
+    ]);
+    resolve(IndexVault::class)->handle($vault);
+
+    visit(route('notes.show', [$vault, Note::query()->where('path', 'Home/Groceries.md')->sole()]))
+        ->keys('@note-editor', 'Control+k')
+        ->typeSlowly('@command-palette-input', 'sync tag:work')
+        ->assertSeeIn('@palette-filters', 'tag:work')
+        ->assertSeeIn('#kite-palette-item-0', 'Work/Standup.md')
+        ->assertMissing('#kite-palette-item-2')
+        ->assertDontSeeIn('#kite-palette-results', 'Home/Groceries.md')
+        ->assertNoJavaScriptErrors();
+});

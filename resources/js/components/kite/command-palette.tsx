@@ -25,6 +25,9 @@ type Props = {
     noteOpen?: boolean;
 };
 
+/** Filter terms the search understands, matching the server's (`tag:work`, `-folder:Archive`). */
+const FILTER = /(?<!\S)-?[\p{L}_][\p{L}\p{N}_-]*:(?!\/\/)(?:"[^"]*"|\S+)/gu;
+
 type Item =
     | { type: 'note'; result: SearchResult }
     | { type: 'create'; title: string }
@@ -44,6 +47,7 @@ export function CommandPalette({
     const listRef = useRef<HTMLUListElement>(null);
 
     const commandMode = query.startsWith('>');
+    const filters = query.match(FILTER) ?? [];
 
     useEffect(() => {
         if (!open || commandMode) {
@@ -175,7 +179,7 @@ export function CommandPalette({
                         placeholder={
                             commandMode
                                 ? 'Run a command…'
-                                : 'Search or create a note… (> for commands)'
+                                : 'Search notes, filter with tag: folder: status:… or > for commands'
                         }
                         aria-label="Search notes"
                         data-test="command-palette-input"
@@ -194,6 +198,27 @@ export function CommandPalette({
                     </kbd>
                 </div>
 
+                {!commandMode && filters.length > 0 && (
+                    <div
+                        className="flex flex-wrap items-center gap-1.5 border-b px-5 py-2 text-xs text-muted-foreground"
+                        data-test="palette-filters"
+                    >
+                        Filtered by
+                        {filters.map((filter) => (
+                            <span
+                                key={filter}
+                                className={cn(
+                                    'rounded-md px-1.5 py-0.5 font-mono',
+                                    filter.startsWith('-')
+                                        ? 'bg-destructive/10 text-destructive-foreground'
+                                        : 'bg-kite-accent-soft text-primary',
+                                )}
+                            >
+                                {filter}
+                            </span>
+                        ))}
+                    </div>
+                )}
                 <ul
                     id="kite-palette-results"
                     ref={listRef}
