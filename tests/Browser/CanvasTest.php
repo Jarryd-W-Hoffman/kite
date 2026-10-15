@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Models\Vault;
 use App\Actions\IndexVault;
 use App\Models\Note;
+use App\Models\Vault;
 use App\Services\Canvases;
 
 function canvasFile(Vault $vault, string $path): array
