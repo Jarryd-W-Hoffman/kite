@@ -31,5 +31,7 @@ final readonly class ReorderColourGroups
                 ColourGroup::query()->whereKey($id)->update(['position' => $position]);
             }
         });
+
+        Vault::markTreeChanged($vault->id);
     }
 }

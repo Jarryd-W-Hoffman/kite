@@ -17,7 +17,10 @@ use App\Services\Templates;
 use App\Services\VaultFilesystem;
 use App\Services\VaultWatcher;
 use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\OnceProp;
 use SensitiveParameter;
 
 final readonly class LoadWorkspace
@@ -43,7 +46,14 @@ final readonly class LoadWorkspace
      */
     public function handle(Vault $vault, ?Note $note = null, #[SensitiveParameter] ?string $key = null): array
     {
-        $groups = $this->colourGroups->assign($vault);
+        // Read before anything is built, so a change made meanwhile moves to a newer revision.
+        $revision = $vault->currentTreeRevision();
+
+        /*
+         * The file tree and the lists beside it are big in a large vault and rarely change, so the
+         * window keeps them across visits and only downloads them again for a new revision.
+         */
+        $once = fn (string $prop, Closure $value): OnceProp => Inertia::once($value)->as("{$prop}:{$vault->id}:{$revision}");
 
         return [
             'vault' => $vault->only(['id', 'name', 'path']),
@@ -52,36 +62,17 @@ final readonly class LoadWorkspace
                 ->get(['id', 'name', 'path'])
                 ->map(fn (Vault $vault): array => $vault->only(['id', 'name', 'path']))
                 ->all(),
-            'tree' => DB::table('notes')
-                ->where('vault_id', $vault->id)
-                ->orderByRaw('path COLLATE NOCASE')
-                ->get(['id', 'path', 'title', 'locked'])
-                ->map(fn (object $row): array => [
-                    'id' => Row::int($row, 'id'),
-                    'path' => Row::string($row, 'path'),
-                    'title' => Row::string($row, 'title'),
-                    'group' => $groups[Row::int($row, 'id')] ?? null,
-                    'locked' => Row::int($row, 'locked') === 1,
-                ])
-                ->all(),
-            'folders' => fn (): array => $this->files->folders($vault),
+            'tree_revision' => $revision,
+            'tree' => $once('tree', fn (): array => $this->tree($vault)),
+            'folders' => $once('folders', fn (): array => $this->files->folders($vault)),
             'colour_groups' => $this->colourGroups->summaries($vault),
-            'templates' => fn (): array => $this->templates->all($vault),
-            'daily_dates' => fn (): array => $this->dailyDates($vault),
+            'templates' => $once('templates', fn (): array => $this->templates->all($vault)),
+            'daily_dates' => $once('daily_dates', fn (): array => $this->dailyDates($vault)),
             'favourites' => fn (): array => $this->noteLinks($vault, 'starred_at', 'asc', 50),
             'recent_notes' => fn (): array => $this->noteLinks($vault, 'opened_at', 'desc', 6),
             'table_views' => fn (): array => $vault->tableViews()->orderBy('name')->get(['id', 'name'])->map(fn (TableView $view): array => ['id' => $view->id, 'name' => $view->name])->all(),
             'open_tasks' => fn (): int => $this->templates->exclude(DB::table('note_tasks')->join('notes', 'notes.id', '=', 'note_tasks.note_id')->where('note_tasks.vault_id', $vault->id)->where('note_tasks.done', false), 'notes.path')->count(),
-            'tags' => DB::table('note_tags')
-                ->where('vault_id', $vault->id)
-                ->groupBy('name')
-                ->orderBy('name')
-                ->get(['name', DB::raw('count(*) as count')])
-                ->map(fn (object $row): array => [
-                    'name' => Row::string($row, 'name'),
-                    'count' => Row::int($row, 'count'),
-                ])
-                ->all(),
+            'tags' => $once('tags', fn (): array => $this->tags($vault)),
             'indexing' => $this->progress->get($vault),
             'watching' => $this->watcher->isWatching($vault),
             'passphrase_set' => fn (): bool => $this->locks->isSetUp($vault),
@@ -121,6 +112,48 @@ final readonly class LoadWorkspace
             'locked' => $locked,
             'unlocked' => $locked && $contents !== null,
         ];
+    }
+
+    /**
+     * Every note in the vault, in path order, with the colour group it takes.
+     *
+     * @return list<array{id: int, path: string, title: string, group: int|null, locked: bool}>
+     */
+    private function tree(Vault $vault): array
+    {
+        $groups = $this->colourGroups->assign($vault);
+
+        return array_values(DB::table('notes')
+            ->where('vault_id', $vault->id)
+            ->orderByRaw('path COLLATE NOCASE')
+            ->get(['id', 'path', 'title', 'locked'])
+            ->map(fn (object $row): array => [
+                'id' => Row::int($row, 'id'),
+                'path' => Row::string($row, 'path'),
+                'title' => Row::string($row, 'title'),
+                'group' => $groups[Row::int($row, 'id')] ?? null,
+                'locked' => Row::int($row, 'locked') === 1,
+            ])
+            ->all());
+    }
+
+    /**
+     * Every tag in the vault with how many notes use it.
+     *
+     * @return list<array{name: string, count: int}>
+     */
+    private function tags(Vault $vault): array
+    {
+        return array_values(DB::table('note_tags')
+            ->where('vault_id', $vault->id)
+            ->groupBy('name')
+            ->orderBy('name')
+            ->get(['name', DB::raw('count(*) as count')])
+            ->map(fn (object $row): array => [
+                'name' => Row::string($row, 'name'),
+                'count' => Row::int($row, 'count'),
+            ])
+            ->all());
     }
 
     /**

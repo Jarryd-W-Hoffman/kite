@@ -293,6 +293,7 @@ function NoteWorkspace({
     vault,
     watching,
     tree,
+    tree_revision: treeRevision,
     note,
     backlinks,
     outgoing,
@@ -329,8 +330,14 @@ function NoteWorkspace({
     const { contents, setContents, meta, saveState, save, isDirty, adopt } =
         useNoteDocument(vault, note, {
             autosaveMs: editor.autosave_ms,
-            onSaved: () =>
-                router.reload({ only: ['tree', 'tags', 'outgoing'] }),
+            // The tree only comes back when the save changed it (a title, tag or property).
+            onSaved: (saved) =>
+                router.reload({
+                    only:
+                        saved.tree_revision === treeRevision
+                            ? ['outgoing']
+                            : ['tree', 'tags', 'tree_revision', 'outgoing'],
+                }),
         });
 
     const [commentsOpen, setCommentsOpen] = useState(

@@ -38,14 +38,20 @@ final readonly class NoteWriter
             'updated_at' => $now,
         ];
 
-        $existing = DB::table('notes')->where('vault_id', $vault->id)->where('path', $path)->first(['id', 'created_at']);
+        $existing = DB::table('notes')->where('vault_id', $vault->id)->where('path', $path)->first(['id', 'created_at', 'title', 'frontmatter', 'locked']);
 
         if ($existing === null) {
             $id = DB::table('notes')->insertGetId([...$attributes, 'vault_id' => $vault->id, 'path' => $path, 'created_at' => $now]);
             $createdAt = $now;
+
+            Vault::markTreeChanged($vault->id);
         } else {
             $id = Row::int($existing, 'id');
             $createdAt = Row::string($existing, 'created_at');
+
+            if ($this->changesTree($existing, $attributes, $parsed->tags)) {
+                Vault::markTreeChanged($vault->id);
+            }
 
             DB::table('notes')->where('id', $id)->update($attributes);
             DB::table('notes_fts')->where('rowid', $id)->delete();
@@ -116,5 +122,28 @@ final readonly class NoteWriter
         foreach (array_chunk($rows, self::LINK_INSERT_CHUNK) as $chunk) {
             DB::table('note_links')->insert($chunk);
         }
+    }
+
+    /**
+     * Whether re-indexing a note changes what the sidebar shows: its title, tags, properties
+     * (colour groups match on them) or lock. Plain edits to its text don't.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @param  list<string>  $tags
+     */
+    private function changesTree(object $existing, array $attributes, array $tags): bool
+    {
+        if (Row::string($existing, 'title') !== $attributes['title']
+            || Row::string($existing, 'frontmatter') !== $attributes['frontmatter']
+            || (Row::int($existing, 'locked') === 1) !== $attributes['locked']) {
+            return true;
+        }
+
+        $previousTags = DB::table('note_tags')->where('note_id', Row::int($existing, 'id'))->pluck('name')->all();
+
+        sort($previousTags);
+        sort($tags);
+
+        return $previousTags !== $tags;
     }
 }

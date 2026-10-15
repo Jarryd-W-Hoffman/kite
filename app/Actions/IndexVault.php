@@ -109,6 +109,10 @@ final readonly class IndexVault
             $summary['removed'] += Note::query()->whereKey($ids)->toBase()->delete();
         }
 
+        if ($summary['removed'] > 0) {
+            Vault::markTreeChanged($vault->id);
+        }
+
         /** @var list<array{0: int, 1: list<WikiLink>}> $pending */
         $pending = [];
         $addedKeys = [];

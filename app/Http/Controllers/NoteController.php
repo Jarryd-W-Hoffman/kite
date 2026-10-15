@@ -109,6 +109,7 @@ final readonly class NoteController
             'daily_date' => $daily->dateOf($note->path)?->toDateString(),
             'html' => $rendered->html,
             'outline' => $rendered->outline,
+            'tree_revision' => $vault->currentTreeRevision(),
         ]);
     }
 

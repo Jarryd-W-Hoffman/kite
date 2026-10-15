@@ -88,10 +88,13 @@ it('refreshes the workspace when folders change even if no note did', function (
 
     Event::assertNotDispatched(VaultChanged::class);
 
+    $revision = $vault->currentTreeRevision();
+
     mkdir($vault->path.'/Projects');
     $listener->handle(new MessageReceived(VaultWatcher::ALIAS, $line(['Projects'])));
 
     Event::assertDispatchedTimes(VaultChanged::class, 1);
+    expect($vault->currentTreeRevision())->toBeGreaterThan($revision);
 });
 
 it('falls back to polling when the watcher exits', function (): void {
