@@ -22,6 +22,7 @@ import {
     Star,
     Sun,
     Presentation,
+    SearchCheck,
     Table2,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -61,6 +62,10 @@ import { show as showCanvas, store as storeCanvas } from '@/routes/canvases';
 import { store as openDaily } from '@/routes/daily-notes';
 import { show as showNote } from '@/routes/notes';
 import { store } from '@/routes/notes';
+import {
+    show as showSearch,
+    store as storeSearch,
+} from '@/routes/saved-searches';
 import { show as showView, store as storeView } from '@/routes/table-views';
 import { index as tasksIndex } from '@/routes/tasks';
 import { show as showGraph } from '@/routes/vault-graph';
@@ -88,6 +93,7 @@ type Props = {
     tasksActive?: boolean;
     activeViewId?: number | null;
     activeCanvasPath?: string | null;
+    activeSearchId?: number | null;
     activeTag?: string | null;
     onSearch: () => void;
 };
@@ -117,6 +123,7 @@ export function WorkspaceSidebar({
     tasksActive = false,
     activeViewId = null,
     activeCanvasPath = null,
+    activeSearchId = null,
     activeTag = null,
     onSearch,
 }: Props) {
@@ -135,6 +142,7 @@ export function WorkspaceSidebar({
         open_tasks: openTasks = 0,
         table_views: tableViews = [],
         canvases = [],
+        saved_searches: savedSearches = [],
         favourites = [],
         recent_notes: recentNotes = [],
         daily_dates: dailyDates = [],
@@ -144,6 +152,7 @@ export function WorkspaceSidebar({
         open_tasks?: number;
         table_views?: { id: number; name: string }[];
         canvases?: { path: string; name: string }[];
+        saved_searches?: { id: number; name: string }[];
         favourites?: NoteLinkSummary[];
         recent_notes?: NoteLinkSummary[];
         daily_dates?: string[];
@@ -166,6 +175,7 @@ export function WorkspaceSidebar({
         tasks: () => router.visit(tasksIndex(vault.id)),
         'new-view': () => router.post(storeView(vault.id).url),
         'new-canvas': () => router.post(storeCanvas(vault.id).url),
+        'new-search': () => router.post(storeSearch(vault.id).url),
         search: onSearch,
         graph: () => router.visit(showGraph(vault.id)),
         'toggle-theme': () =>
@@ -390,6 +400,35 @@ export function WorkspaceSidebar({
                             }
                             active={view.id === activeViewId}
                             testId="view-link"
+                        />
+                    ))}
+                </div>
+
+                <div className="mt-5">
+                    <SectionHeading title="Searches">
+                        <SectionAction
+                            label="New saved search"
+                            onClick={() =>
+                                router.post(storeSearch(vault.id).url)
+                            }
+                            testId="new-search"
+                        >
+                            <Plus />
+                        </SectionAction>
+                    </SectionHeading>
+                    {savedSearches.map((search) => (
+                        <NavItem
+                            key={search.id}
+                            icon={SearchCheck}
+                            label={search.name}
+                            href={
+                                showSearch({
+                                    vault: vault.id,
+                                    savedSearch: search.id,
+                                }).url
+                            }
+                            active={search.id === activeSearchId}
+                            testId="search-link"
                         />
                     ))}
                 </div>

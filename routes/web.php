@@ -32,6 +32,7 @@ use App\Http\Controllers\NoteVersionController;
 use App\Http\Controllers\NoteVersionRestoreController;
 use App\Http\Controllers\NotionImportController;
 use App\Http\Controllers\PreferencesController;
+use App\Http\Controllers\SavedSearchController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\TableViewController;
 use App\Http\Controllers\TaskController;
@@ -96,6 +97,7 @@ Route::get('vaults/{vault}/colour-groups/preview', [ColourGroupPreviewController
 Route::post('vaults/{vault}/colour-groups', [ColourGroupController::class, 'store'])->name('colour-groups.store');
 Route::put('vaults/{vault}/colour-groups/order', [ColourGroupOrderController::class, 'update'])->name('colour-group-order.update');
 Route::post('vaults/{vault}/views', [TableViewController::class, 'store'])->name('table-views.store');
+Route::post('vaults/{vault}/searches', [SavedSearchController::class, 'store'])->name('saved-searches.store');
 Route::post('vaults/{vault}/passphrase', [VaultPassphraseController::class, 'store'])->name('vault-passphrase.store');
 Route::middleware('throttle:vault-passphrase')->group(function (): void {
     Route::put('vaults/{vault}/passphrase', [VaultPassphraseController::class, 'update'])->name('vault-passphrase.update');
@@ -113,6 +115,9 @@ Route::get('vaults/{vault}/canvas-cards', [CanvasCardController::class, 'index']
 
 // Notes...
 Route::scopeBindings()->group(function (): void {
+    Route::get('vaults/{vault}/searches/{savedSearch}', [SavedSearchController::class, 'show'])->whereNumber('savedSearch')->middleware(WatchVault::class)->name('saved-searches.show');
+    Route::put('vaults/{vault}/searches/{savedSearch}', [SavedSearchController::class, 'update'])->whereNumber('savedSearch')->name('saved-searches.update');
+    Route::delete('vaults/{vault}/searches/{savedSearch}', [SavedSearchController::class, 'destroy'])->whereNumber('savedSearch')->name('saved-searches.destroy');
     Route::put('vaults/{vault}/colour-groups/{colourGroup}', [ColourGroupController::class, 'update'])->whereNumber('colourGroup')->name('colour-groups.update');
     Route::delete('vaults/{vault}/colour-groups/{colourGroup}', [ColourGroupController::class, 'destroy'])->whereNumber('colourGroup')->name('colour-groups.destroy');
     Route::post('vaults/{vault}/notes', [NoteController::class, 'store'])->name('notes.store');

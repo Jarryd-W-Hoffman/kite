@@ -62,6 +62,14 @@ final class Vault extends Model
     }
 
     /**
+     * @return HasMany<SavedSearch, $this>
+     */
+    public function savedSearches(): HasMany
+    {
+        return $this->hasMany(SavedSearch::class);
+    }
+
+    /**
      * @return HasMany<TableView, $this>
      */
     public function tableViews(): HasMany
