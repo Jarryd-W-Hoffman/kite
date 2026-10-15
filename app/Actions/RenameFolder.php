@@ -59,15 +59,17 @@ final readonly class RenameFolder
     {
         $notes = Note::query()
             ->where('vault_id', $vault->id)
+            ->whereRaw('substr(path, 1, ?) = ?', [mb_strlen($from) + 1, $from.'/'])
             ->orderBy('path')
-            ->get()
-            ->filter(fn (Note $note): bool => str_starts_with($note->path, $from.'/'));
+            ->get();
 
         foreach ($notes as $note) {
             $this->renameNote->handle($note, $to.mb_substr($note->path, mb_strlen($from)));
         }
 
         $this->files->moveFolderContents($vault, $from, $to);
+
+        Vault::markTreeChanged($vault->id);
         $this->indexAttachments->handle($vault);
 
         return $to;

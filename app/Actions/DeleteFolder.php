@@ -38,13 +38,15 @@ final readonly class DeleteFolder
         DB::transaction(function () use ($vault, $path): void {
             Note::query()
                 ->where('vault_id', $vault->id)
-                ->get(['id', 'path'])
-                ->filter(fn (Note $note): bool => str_starts_with($note->path, $path.'/'))
+                ->whereRaw('substr(path, 1, ?) = ?', [mb_strlen($path) + 1, $path.'/'])
+                ->get(['id', 'vault_id', 'path'])
                 ->each(fn (Note $note): ?bool => $note->delete());
 
             $this->resolveLinks->handle($vault);
         });
 
         $this->indexAttachments->handle($vault);
+
+        Vault::markTreeChanged($vault->id);
     }
 }

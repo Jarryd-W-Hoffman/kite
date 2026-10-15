@@ -70,6 +70,10 @@ final readonly class HandleVaultWatcherOutput
         // the file tree even when no note was re-indexed.
         $foldersChanged = array_any($paths, fn (mixed $path): bool => is_string($path) && pathinfo($path, PATHINFO_EXTENSION) === '');
 
+        if ($foldersChanged) {
+            Vault::markTreeChanged($vault->id);
+        }
+
         if ($changes > 0 || $foldersChanged) {
             event(new VaultChanged($vault->id));
         }

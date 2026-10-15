@@ -39,6 +39,8 @@ export type NoteMeta = {
     daily_date: string | null;
     html: string;
     outline: OutlineItem[];
+    /** Returned by a save: the vault's tree revision afterwards. */
+    tree_revision?: number;
 };
 
 export type NoteDetail = NoteMeta & {
@@ -77,6 +79,8 @@ export type WorkspaceProps = {
     watching: boolean;
     vault: VaultSummary;
     vaults: VaultSummary[];
+    /** Changes whenever the tree, folders, tags, templates or daily notes do. */
+    tree_revision: number;
     tree: TreeNote[];
     folders: string[];
     colour_groups: ColourGroup[];
@@ -91,6 +95,8 @@ export type WorkspaceProps = {
     templates?: NoteTemplate[];
     /** The vault has a passphrase for locked notes. */
     passphrase_set?: boolean;
+    /** The vault's passphrase has a recovery key (vaults locked before recovery keys may not). */
+    recovery_key_set?: boolean;
 };
 
 export type NoteTemplate = { id: number; path: string; name: string };

@@ -7,6 +7,7 @@ use App\Actions\LoadWorkspace;
 use App\Models\Note;
 use App\Models\Vault;
 use Illuminate\Support\Facades\File;
+use Inertia\OnceProp;
 
 it('loads the vault tree, tags and vault list without a note', function (): void {
     $vault = vaultWithFiles([
@@ -21,8 +22,10 @@ it('loads the vault tree, tags and vault list without a note', function (): void
 
     expect($workspace['vault'])->toBe(['id' => $vault->id, 'name' => $vault->name, 'path' => $vault->path])
         ->and(array_column($workspace['vaults'], 'id'))->toBe([$vault->id, $other->id])
-        ->and(array_column($workspace['tree'], 'path'))->toBe(['A/z.md', 'b.md'])
-        ->and($workspace['tags'])->toBe([
+        ->and($workspace['tree'])->toBeInstanceOf(OnceProp::class)
+        ->and(array_column($workspace['tree'](), 'path'))->toBe(['A/z.md', 'b.md'])
+        ->and($workspace['tree_revision'])->toBe($vault->currentTreeRevision())
+        ->and($workspace['tags']())->toBe([
             ['name' => 'shared', 'count' => 2],
             ['name' => 'solo', 'count' => 1],
         ])
