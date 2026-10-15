@@ -143,16 +143,16 @@ export default function GraphShow({
                 />
 
                 <main className="relative flex min-w-0 flex-1 flex-col">
-                    <header className="kite-drag flex h-12 shrink-0 items-center gap-3 border-b border-border/70 px-4">
+                    <header className="kite-drag flex min-h-12 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border/70 px-4 py-2">
                         <h1 className="flex items-center gap-2 text-[13.5px] font-semibold">
                             <Network className="size-4 text-primary" />
                             Graph
                         </h1>
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground tabular-nums">
+                        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] whitespace-nowrap text-muted-foreground tabular-nums">
                             {noteCount} notes · {graph.edges.length} links
                         </span>
 
-                        <div className="kite-no-drag ml-auto flex items-center gap-3">
+                        <div className="kite-no-drag ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
                             <label className="flex items-center gap-2 text-[13px]">
                                 <span className="text-muted-foreground">
                                     Colour
@@ -221,7 +221,7 @@ export default function GraphShow({
                                     }
                                     placeholder="Highlight notes…"
                                     aria-label="Highlight notes"
-                                    className="w-40 bg-transparent text-sm outline-none"
+                                    className="w-32 bg-transparent text-sm outline-none xl:w-40"
                                 />
                             </label>
                         </div>
