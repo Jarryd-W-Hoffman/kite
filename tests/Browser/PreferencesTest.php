@@ -71,3 +71,16 @@ it('switches the theme from preferences, the sidebar and the keyboard', function
 
     expect(resolve(Settings::class)->all()['appearance'])->toBe('dark');
 });
+
+it('collects a diagnostics report to copy from preferences', function (): void {
+    $vault = vaultWithFiles(['Note.md' => '# Note']);
+    resolve(IndexVault::class)->handle($vault);
+
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
+        ->click('@preferences-link')
+        ->click('@copy-diagnostics')
+        ->assertSeeIn('@diagnostics-report', 'Kite diagnostics')
+        ->assertSeeIn('@diagnostics-report', '1 notes')
+        ->assertDontSee('Show log files')
+        ->assertNoJavaScriptErrors();
+});

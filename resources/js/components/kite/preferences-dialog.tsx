@@ -1,9 +1,10 @@
-import { router, useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import {
     CalendarDays,
     FolderTree,
     Globe,
     LayoutTemplate,
+    LifeBuoy,
     ListTree,
     Monitor,
     Moon,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { toast } from 'sonner';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,7 +34,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { useAppearance } from '@/hooks/use-appearance';
 import type { Appearance } from '@/hooks/use-appearance';
+import { useClipboard } from '@/hooks/use-clipboard';
+import { requestJson } from '@/lib/kite-http';
 import { cn } from '@/lib/utils';
+import { show as diagnostics } from '@/routes/diagnostics';
+import { store as showLogs } from '@/routes/diagnostics-logs';
 import { update } from '@/routes/preferences';
 import type { Preferences } from '@/types';
 
@@ -77,6 +83,7 @@ const SECTIONS = [
     { title: 'Publishing', icon: Globe },
     { title: 'File tree', icon: ListTree },
     { title: 'Quick capture', icon: Zap },
+    { title: 'Diagnostics', icon: LifeBuoy },
 ] as const;
 
 function sectionId(title: string): string {
@@ -653,6 +660,10 @@ function PreferencesForm({
                             />
                         </Field>
                     </Section>
+
+                    <Section title="Diagnostics">
+                        <DiagnosticsPanel />
+                    </Section>
                 </div>
             </div>
 
@@ -668,5 +679,74 @@ function PreferencesForm({
                 </Button>
             </DialogFooter>
         </form>
+    );
+}
+
+/**
+ * Copy a diagnostics report for a bug report. Nothing is sent anywhere: the report is shown so
+ * it can be checked before it's shared.
+ */
+function DiagnosticsPanel() {
+    const { kite } = usePage().props;
+    const [report, setReport] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [, copy] = useClipboard();
+
+    const copyReport = () => {
+        setLoading(true);
+        requestJson<{ report: string }>(diagnostics())
+            .then(async ({ report: text }) => {
+                setReport(text);
+
+                if (await copy(text)) {
+                    toast.success('Diagnostics copied.');
+                }
+            })
+            .catch(() => toast.error('Could not collect diagnostics.'))
+            .finally(() => setLoading(false));
+    };
+
+    return (
+        <div className="grid gap-3 sm:col-span-2" data-test="diagnostics">
+            <p className="text-sm text-muted-foreground">
+                Include this when reporting a problem. It lists versions,
+                settings, vault sizes and recent errors, with your home folder
+                shortened to ~. Error messages can mention note names, so read
+                it before sharing.
+            </p>
+            <div className="flex flex-wrap gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={copyReport}
+                    disabled={loading}
+                    data-test="copy-diagnostics"
+                >
+                    {loading && <Spinner />}
+                    Copy diagnostics
+                </Button>
+                {kite.native && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() =>
+                            void requestJson(showLogs()).catch(() =>
+                                toast.error('Could not open the log files.'),
+                            )
+                        }
+                    >
+                        Show log files
+                    </Button>
+                )}
+            </div>
+            {report !== null && (
+                <pre
+                    className="max-h-48 overflow-auto rounded-md border bg-muted/50 p-3 font-mono text-xs whitespace-pre-wrap"
+                    data-test="diagnostics-report"
+                >
+                    {report}
+                </pre>
+            )}
+        </div>
     );
 }

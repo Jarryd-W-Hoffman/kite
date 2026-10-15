@@ -8,6 +8,8 @@ use App\Http\Controllers\ColourGroupController;
 use App\Http\Controllers\ColourGroupOrderController;
 use App\Http\Controllers\ColourGroupPreviewController;
 use App\Http\Controllers\DailyNoteController;
+use App\Http\Controllers\DiagnosticsController;
+use App\Http\Controllers\DiagnosticsLogController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NoteCommentController;
@@ -62,6 +64,8 @@ Route::get('/', HomeController::class)->name('home');
 // Preferences...
 Route::put('preferences', [PreferencesController::class, 'update'])->name('preferences.update');
 Route::put('appearance', [AppearanceController::class, 'update'])->name('appearance.update');
+Route::get('diagnostics', [DiagnosticsController::class, 'show'])->name('diagnostics.show');
+Route::post('diagnostics/logs', [DiagnosticsLogController::class, 'store'])->name('diagnostics-logs.store');
 
 // Quick capture...
 Route::get('capture', [CaptureController::class, 'create'])->name('capture.create');
