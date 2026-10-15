@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AppearanceController;
+use App\Http\Controllers\CanvasCardController;
+use App\Http\Controllers\CanvasController;
 use App\Http\Controllers\CaptureController;
 use App\Http\Controllers\ColourGroupController;
 use App\Http\Controllers\ColourGroupOrderController;
@@ -94,6 +96,11 @@ Route::post('vaults/{vault}/key', [VaultKeyController::class, 'store'])->name('v
 Route::post('vaults/{vault}/imports/notion', [NotionImportController::class, 'store'])->name('notion-imports.store');
 Route::get('vaults/{vault}/tasks', [TaskController::class, 'index'])->middleware(WatchVault::class)->name('tasks.index');
 Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->middleware(WatchVault::class)->name('vault-graph.show');
+Route::post('vaults/{vault}/canvases', [CanvasController::class, 'store'])->name('canvases.store');
+Route::get('vaults/{vault}/canvases/{path}', [CanvasController::class, 'show'])->where('path', '.*')->middleware(WatchVault::class)->name('canvases.show');
+Route::put('vaults/{vault}/canvases/{path}', [CanvasController::class, 'update'])->where('path', '.*')->name('canvases.update');
+Route::delete('vaults/{vault}/canvases/{path}', [CanvasController::class, 'destroy'])->where('path', '.*')->name('canvases.destroy');
+Route::get('vaults/{vault}/canvas-cards', [CanvasCardController::class, 'index'])->name('canvas-cards.index');
 
 // Notes...
 Route::scopeBindings()->group(function (): void {

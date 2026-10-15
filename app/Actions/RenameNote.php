@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Note;
 use App\Models\NoteLink;
+use App\Services\Canvases;
 use App\Services\CommentStore;
 use App\Services\LinkResolver;
 use App\Services\VaultFilesystem;
@@ -21,6 +22,7 @@ final readonly class RenameNote
         private LinkResolver $resolver,
         private CommentStore $comments,
         private RewriteLinks $rewriteLinks,
+        private Canvases $canvases,
     ) {
         //
     }
@@ -52,6 +54,7 @@ final readonly class RenameNote
 
         $this->files->move($vault, $note->path, $path);
         $this->comments->move($vault, $note->path, $path);
+        $this->canvases->moveFile($vault, $note->path, $path);
 
         return DB::transaction(function () use ($note, $vault, $path, $backlinks): Note {
             $selfLinkKeys = $note->outgoingLinks()->where('target_note_id', $note->id)->pluck('target_key')->all();

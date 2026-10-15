@@ -8,6 +8,7 @@ use App\Models\Note;
 use App\Models\NoteLink;
 use App\Models\TableView;
 use App\Models\Vault;
+use App\Services\Canvases;
 use App\Services\ColourGroups;
 use App\Services\DailyNotes;
 use App\Services\IndexingProgress;
@@ -33,6 +34,7 @@ final readonly class LoadWorkspace
         private ColourGroups $colourGroups,
         private Templates $templates,
         private NoteLocks $locks,
+        private Canvases $canvases,
     ) {
         //
     }
@@ -70,6 +72,7 @@ final readonly class LoadWorkspace
             'daily_dates' => fn (): array => $this->dailyDates($vault),
             'favourites' => fn (): array => $this->noteLinks($vault, 'starred_at', 'asc', 50),
             'recent_notes' => fn (): array => $this->noteLinks($vault, 'opened_at', 'desc', 6),
+            'canvases' => fn (): array => $this->canvases->all($vault),
             'table_views' => fn (): array => $vault->tableViews()->orderBy('name')->get(['id', 'name'])->map(fn (TableView $view): array => ['id' => $view->id, 'name' => $view->name])->all(),
             'open_tasks' => fn (): int => $this->templates->exclude(DB::table('note_tasks')->join('notes', 'notes.id', '=', 'note_tasks.note_id')->where('note_tasks.vault_id', $vault->id)->where('note_tasks.done', false), 'notes.path')->count(),
             'tags' => DB::table('note_tags')
