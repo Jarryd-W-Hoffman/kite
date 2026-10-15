@@ -66,3 +66,18 @@ it('can be switched off in preferences', function (): void {
         ->assertMissing('@live-checkbox')
         ->assertNoJavaScriptErrors();
 });
+
+it('folds frontmatter into a properties chip until the cursor goes inside', function (): void {
+    $vault = vaultWithFiles(['Plan.md' => "---\nstatus: active\ntags:\n  - a\nowner: Sam\n---\n# Plan\n\nBody"]);
+    resolve(IndexVault::class)->handle($vault);
+
+    visit(route('notes.show', [$vault, Note::query()->sole()]))
+        ->assertSeeIn('@properties-chip', '3 properties')
+        ->assertScript(lineText(0), 'Plan')
+        ->click('@properties-chip')
+        ->assertMissing('@properties-chip')
+        ->assertScript(lineText(1), 'status: active')
+        ->keys('@note-editor', ['Control+End'])
+        ->assertSeeIn('@properties-chip', '3 properties')
+        ->assertNoJavaScriptErrors();
+});

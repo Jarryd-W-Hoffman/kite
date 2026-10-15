@@ -1,5 +1,6 @@
 import { syntaxTree } from '@codemirror/language';
-import type { EditorState, Range } from '@codemirror/state';
+import { StateEffect, StateField } from '@codemirror/state';
+import type { EditorState, Extension, Range } from '@codemirror/state';
 import {
     Decoration,
     EditorView,
@@ -258,7 +259,7 @@ function build(view: EditorView): DecorationSet {
  * Obsidian-style live preview: markdown syntax fades away on lines you aren't editing, leaving
  * headings, emphasis, links, bullets and checkboxes as they will read.
  */
-export const livePreview = ViewPlugin.fromClass(
+const inlinePreview = ViewPlugin.fromClass(
     class {
         decorations: DecorationSet;
 
@@ -312,9 +313,139 @@ export const livePreviewTheme = EditorView.theme({
         textDecorationColor:
             'color-mix(in oklch, var(--muted-foreground) 50%, transparent)',
     },
+    '.cm-kite-properties': {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        margin: '0 0 12px',
+        padding: '2px 10px',
+        borderRadius: '999px',
+        border: '1px solid var(--border)',
+        backgroundColor: 'color-mix(in oklch, var(--muted) 60%, transparent)',
+        color: 'var(--muted-foreground)',
+        fontFamily: 'var(--font-sans)',
+        fontSize: '12px',
+        cursor: 'pointer',
+    },
+    '.cm-kite-properties::before': {
+        content: '"≡"',
+        fontWeight: '700',
+    },
+    '.cm-kite-properties:hover': {
+        color: 'var(--foreground)',
+        borderColor: 'color-mix(in oklch, var(--primary) 40%, transparent)',
+    },
     '.cm-kite-bullet': {
         color: 'color-mix(in oklch, var(--foreground) 45%, transparent)',
         display: 'inline-block',
         width: '0.6em',
     },
 });
+
+const FRONTMATTER = /^---[ \t]*\n([\s\S]*?)\n(?:---|\.\.\.)[ \t]*(?:\n|$)/;
+
+class PropertiesWidget extends WidgetType {
+    constructor(private readonly count: number) {
+        super();
+    }
+
+    eq(other: PropertiesWidget): boolean {
+        return other.count === this.count;
+    }
+
+    toDOM(view: EditorView): HTMLElement {
+        const chip = document.createElement('div');
+
+        chip.className = 'cm-kite-properties';
+        chip.dataset.test = 'properties-chip';
+        chip.textContent = `${this.count} ${this.count === 1 ? 'property' : 'properties'}`;
+        chip.title = 'Show the frontmatter';
+        chip.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+            // Step inside the block to edit it as text.
+            view.dispatch({ selection: { anchor: 4 } });
+            view.focus();
+        });
+
+        return chip;
+    }
+
+    ignoreEvent(): boolean {
+        return true;
+    }
+}
+
+function collapsedFrontmatter(
+    state: EditorState,
+    focused: boolean,
+): DecorationSet {
+    const match = FRONTMATTER.exec(state.doc.sliceString(0, 20_000));
+
+    if (!match) {
+        return Decoration.none;
+    }
+
+    const end = match[0].endsWith('\n') ? match[0].length - 1 : match[0].length;
+    const editing =
+        focused && state.selection.ranges.some((range) => range.from <= end);
+
+    if (editing) {
+        return Decoration.none;
+    }
+
+    const count = match[1]
+        .split('\n')
+        .filter((line) => /^[^\s#-][^:]*:/.test(line)).length;
+
+    return Decoration.set(
+        Decoration.replace({
+            widget: new PropertiesWidget(count),
+            block: true,
+        }).range(0, end),
+    );
+}
+
+const setFocused = StateEffect.define<boolean>();
+
+/**
+ * Frontmatter folds into a "3 properties" chip (it's edited in the Properties panel), opening
+ * back up as text while the cursor is inside it.
+ */
+const frontmatterChip = StateField.define<{
+    focused: boolean;
+    decorations: DecorationSet;
+}>({
+    create: (state) => ({
+        focused: false,
+        decorations: collapsedFrontmatter(state, false),
+    }),
+    update: (value, transaction) => {
+        let focused = value.focused;
+
+        for (const effect of transaction.effects) {
+            if (effect.is(setFocused)) {
+                focused = effect.value;
+            }
+        }
+
+        return focused !== value.focused ||
+            transaction.docChanged ||
+            transaction.selection
+            ? {
+                  focused,
+                  decorations: collapsedFrontmatter(transaction.state, focused),
+              }
+            : value;
+    },
+    provide: (field) => [
+        EditorView.decorations.from(field, (value) => value.decorations),
+        EditorView.focusChangeEffect.of((_state, focusing) =>
+            setFocused.of(focusing),
+        ),
+    ],
+});
+
+/**
+ * Obsidian-style live preview: markdown syntax on other lines, and the frontmatter block.
+ */
+export const livePreview: Extension = [inlinePreview, frontmatterChip];

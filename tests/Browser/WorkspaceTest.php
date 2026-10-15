@@ -151,6 +151,7 @@ it('shows frontmatter in the editor without heading styles', function (): void {
     $weight = fn (string $text): string => "getComputedStyle([...document.querySelectorAll('.cm-line')].find((line) => line.textContent === '{$text}').firstElementChild).fontWeight";
 
     visit(route('notes.show', [$vault, Note::query()->sole()]))
+        ->click('@properties-chip')
         ->assertScript($weight('status: active'), '400')
         ->assertScript("Number({$weight('Title')}) >= 600", true)
         ->assertNoJavaScriptErrors();
