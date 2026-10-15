@@ -5,8 +5,10 @@ declare(strict_types=1);
 use Illuminate\Support\Sleep;
 
 afterEach(function (): void {
-    pcntl_signal(SIGINT, SIG_DFL);
-    pcntl_signal(SIGTERM, SIG_DFL);
+    if (function_exists('pcntl_signal')) {
+        pcntl_signal(SIGINT, SIG_DFL);
+        pcntl_signal(SIGTERM, SIG_DFL);
+    }
 });
 
 it('stops the other process group, children included, when one process ends', function (): void {
@@ -32,7 +34,7 @@ it('stops the other process group, children included, when one process ends', fu
 
     expect($child)->toBeGreaterThan(0)
         ->and(posix_kill($child, 0))->toBeFalse();
-});
+})->skipOnWindows();
 
 it('stops everything when interrupted', function (): void {
     config(['kite.dev.commands' => [
@@ -43,4 +45,4 @@ it('stops everything when interrupted', function (): void {
     $this->artisan('kite:dev')
         ->expectsOutputToContain('Stopped app and signal.')
         ->assertExitCode(0);
-});
+})->skipOnWindows();

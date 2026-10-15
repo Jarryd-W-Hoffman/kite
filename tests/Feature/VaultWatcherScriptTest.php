@@ -64,7 +64,7 @@ it('reports debounced markdown and attachment changes, ignoring hidden and unrel
 
     $lines = watcherLines($process, fn (array $lines): bool => count(array_merge(...array_column($lines, 'paths'))) >= 2);
 
-    $process->stop(1, SIGTERM);
+    $process->stop(1);
 
     $paths = array_unique(array_merge(...array_column(array_slice($lines, 1), 'paths')));
 
