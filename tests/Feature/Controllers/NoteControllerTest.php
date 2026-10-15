@@ -122,7 +122,7 @@ it('says a deleted note went to the trash in the desktop app', function (): void
         ->delete(route('notes.destroy', [$vault, Note::query()->sole()]))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Moved “A” to the trash.']);
 
-    Shell::assertTrashedFile($vault->path.'/A.md');
+    Shell::assertTrashedFile(osPath($vault->path.'/A.md'));
 });
 
 it('saves note text exactly, including surrounding whitespace', function (): void {

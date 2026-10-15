@@ -36,7 +36,7 @@ it('lists, reads, writes, moves and deletes files inside the vault', function ()
         ->and($files->read($vault, 'Moved/New.md'))->toBe('Hello')
         ->and($files->stat($vault, 'Moved/New.md')['size'])->toBe(5)
         ->and($files->exists($vault, 'Nested/New.md'))->toBeFalse()
-        ->and($files->absolutePath($vault, 'Moved/New.md'))->toBe($vault->path.'/Moved/New.md');
+        ->and($files->absolutePath($vault, 'Moved/New.md'))->toBe(osPath($vault->path.'/Moved/New.md'));
 
     $files->trash($vault, 'Moved/New.md');
 
@@ -106,7 +106,7 @@ it('trashes folders, or deletes them outside the desktop app', function (): void
 
     $files->trash($vault, 'Keep');
 
-    Shell::assertTrashedFile($vault->path.'/Keep');
+    Shell::assertTrashedFile(osPath($vault->path.'/Keep'));
     expect(is_dir($vault->path.'/Keep'))->toBeTrue();
 });
 

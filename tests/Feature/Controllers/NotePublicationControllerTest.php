@@ -29,7 +29,7 @@ afterEach(function (): void {
 });
 
 it('publishes a note and the notes it links to as linked pages', function (): void {
-    $folder = $this->root.'/my-notes/guide';
+    $folder = $this->root.osPath('/my-notes/guide');
     File::ensureDirectoryExists($folder);
     File::put($folder.'/stale.html', 'old');
     File::put($folder.'/keep.txt', 'mine');
@@ -52,7 +52,7 @@ it('shows the published page in the desktop app', function (): void {
         ->post(route('note-publications.store', [$this->vault, $this->guide]))
         ->assertRedirect();
 
-    Shell::assertShowInFolder($this->root.'/my-notes/guide/index.html');
+    Shell::assertShowInFolder($this->root.osPath('/my-notes/guide/index.html'));
 });
 
 it('defaults to a folder in the home directory', function (): void {

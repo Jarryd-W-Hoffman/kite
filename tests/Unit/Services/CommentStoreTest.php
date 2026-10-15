@@ -87,7 +87,7 @@ it('trashes comment files in the desktop app', function (): void {
     $this->store->trash($this->vault, 'Work', folder: true);
     $this->store->trash($this->vault, 'Nothing/Here.md');
 
-    Shell::assertTrashedFile($this->vault->path.'/.kite/comments/Work');
+    Shell::assertTrashedFile(osPath($this->vault->path.'/.kite/comments/Work'));
 });
 
 it('is never indexed as notes', function (): void {

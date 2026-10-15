@@ -146,7 +146,7 @@ jobs:
           php-version: 8.5
           tools: composer:v2
           coverage: none
-          extensions: fileinfo, mbstring, pdo_sqlite, sockets, sodium, sqlite3, zip
+          extensions: fileinfo, gd, mbstring, pdo_sqlite, sockets, sodium, sqlite3, zip
           ini-values: zend.assertions=1
 
       - name: Setup Bun

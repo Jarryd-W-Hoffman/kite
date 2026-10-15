@@ -41,6 +41,7 @@ final readonly class ImportNotionExport
     public function handle(Vault $vault, string $zipPath, string $folder = 'Notion'): array
     {
         $temporary = [];
+        $entries = [];
 
         try {
             $entries = $this->entries($zipPath, $temporary);
@@ -49,6 +50,15 @@ final readonly class ImportNotionExport
 
             return $this->import($vault, $entries, $folder);
         } finally {
+            // Close the archives before deleting the nested zips they read: Windows won't delete
+            // a file that's still open.
+            $archives = [];
+
+            foreach ($entries as [$archive]) {
+                $archives[spl_object_id($archive)] = $archive;
+            }
+
+            array_map(fn (ZipArchive $archive): bool => $archive->close(), $archives);
             array_map(unlink(...), $temporary);
         }
     }

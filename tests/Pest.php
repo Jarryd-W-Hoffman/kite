@@ -42,6 +42,14 @@ final class TemporaryVaults
 }
 
 /**
+ * A path written with `/` as the app builds it on this platform, with its own directory separator.
+ */
+function osPath(string $path): string
+{
+    return str_replace('/', DIRECTORY_SEPARATOR, $path);
+}
+
+/**
  * Create a vault backed by a real temporary folder containing the given markdown files.
  *
  * @param  array<string, string>  $files

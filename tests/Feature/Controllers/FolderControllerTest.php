@@ -150,7 +150,7 @@ it('sends deleted folders to the trash in the desktop app', function (): void {
         ->assertSessionHasNoErrors()
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Moved “Projects” to the trash.']);
 
-    Shell::assertTrashedFile($vault->path.'/Projects');
+    Shell::assertTrashedFile(osPath($vault->path.'/Projects'));
 });
 
 it('validates folder deletes', function (array $data, string $message): void {
