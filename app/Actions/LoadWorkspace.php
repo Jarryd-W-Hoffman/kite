@@ -15,6 +15,7 @@ use App\Services\Row;
 use App\Services\Templates;
 use App\Services\VaultFilesystem;
 use App\Services\VaultWatcher;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class LoadWorkspace
@@ -61,6 +62,7 @@ final readonly class LoadWorkspace
             'folders' => fn (): array => $this->files->folders($vault),
             'colour_groups' => $this->colourGroups->summaries($vault),
             'templates' => fn (): array => $this->templates->all($vault),
+            'daily_dates' => fn (): array => $this->dailyDates($vault),
             'favourites' => fn (): array => $this->noteLinks($vault, 'starred_at', 'asc', 50),
             'recent_notes' => fn (): array => $this->noteLinks($vault, 'opened_at', 'desc', 6),
             'table_views' => fn (): array => $vault->tableViews()->orderBy('name')->get(['id', 'name'])->map(fn (TableView $view): array => ['id' => $view->id, 'name' => $view->name])->all(),
@@ -102,6 +104,28 @@ final readonly class LoadWorkspace
             'html' => $rendered->html,
             'outline' => $rendered->outline,
         ];
+    }
+
+    /**
+     * The dates that have a daily note, for the sidebar calendar.
+     *
+     * @return list<string>
+     */
+    private function dailyDates(Vault $vault): array
+    {
+        $dates = [];
+
+        foreach (DB::table('notes')->where('vault_id', $vault->id)->pluck('path') as $path) {
+            $date = $this->daily->dateOf(is_string($path) ? $path : '');
+
+            if ($date instanceof CarbonImmutable) {
+                $dates[] = $date->toDateString();
+            }
+        }
+
+        sort($dates);
+
+        return $dates;
     }
 
     /**
