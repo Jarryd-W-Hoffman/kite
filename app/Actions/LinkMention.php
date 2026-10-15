@@ -24,6 +24,10 @@ final readonly class LinkMention
      */
     public function handle(Note $source, Note $target, int $line): bool
     {
+        if ($source->locked) {
+            return false;
+        }
+
         $contents = $this->files->read($source->vault, $source->path);
 
         $linked = $this->matcher->link(

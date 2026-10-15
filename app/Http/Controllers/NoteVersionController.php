@@ -7,7 +7,9 @@ namespace App\Http\Controllers;
 use App\Models\Note;
 use App\Models\NoteVersion;
 use App\Models\Vault;
+use App\Services\NoteLocks;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 final readonly class NoteVersionController
 {
@@ -23,16 +25,27 @@ final readonly class NoteVersionController
     }
 
     /**
-     * A version's text, with the version before it so the change it made can be shown.
+     * A version's text, with the version before it so the change it made can be shown. Versions
+     * of a locked note are opened with the vault's key; without it they come back empty.
      */
-    public function show(Vault $vault, Note $note, NoteVersion $version): JsonResponse
+    public function show(Request $request, Vault $vault, Note $note, NoteVersion $version, NoteLocks $locks): JsonResponse
     {
         $previous = $note->versions()->where('id', '<', $version->id)->latest('id')->value('contents');
+        $key = $locks->keyFrom($vault, $request->header(NoteLocks::HEADER));
+
+        $open = function (?string $contents) use ($locks, $key): ?string {
+            if ($contents === null || ! $locks->isLocked($contents)) {
+                return $contents;
+            }
+
+            return $key === null ? '' : $locks->unlockNote($contents, $key);
+        };
 
         return response()->json([
             ...$version->toSummary(),
-            'contents' => $version->contents,
-            'previous' => $previous,
+            'contents' => $open($version->contents),
+            'previous' => $open(is_string($previous) ? $previous : null),
+            'locked' => $locks->isLocked($version->contents),
         ]);
     }
 }

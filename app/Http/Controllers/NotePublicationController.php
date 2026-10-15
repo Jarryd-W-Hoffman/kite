@@ -8,6 +8,7 @@ use App\Actions\PublishNote;
 use App\Models\Note;
 use App\Models\Vault;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Native\Desktop\Facades\Shell;
 
@@ -15,6 +16,10 @@ final readonly class NotePublicationController
 {
     public function store(Vault $vault, Note $note, PublishNote $action): RedirectResponse
     {
+        throw_if($note->locked, ValidationException::withMessages([
+            'note' => __('Locked notes can’t be published.'),
+        ]));
+
         $folder = $action->handle($note);
         $index = $folder.DIRECTORY_SEPARATOR.'index.html';
 

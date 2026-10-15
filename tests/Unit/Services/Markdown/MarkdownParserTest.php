@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Services\Markdown\MarkdownParser;
 use App\Services\Markdown\ParsedNote;
 use App\Services\Markdown\WikiLink;
+use App\Services\NoteLocks;
 
 function parseNote(string $contents, string $path = 'Notes/Example.md'): ParsedNote
 {
@@ -158,3 +159,20 @@ it('leaves inline tags out of titles taken from the heading', function (string $
     'tags between words' => ['Topic #a [[Home]] #b/c', 'Topic Home'],
     'only tags' => ['#idea #later', 'File name'],
 ]);
+
+it('reads nothing from a locked note but its file name', function (): void {
+    $vault = vaultWithFiles([]);
+    $locks = resolve(NoteLocks::class);
+    $locked = $locks->lock("---\nstatus: secret\n---\n# Heading\n\n- [ ] task #tag [[Link]]", $locks->setUp($vault, 'correct horse battery'));
+
+    $parsed = parseNote($locked, 'Folder/Bank details.md');
+
+    expect($parsed->locked)->toBeTrue()
+        ->and($parsed->title)->toBe('Bank details')
+        ->and($parsed->body)->toBe('')
+        ->and($parsed->frontmatter)->toBe([])
+        ->and($parsed->links)->toBe([])
+        ->and($parsed->tags)->toBe([])
+        ->and($parsed->tasks)->toBe([])
+        ->and($parsed->wordCount)->toBe(0);
+});

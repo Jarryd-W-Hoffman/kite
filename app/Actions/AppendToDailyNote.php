@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Models\Note;
 use App\Models\Vault;
 use App\Services\VaultFilesystem;
+use InvalidArgumentException;
 
 final readonly class AppendToDailyNote
 {
@@ -25,6 +26,8 @@ final readonly class AppendToDailyNote
     {
         $note = $this->openDailyNote->handle($vault);
         $contents = $this->files->read($vault, $note->path);
+
+        throw_if($note->locked, InvalidArgumentException::class, "Today's note is locked.");
 
         $lines = preg_split('/\R/', mb_trim($text)) ?: [];
         $entry = '- '.now()->format('H:i').' '.array_shift($lines);

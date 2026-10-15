@@ -19,6 +19,10 @@ final readonly class NoteExportController
      */
     public function show(Vault $vault, Note $note, string $format, NoteExporter $exporter): Response
     {
+        throw_if($note->locked, ValidationException::withMessages([
+            'format' => __('Locked notes can’t be exported.'),
+        ]));
+
         $html = $exporter->page($note);
         $name = Str::of($note->title)->replaceMatches('/[\\\\\/:*?"<>|]+/u', ' ')->squish()->toString() ?: 'note';
 

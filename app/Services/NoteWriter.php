@@ -31,6 +31,7 @@ final readonly class NoteWriter
             'title' => $parsed->title,
             'frontmatter' => json_encode($parsed->frontmatter, JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'word_count' => $parsed->wordCount,
+            'locked' => $parsed->locked,
             'size' => $stat['size'],
             'modified_at' => $stat['modified_at'],
             'hash' => hash('xxh128', $contents),

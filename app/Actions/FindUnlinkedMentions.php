@@ -72,6 +72,7 @@ final readonly class FindUnlinkedMentions
             ->join('notes', 'notes.id', '=', 'notes_fts.rowid'), 'notes.path')
             ->where('notes.vault_id', $note->vault_id)
             ->where('notes.id', '!=', $note->id)
+            ->where('notes.locked', false)
             ->whereNotIn('notes.id', $linkingNoteIds)
             ->whereRaw('notes_fts MATCH ?', [$phrases])
             ->orderByRaw('bm25(notes_fts)')

@@ -19,6 +19,7 @@ import {
     X,
     Eye,
     Focus,
+    LockKeyhole,
     Merge,
     Scissors,
 } from 'lucide-react';
@@ -159,6 +160,20 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         icon: Merge,
         note: true,
         keywords: 'refactor combine join',
+    },
+    {
+        id: 'lock-note',
+        label: 'Lock or unlock this note',
+        icon: LockKeyhole,
+        note: true,
+        keywords: 'encrypt encryption password secure private',
+    },
+    {
+        id: 'lock-vault',
+        label: 'Lock the vault now',
+        icon: LockKeyhole,
+        note: true,
+        keywords: 'encrypt close secure',
     },
     {
         id: 'export-html',

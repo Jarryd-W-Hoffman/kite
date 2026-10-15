@@ -12,6 +12,7 @@ use App\Services\Markdown\MarkdownParser;
 use App\Services\VaultFilesystem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 final readonly class NoteFrontmatterController
 {
@@ -24,6 +25,10 @@ final readonly class NoteFrontmatterController
             'key' => ['required', 'string', 'max:100', 'regex:/^[^:#\n\[\]{},]+$/u'],
             'value' => ['present', 'nullable'],
         ]);
+
+        throw_if($note->locked, ValidationException::withMessages([
+            'key' => __('“:note” is locked. Open it to change its properties.', ['note' => $note->title]),
+        ]));
 
         $contents = $files->read($vault, $note->path);
         $properties = $parser->parse($contents, $note->path)->frontmatter;

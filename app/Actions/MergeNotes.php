@@ -32,6 +32,7 @@ final readonly class MergeNotes
     public function handle(Note $source, Note $target): Note
     {
         throw_if($source->is($target), InvalidArgumentException::class, 'A note cannot be merged into itself.');
+        throw_if($source->locked || $target->locked, InvalidArgumentException::class, 'Locked notes cannot be merged.');
 
         $vault = $target->vault;
         $contents = $this->files->read($vault, $target->path);

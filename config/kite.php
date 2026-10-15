@@ -123,6 +123,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Locked notes
+    |--------------------------------------------------------------------------
+    |
+    | How hard the vault passphrase is stretched (Argon2id) when a vault's lock
+    | is set up. The cost is stored with the vault, so changing it only affects
+    | vaults set up afterwards. Tests use the minimum to stay quick.
+    |
+    */
+
+    'locks' => [
+        'opslimit' => (int) env('KITE_LOCK_OPSLIMIT', SODIUM_CRYPTO_PWHASH_OPSLIMIT_MODERATE),
+        'memlimit' => (int) env('KITE_LOCK_MEMLIMIT', SODIUM_CRYPTO_PWHASH_MEMLIMIT_MODERATE),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Development
     |--------------------------------------------------------------------------
     |

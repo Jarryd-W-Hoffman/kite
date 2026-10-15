@@ -16,10 +16,12 @@ use App\Models\Note;
 use App\Models\Vault;
 use App\Services\CommentStore;
 use App\Services\DailyNotes;
+use App\Services\NoteLocks;
 use App\Services\Templates;
 use App\Services\VaultFilesystem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -66,23 +68,39 @@ final readonly class NoteController
         return to_route('notes.show', [$vault, $note]);
     }
 
-    public function show(Vault $vault, Note $note, LoadWorkspace $action, FindUnlinkedMentions $mentions, CommentStore $comments): Response
+    public function show(Request $request, Vault $vault, Note $note, LoadWorkspace $action, FindUnlinkedMentions $mentions, CommentStore $comments, NoteLocks $locks): Response
     {
         // Remember the visit for the sidebar's recent notes, without touching updated_at.
         DB::table('notes')->where('id', $note->id)->update(['opened_at' => now()]);
 
+        // An opened locked note's text must not be kept readable in the window's history.
+        if ($note->locked) {
+            Inertia::encryptHistory();
+        }
+
         return Inertia::render('note/show', [
-            ...$action->handle($vault, $note),
+            ...$action->handle($vault, $note, $locks->keyFrom($vault, $request->header(NoteLocks::HEADER))),
             'mentions' => Inertia::defer(fn (): array => $mentions->handle($note)),
             ...$this->comments($vault, $note, $comments),
         ]);
     }
 
-    public function update(UpdateNoteRequest $request, Vault $vault, Note $note, SaveNote $action, RenderMarkdown $renderMarkdown, DailyNotes $daily): JsonResponse
+    public function update(UpdateNoteRequest $request, Vault $vault, Note $note, SaveNote $action, RenderMarkdown $renderMarkdown, DailyNotes $daily, NoteLocks $locks): JsonResponse
     {
         $contents = $request->string('contents')->toString();
 
-        $note = $action->handle($note, $contents);
+        if ($note->locked) {
+            $key = $locks->keyFrom($vault, $request->header(NoteLocks::HEADER));
+
+            throw_if($key === null, ValidationException::withMessages([
+                'passphrase' => __('The vault locked again. Unlock it to save this note.'),
+            ]));
+
+            $note = $action->handle($note, $locks->lock($contents, $key));
+        } else {
+            $note = $action->handle($note, $contents);
+        }
+
         $rendered = $renderMarkdown->render($vault, $contents, $note->path);
 
         return response()->json([

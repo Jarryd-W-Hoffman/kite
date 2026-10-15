@@ -22,6 +22,8 @@ export type AppCommand =
     | 'extract-selection'
     | 'merge-note'
     | 'focus-mode'
+    | 'lock-note'
+    | 'lock-vault'
     | 'export-html'
     | 'export-pdf'
     | 'publish';

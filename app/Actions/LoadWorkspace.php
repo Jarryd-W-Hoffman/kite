@@ -11,12 +11,14 @@ use App\Models\Vault;
 use App\Services\ColourGroups;
 use App\Services\DailyNotes;
 use App\Services\IndexingProgress;
+use App\Services\NoteLocks;
 use App\Services\Row;
 use App\Services\Templates;
 use App\Services\VaultFilesystem;
 use App\Services\VaultWatcher;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use SensitiveParameter;
 
 final readonly class LoadWorkspace
 {
@@ -30,14 +32,16 @@ final readonly class LoadWorkspace
         private DailyNotes $daily,
         private ColourGroups $colourGroups,
         private Templates $templates,
+        private NoteLocks $locks,
     ) {
         //
     }
 
     /**
+     * @param  string|null  $key  The vault's key while it is unlocked, to open a locked note.
      * @return array<string, mixed>
      */
-    public function handle(Vault $vault, ?Note $note = null): array
+    public function handle(Vault $vault, ?Note $note = null, #[SensitiveParameter] ?string $key = null): array
     {
         $groups = $this->colourGroups->assign($vault);
 
@@ -51,12 +55,13 @@ final readonly class LoadWorkspace
             'tree' => DB::table('notes')
                 ->where('vault_id', $vault->id)
                 ->orderByRaw('path COLLATE NOCASE')
-                ->get(['id', 'path', 'title'])
+                ->get(['id', 'path', 'title', 'locked'])
                 ->map(fn (object $row): array => [
                     'id' => Row::int($row, 'id'),
                     'path' => Row::string($row, 'path'),
                     'title' => Row::string($row, 'title'),
                     'group' => $groups[Row::int($row, 'id')] ?? null,
+                    'locked' => Row::int($row, 'locked') === 1,
                 ])
                 ->all(),
             'folders' => fn (): array => $this->files->folders($vault),
@@ -79,30 +84,41 @@ final readonly class LoadWorkspace
                 ->all(),
             'indexing' => $this->progress->get($vault),
             'watching' => $this->watcher->isWatching($vault),
-            'note' => $note instanceof Note ? $this->noteDetail($note) : null,
+            'passphrase_set' => fn (): bool => $this->locks->isSetUp($vault),
+            'note' => $note instanceof Note ? $this->noteDetail($note, $key) : null,
             'backlinks' => $note instanceof Note ? $this->backlinks($note) : [],
             'outgoing' => $note instanceof Note ? $this->outgoing($note) : [],
         ];
     }
 
     /**
-     * Everything needed to edit and preview a single note.
+     * Everything needed to edit and preview a single note. A locked note is opened with the
+     * vault's key; without it, the note comes back empty and marked as still locked.
      *
      * @return array<string, mixed>
      */
-    public function noteDetail(Note $note): array
+    public function noteDetail(Note $note, #[SensitiveParameter] ?string $key = null): array
     {
         $contents = $this->files->read($note->vault, $note->path);
-        $rendered = $this->renderMarkdown->render($note->vault, $contents, $note->path);
+        $locked = $this->locks->isLocked($contents);
+
+        if ($locked) {
+            $contents = $key === null ? null : $this->locks->unlockNote($contents, $key);
+        }
+
+        // A note that stays locked renders as nothing.
+        $rendered = $this->renderMarkdown->render($note->vault, $contents ?? '', $note->path);
 
         return [
             ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'hash', 'modified_at']),
-            'contents' => $contents,
+            'contents' => $contents ?? '',
             'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
             'starred' => $note->starred_at !== null,
             'daily_date' => $this->daily->dateOf($note->path)?->toDateString(),
             'html' => $rendered->html,
             'outline' => $rendered->outline,
+            'locked' => $locked,
+            'unlocked' => $locked && $contents !== null,
         ];
     }
 
