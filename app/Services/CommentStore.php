@@ -38,8 +38,8 @@ final readonly class CommentStore
      */
     public function path(Vault $vault, string $notePath, string $extension = '.json'): string
     {
-        return $vault->path.DIRECTORY_SEPARATOR
-            .str_replace('/', DIRECTORY_SEPARATOR, self::FOLDER.'/'.$this->files->normalise($notePath).$extension);
+        return $this->files->contained($vault, $vault->path.DIRECTORY_SEPARATOR
+            .str_replace('/', DIRECTORY_SEPARATOR, self::FOLDER.'/'.$this->files->normalise($notePath).$extension));
     }
 
     /**

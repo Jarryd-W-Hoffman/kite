@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Actions\IndexVault;
+use App\Services\CommentStore;
+use App\Services\NoteLocks;
 use App\Services\VaultFilesystem;
+use Illuminate\Support\Facades\File;
 use Native\Desktop\Facades\Shell;
 
 it('normalises safe relative paths', function (string $path, string $expected): void {
@@ -124,4 +128,56 @@ it('moves every remaining file out of a folder and removes it', function (): voi
         ->and(file_exists($vault->path.'/To/Nested/deep/node_modules/x.js'))->toBeTrue()
         ->and(is_dir($vault->path.'/To/Nested/empty'))->toBeTrue()
         ->and(is_dir($vault->path.'/Anywhere'))->toBeFalse();
+});
+
+it('keeps symlinks from leading outside the vault', function (): void {
+    $outside = vaultWithFiles(['secret.md' => 'private key', 'Notes/elsewhere.md' => 'elsewhere']);
+    $vault = vaultWithFiles(['Real.md' => 'real', 'Folder/Kept.md' => 'kept']);
+    $files = new VaultFilesystem();
+
+    symlink($outside->path.'/secret.md', $vault->path.'/Linked.md');
+    symlink($outside->path.'/Notes', $vault->path.'/Linked Folder');
+    symlink($vault->path.'/Real.md', $vault->path.'/Alias.md');
+    symlink($vault->path.'/Folder', $vault->path.'/Alias Folder');
+
+    expect(array_keys($files->markdownFiles($vault)))->toBe(['Alias.md', 'Folder/Kept.md', 'Real.md'])
+        ->and($files->folders($vault))->toBe(['Alias Folder', 'Folder'])
+        ->and($files->read($vault, 'Alias.md'))->toBe('real')
+        ->and(fn (): string => $files->read($vault, 'Linked.md'))->toThrow(InvalidArgumentException::class, 'leads outside the vault')
+        ->and(fn (): bool => $files->exists($vault, 'Linked Folder/elsewhere.md'))->toThrow(InvalidArgumentException::class)
+        ->and(fn () => $files->write($vault, 'Linked Folder/New.md', 'escaped'))->toThrow(InvalidArgumentException::class)
+        ->and(fn () => $files->write($vault, 'Linked Folder/Deeper/New.md', 'escaped'))->toThrow(InvalidArgumentException::class);
+
+    $files->write($vault, 'Alias Folder/New.md', 'inside');
+
+    expect(file_get_contents($vault->path.'/Folder/New.md'))->toBe('inside')
+        ->and(file_exists($outside->path.'/Notes/New.md'))->toBeFalse()
+        ->and(file_get_contents($outside->path.'/secret.md'))->toBe('private key');
+});
+
+it('keeps vault data files from being linked outside the vault', function (): void {
+    $outside = vaultWithFiles();
+    $vault = vaultWithFiles(['Note.md' => 'x']);
+
+    symlink($outside->path, $vault->path.'/.kite');
+
+    expect(fn () => resolve(CommentStore::class)->path($vault, 'Note.md'))->toThrow(InvalidArgumentException::class)
+        ->and(fn () => resolve(NoteLocks::class)->isSetUp($vault))->toThrow(InvalidArgumentException::class);
+});
+
+it('indexes a vault with escaping symlinks without reading them', function (): void {
+    $outside = vaultWithFiles(['secret.md' => '# Secret']);
+    $vault = vaultWithFiles(['Real.md' => '# Real']);
+
+    symlink($outside->path.'/secret.md', $vault->path.'/Linked.md');
+    resolve(IndexVault::class)->handle($vault);
+
+    expect($vault->notes()->pluck('path')->all())->toBe(['Real.md']);
+});
+
+it('treats every path as outside a vault whose folder is gone', function (): void {
+    $vault = vaultWithFiles(['Note.md' => 'x']);
+    File::deleteDirectory($vault->path);
+
+    expect(fn (): string => new VaultFilesystem()->absolutePath($vault, 'Note.md'))->toThrow(InvalidArgumentException::class, 'leads outside the vault');
 });

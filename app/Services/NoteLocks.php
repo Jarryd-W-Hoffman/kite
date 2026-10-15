@@ -47,6 +47,11 @@ final readonly class NoteLocks
 
     private const int RECOVERY_LENGTH = 32;
 
+    public function __construct(private VaultFilesystem $files = new VaultFilesystem)
+    {
+        //
+    }
+
     /**
      * Choose the vault's passphrase, returning the new vault key it unlocks.
      */
@@ -306,6 +311,6 @@ final readonly class NoteLocks
 
     private function file(Vault $vault): string
     {
-        return $vault->path.DIRECTORY_SEPARATOR.self::FILE;
+        return $this->files->contained($vault, $vault->path.DIRECTORY_SEPARATOR.self::FILE);
     }
 }
