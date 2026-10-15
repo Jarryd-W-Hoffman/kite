@@ -6,6 +6,7 @@ use App\Actions\IndexVault;
 use App\Services\CommentStore;
 use App\Services\NoteLocks;
 use App\Services\VaultFilesystem;
+use Illuminate\Support\Facades\File;
 use Native\Desktop\Facades\Shell;
 
 it('normalises safe relative paths', function (string $path, string $expected): void {
@@ -172,4 +173,11 @@ it('indexes a vault with escaping symlinks without reading them', function (): v
     resolve(IndexVault::class)->handle($vault);
 
     expect($vault->notes()->pluck('path')->all())->toBe(['Real.md']);
+});
+
+it('treats every path as outside a vault whose folder is gone', function (): void {
+    $vault = vaultWithFiles(['Note.md' => 'x']);
+    File::deleteDirectory($vault->path);
+
+    expect(fn (): string => new VaultFilesystem()->absolutePath($vault, 'Note.md'))->toThrow(InvalidArgumentException::class, 'leads outside the vault');
 });
