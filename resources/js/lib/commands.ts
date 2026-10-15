@@ -15,6 +15,7 @@ import {
     Network,
     PanelRight,
     Settings2,
+    Presentation,
     Star,
     Table2,
     X,
@@ -75,6 +76,12 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         label: 'New table view',
         icon: Table2,
         keywords: 'database base',
+    },
+    {
+        id: 'new-canvas',
+        label: 'New canvas',
+        icon: Presentation,
+        keywords: 'whiteboard board diagram map',
     },
     {
         id: 'toggle-theme',
