@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Http\Middleware\HandleInertiaRequests;
-use App\Services\Settings;
 use App\Actions\CreateFolder;
 use App\Actions\DeleteFolder;
 use App\Actions\IndexVault;
@@ -11,9 +9,11 @@ use App\Actions\RenameFolder;
 use App\Actions\RenameNote;
 use App\Actions\ReorderColourGroups;
 use App\Actions\SaveNote;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\ColourGroup;
 use App\Models\Note;
 use App\Models\Vault;
+use App\Services\Settings;
 
 beforeEach(function (): void {
     $this->vault = vaultWithFiles([
