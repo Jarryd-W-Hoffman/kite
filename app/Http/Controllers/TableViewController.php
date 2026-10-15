@@ -43,6 +43,8 @@ final readonly class TableViewController
             'columns' => array_values(array_filter((array) $request->input('columns', []), is_string(...))),
             'sort_key' => $request->filled('sort_key') ? $request->string('sort_key')->toString() : null,
             'sort_desc' => $request->boolean('sort_desc'),
+            'layout' => $request->string('layout', $tableView->layout)->toString(),
+            'group_by' => $request->filled('group_by') ? $request->string('group_by')->toString() : null,
         ]);
 
         return back();

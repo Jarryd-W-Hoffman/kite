@@ -22,6 +22,8 @@ final class SaveTableViewRequest extends FormRequest
             'columns.*' => ['string', 'distinct', 'max:100'],
             'sort_key' => ['nullable', 'string', 'max:100'],
             'sort_desc' => ['boolean'],
+            'layout' => ['sometimes', 'in:table,board'],
+            'group_by' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

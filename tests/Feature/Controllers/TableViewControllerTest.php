@@ -48,12 +48,16 @@ it('saves a view and rejects bad queries', function (): void {
     $view = TableView::factory()->for($this->vault)->create();
 
     $this->fromRoute('table-views.show', [$this->vault, $view])
-        ->put(route('table-views.update', [$this->vault, $view]), ['name' => ' Active ', 'query' => 'status:active', 'columns' => ['status', 'priority'], 'sort_key' => 'priority', 'sort_desc' => true])
+        ->put(route('table-views.update', [$this->vault, $view]), ['name' => ' Active ', 'query' => 'status:active', 'columns' => ['status', 'priority'], 'sort_key' => 'priority', 'sort_desc' => true, 'layout' => 'board', 'group_by' => 'status'])
         ->assertRedirectToRoute('table-views.show', [$this->vault, $view]);
 
     expect($view->refresh()->toSummary())->toBe([
-        'id' => $view->id, 'name' => 'Active', 'query' => 'status:active', 'columns' => ['status', 'priority'], 'sort_key' => 'priority', 'sort_desc' => true,
+        'id' => $view->id, 'name' => 'Active', 'query' => 'status:active', 'columns' => ['status', 'priority'], 'sort_key' => 'priority', 'sort_desc' => true, 'layout' => 'board', 'group_by' => 'status',
     ]);
+
+    $this->fromRoute('table-views.show', [$this->vault, $view])
+        ->put(route('table-views.update', [$this->vault, $view]), ['name' => 'X', 'columns' => [], 'layout' => 'gallery'])
+        ->assertSessionHasErrors('layout');
 
     $this->fromRoute('table-views.show', [$this->vault, $view])
         ->put(route('table-views.update', [$this->vault, $view]), ['name' => 'X', 'query' => 'tag:', 'columns' => []])

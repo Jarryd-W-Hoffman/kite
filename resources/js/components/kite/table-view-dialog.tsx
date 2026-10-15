@@ -24,6 +24,8 @@ export type TableViewSettings = {
     columns: string[];
     sort_key: string | null;
     sort_desc: boolean;
+    layout: 'table' | 'board';
+    group_by: string | null;
 };
 
 type Props = {
@@ -34,6 +36,8 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSave: (settings: Partial<TableViewSettings>) => void;
+    /** The layout to start with, e.g. board when switching to it needs a property first. */
+    initialLayout?: TableViewSettings['layout'];
 };
 
 /**
@@ -46,6 +50,7 @@ export function TableViewDialog({
     open,
     onOpenChange,
     onSave,
+    initialLayout,
 }: Props) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,6 +64,7 @@ export function TableViewDialog({
                         view={view}
                         keys={keys}
                         onSave={onSave}
+                        initialLayout={initialLayout}
                     />
                 )}
             </DialogContent>
@@ -71,11 +77,14 @@ function ViewForm({
     view,
     keys,
     onSave,
+    initialLayout,
 }: Omit<Props, 'open' | 'onOpenChange'>) {
     const [name, setName] = useState(view.name);
     const [query, setQuery] = useState(view.query);
     const [columns, setColumns] = useState(view.columns);
     const [custom, setCustom] = useState('');
+    const [layout, setLayout] = useState(initialLayout ?? view.layout);
+    const [groupBy, setGroupBy] = useState(view.group_by ?? '');
     const [count, setCount] = useState<{
         count: number | null;
         error: string | null;
@@ -122,6 +131,9 @@ function ViewForm({
                     name: name.trim() || view.name,
                     query: query.trim(),
                     columns,
+                    layout:
+                        layout === 'board' && groupBy === '' ? 'table' : layout,
+                    group_by: groupBy === '' ? null : groupBy,
                 });
             }}
         >
@@ -162,6 +174,41 @@ function ViewForm({
                               ? '…'
                               : `${count.count} ${count.count === 1 ? 'note matches' : 'notes match'}.`))}
                 </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                    <Label htmlFor="view-layout">Layout</Label>
+                    <select
+                        id="view-layout"
+                        name="layout"
+                        value={layout}
+                        onChange={(event) =>
+                            setLayout(event.target.value as typeof layout)
+                        }
+                        className="kite-select h-9 text-sm"
+                    >
+                        <option value="table">Table</option>
+                        <option value="board">Board</option>
+                    </select>
+                </div>
+                <div className="grid gap-1.5">
+                    <Label htmlFor="view-group-by">Group board by</Label>
+                    <select
+                        id="view-group-by"
+                        name="group_by"
+                        value={groupBy}
+                        onChange={(event) => setGroupBy(event.target.value)}
+                        className="kite-select h-9 text-sm"
+                    >
+                        <option value="">Choose a property…</option>
+                        {offered.map((key) => (
+                            <option key={key} value={key}>
+                                {key}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             <div className="grid gap-1.5">
