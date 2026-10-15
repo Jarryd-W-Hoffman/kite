@@ -12,7 +12,7 @@ it('opens a folder as a vault and shows its home note', function (): void {
     ]);
     $folder->delete();
 
-    $page = visit(route('vaults.index'));
+    $page = visitSplit(route('vaults.index'));
 
     $page->fill('path', $folder->path)
         ->press('Open')
@@ -27,7 +27,7 @@ it('autosaves edits to disk and renders the preview', function (): void {
     $vault = vaultWithFiles(['Note.md' => '# Draft']);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->sole()]));
 
     $page->fill('@note-editor', "# Final\n\nHello **bold world**")
         ->assertSeeIn('@note-preview', 'bold world')
@@ -44,7 +44,7 @@ it('follows wiki links and creates notes from unresolved ones', function (): voi
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'A.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'A.md')->sole()]));
 
     $page->click('a.wiki-link[data-wiki-target="B"]')
         ->assertDontSeeIn('@note-preview', 'Go to')
@@ -66,7 +66,7 @@ it('searches notes from the command palette', function (): void {
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
 
     $page->keys('@note-editor', 'Control+k')
         ->fill('@command-palette-input', 'basil')
@@ -83,7 +83,7 @@ it('suggests notes while typing a wiki link', function (): void {
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
 
     $page->click('@note-editor')
         ->typeSlowly('@note-editor', 'See [[Road', 20)
@@ -103,7 +103,7 @@ it('follows wiki links from the editor with cmd or ctrl click', function (): voi
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
 
     $page->withKeyDown('Control', fn ($page) => $page->click('.cm-wikilink[data-wiki-target="Projects/Roadmap"]'))
         ->assertSeeIn('@note-preview', 'Roadmap')
@@ -115,7 +115,7 @@ it('keeps undo history across autosaves', function (): void {
     $vault = vaultWithFiles(['Note.md' => 'First']);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->sole()]));
 
     $page->click('@note-editor')
         ->keys('@note-editor', 'End')
@@ -132,7 +132,7 @@ it('deletes a note after confirming in a dialog', function (): void {
     $vault = vaultWithFiles(['Keep.md' => '# Keep', 'Gone.md' => '# Gone']);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->where('path', 'Gone.md')->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Gone.md')->sole()]))
         ->click('@note-actions')
         ->click('@delete-note')
         ->assertSeeIn('@delete-note-dialog', 'Delete “Gone”?')
@@ -150,7 +150,7 @@ it('shows frontmatter in the editor without heading styles', function (): void {
 
     $weight = fn (string $text): string => "getComputedStyle([...document.querySelectorAll('.cm-line')].find((line) => line.textContent === '{$text}').firstElementChild).fontWeight";
 
-    visit(route('notes.show', [$vault, Note::query()->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
         ->click('@properties-chip')
         ->assertScript($weight('status: active'), '400')
         ->assertScript("Number({$weight('Title')}) >= 600", true)

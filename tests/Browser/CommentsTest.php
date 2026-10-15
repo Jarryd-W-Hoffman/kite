@@ -39,7 +39,7 @@ function rewriteNote(Vault $vault, string $contents): void
 it('comments on a selection and lists it in the rail', function (): void {
     [$vault, $note] = commentedNote("Ship the release on Friday.\n\nThen rest.");
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@note-editor')
         ->keys('@note-editor', ['Control+Home', 'Shift+End'])
         ->click('@add-comment')
@@ -62,7 +62,7 @@ it('finds commented text again after the note changed outside kite', function ()
     [$vault, $note] = commentedNote('Ship the release on Friday.', ['quote' => 'on Friday', 'prefix' => 'Ship the release ', 'suffix' => '.']);
     rewriteNote($vault, "Intro paragraph.\n\nMeet on Friday too.\nShip the release on Friday.");
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@toggle-comments')
         ->assertScript(highlighted(), 'on Friday')
         ->assertScript("document.querySelector('.cm-comment').closest('.cm-line').textContent", 'Ship the release on Friday.')
@@ -74,7 +74,7 @@ it('follows a reworded passage by its context and saves the new anchor', functio
     [$vault, $note] = commentedNote('Ship the release on Friday. Then celebrate.', ['quote' => 'on Friday', 'prefix' => 'Ship the release ', 'suffix' => '. Then celebrate.']);
     rewriteNote($vault, 'Ship the release next Monday. Then celebrate.');
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->assertScript(highlighted(), 'next Monday')
         ->wait(1.5)
         ->assertNoJavaScriptErrors();
@@ -85,7 +85,7 @@ it('follows a reworded passage by its context and saves the new anchor', functio
 it('marks comments whose text is gone as orphaned', function (): void {
     [$vault, $note] = commentedNote('Something else entirely.', ['quote' => 'on Friday', 'prefix' => 'Ship the release ', 'suffix' => '.']);
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@toggle-comments')
         ->assertSeeIn('@orphaned-comments', 'Check this')
         ->assertScript(highlighted(), '')
@@ -95,7 +95,7 @@ it('marks comments whose text is gone as orphaned', function (): void {
 it('keeps comments on their text while editing in kite', function (): void {
     [$vault, $note] = commentedNote('Ship the release on Friday.', ['quote' => 'on Friday', 'prefix' => 'Ship the release ', 'suffix' => '.']);
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@note-editor')
         ->keys('@note-editor', ['Control+Home'])
         ->typeSlowly('@note-editor', 'Plan: ')
@@ -109,7 +109,7 @@ it('keeps comments on their text while editing in kite', function (): void {
 it('resolves, reopens and deletes comments', function (): void {
     [$vault, $note] = commentedNote('Ship the release on Friday.', ['quote' => 'on Friday']);
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@toggle-comments')
         ->click('[data-test=comment] [aria-label=Resolve]')
         ->assertScript(highlighted(), '')
@@ -130,7 +130,7 @@ it('explains when the comments file is damaged', function (): void {
     mkdir($vault->path.'/.kite/comments', recursive: true);
     file_put_contents($vault->path.'/.kite/comments/Plan.md.json', '{ broken');
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@toggle-comments')
         ->assertSeeIn('@comments-error', '.kite/comments/Plan.md.json')
         ->assertNoJavaScriptErrors();

@@ -9,7 +9,7 @@ it('edits frontmatter as typed properties', function (): void {
     $vault = vaultWithFiles(['Plan.md' => "---\nstatus: draft\ndone: false\ndue: 2026-10-14\ntags: [work, urgent]\n---\n# Plan\n\nBody"]);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
         ->assertAttribute('[data-test=property][data-name=status]', 'data-type', 'text')
         ->assertAttribute('[data-test=property][data-name=done]', 'data-type', 'checkbox')
         ->assertAttribute('[data-test=property][data-name=due]', 'data-type', 'date')

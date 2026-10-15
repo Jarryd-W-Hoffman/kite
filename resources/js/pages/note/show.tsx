@@ -79,7 +79,8 @@ function storedSplit(vaultId: number): number | null {
 function storedViewMode(): ViewMode {
     const stored = localStorage.getItem('kite:view-mode');
 
-    return stored === 'edit' || stored === 'preview' ? stored : 'split';
+    // Live preview makes the editor read like the note, so it's the default view.
+    return stored === 'split' || stored === 'preview' ? stored : 'edit';
 }
 
 export default function NoteShow(props: WorkspaceProps) {

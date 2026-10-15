@@ -25,7 +25,7 @@ function lineText(int $index): string
 it('hides markdown syntax on lines that are not being edited', function (): void {
     [$vault, $note] = livePreviewNote();
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->assertScript(lineText(0), 'Plan')
         ->assertScript(lineText(2), 'Some bold and code with a link and site.')
         ->assertScript(lineText(4), 'Ship it')
@@ -38,7 +38,7 @@ it('hides markdown syntax on lines that are not being edited', function (): void
 it('shows the raw markdown on the line being edited', function (): void {
     [$vault, $note] = livePreviewNote();
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@note-editor')
         ->keys('@note-editor', 'Control+Home')
         ->assertScript(lineText(0), '# Plan')
@@ -49,7 +49,7 @@ it('shows the raw markdown on the line being edited', function (): void {
 it('ticks tasks from their checkbox', function (): void {
     [$vault, $note] = livePreviewNote();
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@live-checkbox')
         ->wait(1)
         ->assertNoJavaScriptErrors();
@@ -61,7 +61,7 @@ it('can be switched off in preferences', function (): void {
     [$vault, $note] = livePreviewNote();
     resolve(Settings::class)->update(['live_preview' => false]);
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->assertScript(lineText(0), '# Plan')
         ->assertMissing('@live-checkbox')
         ->assertNoJavaScriptErrors();
@@ -71,7 +71,7 @@ it('folds frontmatter into a properties chip until the cursor goes inside', func
     $vault = vaultWithFiles(['Plan.md' => "---\nstatus: active\ntags:\n  - a\nowner: Sam\n---\n# Plan\n\nBody"]);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
         ->assertSeeIn('@properties-chip', '3 properties')
         ->assertScript(lineText(0), 'Plan')
         ->click('@properties-chip')
@@ -79,5 +79,15 @@ it('folds frontmatter into a properties chip until the cursor goes inside', func
         ->assertScript(lineText(1), 'status: active')
         ->keys('@note-editor', ['Control+End'])
         ->assertSeeIn('@properties-chip', '3 properties')
+        ->assertNoJavaScriptErrors();
+});
+
+it('opens notes in the editor alone for new users', function (): void {
+    [$vault, $note] = livePreviewNote();
+
+    visit(route('notes.show', [$vault, $note]))
+        ->assertVisible('@note-editor')
+        ->assertMissing('@note-preview')
+        ->assertAttribute('[aria-label=Edit]', 'data-state', 'on')
         ->assertNoJavaScriptErrors();
 });

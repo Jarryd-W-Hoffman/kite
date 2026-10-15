@@ -12,7 +12,7 @@ it('lists unlinked mentions and links them in one click', function (): void {
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Kite.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Kite.md')->sole()]));
 
     $page->assertSeeIn('@unlinked-mentions', 'Flew my kite today.')
         ->click('Link')

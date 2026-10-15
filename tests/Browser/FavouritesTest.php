@@ -10,7 +10,7 @@ it('stars notes into favourites and lists recent ones', function (): void {
     resolve(IndexVault::class)->handle($vault);
     $id = fn (string $path): int => (int) Note::query()->where('path', $path)->value('id');
 
-    visit(route('notes.show', [$vault, $id('Alpha.md')]))
+    visitSplit(route('notes.show', [$vault, $id('Alpha.md')]))
         ->assertMissing('@favourites')
         ->click('@star-note')
         ->assertAttribute('@star-note', 'aria-pressed', 'true')

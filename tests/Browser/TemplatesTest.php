@@ -14,7 +14,7 @@ it('creates a note from a template with its placeholders filled in', function ()
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
         ->click('@tree-folder-actions')
         ->click('@tree-new-from-template')
         ->assertSeeIn('@template-dialog', 'The note is created in Projects.')
@@ -36,7 +36,7 @@ it('opens from the keyboard and picks another template', function (): void {
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
         ->keys('@note-editor', 'Control+Shift+N')
         ->assertVisible('@template-dialog')
         ->click('[data-test=template-option]:nth-child(2)')
@@ -53,7 +53,7 @@ it('offers to start a template when there are none', function (): void {
     $vault = vaultWithFiles(['Home.md' => '# Home']);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
         ->click('@new-from-template')
         ->assertSeeIn('@template-dialog', 'No templates yet')
         ->click('@start-template')

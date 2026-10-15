@@ -10,7 +10,7 @@ it('guides a new vault towards its first note', function (): void {
     $vault = vaultWithFiles();
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('vaults.show', $vault));
+    $page = visitSplit(route('vaults.show', $vault));
 
     $page->assertSee("{$vault->name} is empty")
         ->assertVisible('@getting-started')
@@ -27,7 +27,7 @@ it("opens today's note from an empty vault", function (): void {
     $vault = vaultWithFiles();
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('vaults.show', $vault))
+    visitSplit(route('vaults.show', $vault))
         ->click("Today's note")
         ->assertVisible('@note-editor')
         ->assertNoJavaScriptErrors();
@@ -39,14 +39,14 @@ it('explains empty and filtered graphs', function (): void {
     $empty = vaultWithFiles();
     resolve(IndexVault::class)->handle($empty);
 
-    visit(route('vault-graph.show', $empty))
+    visitSplit(route('vault-graph.show', $empty))
         ->assertSee('No notes to graph yet')
         ->assertNoJavaScriptErrors();
 
     $vault = vaultWithFiles(['Alone.md' => '# Alone']);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('vault-graph.show', $vault))
+    visitSplit(route('vault-graph.show', $vault))
         ->assertVisible('@graph-no-links')
         ->click('Orphans')
         ->assertSee('Everything is filtered out')
@@ -60,7 +60,7 @@ it('marks empty folders in the tree', function (): void {
     resolve(IndexVault::class)->handle($vault);
     resolve(CreateFolder::class)->handle($vault, 'Projects');
 
-    visit(route('notes.show', [$vault, Note::query()->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
         ->assertSeeIn('@tree-empty-folder', 'Empty')
         ->assertNoJavaScriptErrors();
 });

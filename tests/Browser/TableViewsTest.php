@@ -13,7 +13,7 @@ it('builds a table of notes and edits their properties inline', function (): voi
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
         ->click('@new-view')
         ->assertVisible('@view-dialog')
         ->fill('view-name', 'Projects')

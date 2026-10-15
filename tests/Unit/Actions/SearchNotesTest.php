@@ -18,7 +18,7 @@ it('ranks title matches above body matches and highlights snippets safely', func
     $results = resolve(SearchNotes::class)->handle($vault, 'garden tomato');
 
     expect(array_column($results, 'title'))->toBe(['Gardening', 'Cooking'])
-        ->and($results[0]['snippet'])->toBe('<mark>Gardening</mark> <mark>Tomatoes</mark> &lt;b&gt;need&lt;/b&gt; sun.')
+        ->and($results[0]['snippet'])->toBe('<mark>Tomatoes</mark> &lt;b&gt;need&lt;/b&gt; sun.')
         ->and($results[1])->toMatchArray([
             'id' => Note::query()->where('path', 'Cooking.md')->value('id'),
             'path' => 'Cooking.md',
@@ -56,4 +56,13 @@ it('treats fts syntax in queries as plain text', function (): void {
 
     expect(resolve(SearchNotes::class)->handle($vault, 'alpha AND "beta" (NOT gamma)'))->toBe([]);
     expect(resolve(SearchNotes::class)->handle($vault, 'alpha "beta" (gamma)'))->toHaveCount(1);
+});
+
+it('keeps the snippet when the title is all there is, and leaves titles mid-snippet alone', function (): void {
+    $vault = vaultWithFiles(['Only.md' => '# Only', 'Mid.md' => "# Mid\n\nThe Mid point"]);
+    resolve(IndexVault::class)->handle($vault);
+    $search = resolve(SearchNotes::class);
+
+    expect($search->handle($vault, 'only')[0]['snippet'])->toBe('<mark>Only</mark>')
+        ->and($search->handle($vault, 'point')[0]['snippet'])->toBe('The Mid <mark>point</mark>');
 });

@@ -28,7 +28,7 @@ it('opens notes in new tabs with ctrl click and closes them', function (): void 
     $vault = tabsVault();
     $notes = fn (string $path): string => 'a[href="/vaults/'.$vault->id.'/notes/'.noteId($path).'"]';
 
-    $page = visit(route('notes.show', [$vault, noteId('Alpha.md')]));
+    $page = visitSplit(route('notes.show', [$vault, noteId('Alpha.md')]));
 
     $page->assertMissing('@tab-bar')
         ->withKeyDown('Control', fn ($page) => $page->click('nav '.$notes('Beta.md')))
@@ -48,7 +48,7 @@ it('opens notes in new tabs with ctrl click and closes them', function (): void 
 it('opens a note beside the current one and edits it there', function (): void {
     $vault = tabsVault();
 
-    $page = visit(route('notes.show', [$vault, noteId('Alpha.md')]));
+    $page = visitSplit(route('notes.show', [$vault, noteId('Alpha.md')]));
 
     $page->withKeyDown('Control', fn ($page) => $page->withKeyDown('Shift', fn ($page) => $page->click('nav a[href="/vaults/'.$vault->id.'/notes/'.noteId('Beta.md').'"]')))
         ->assertSeeIn('@split-editor', 'Beta')
@@ -69,7 +69,7 @@ it('keeps pinned tabs when opening other notes', function (): void {
     $vault = tabsVault();
     $notes = fn (string $path): string => 'nav[aria-label=Notes] a[href="/vaults/'.$vault->id.'/notes/'.noteId($path).'"]';
 
-    visit(route('notes.show', [$vault, noteId('Alpha.md')]))
+    visitSplit(route('notes.show', [$vault, noteId('Alpha.md')]))
         ->withKeyDown('Control', fn ($page) => $page->click($notes('Beta.md')))
         ->click('[aria-label="Pin Beta"]')
         ->assertMissing('[aria-label="Close Beta"]')

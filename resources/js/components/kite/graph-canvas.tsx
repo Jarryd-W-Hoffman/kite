@@ -383,30 +383,64 @@ export function GraphCanvas({
             context.textAlign = 'center';
             context.textBaseline = 'top';
 
-            for (const node of renderNodes) {
-                const showLabel =
-                    compact ||
-                    node === focus ||
-                    node.id === active ||
-                    (focus !== null && focus.neighbours.has(node.id)) ||
-                    ((query !== '' || tag !== '') && isLit(node)) ||
-                    transform.k * (1 + node.degree * 0.15) > 1.4;
+            // Labels are placed most important first, and any that would overlap one already
+            // drawn are skipped, so crowded areas stay readable.
+            const priority = (node: (typeof renderNodes)[number]) =>
+                (node.id === active ? 1000 : 0) +
+                (node === focus ? 500 : 0) +
+                (isLit(node) ? 100 : 0) +
+                node.degree;
+            const candidates = renderNodes
+                .filter(
+                    (node) =>
+                        compact ||
+                        node === focus ||
+                        node.id === active ||
+                        (focus !== null && focus.neighbours.has(node.id)) ||
+                        ((query !== '' || tag !== '') && isLit(node)) ||
+                        transform.k * (1 + node.degree * 0.15) > 1.4,
+                )
+                .sort((a, b) => priority(b) - priority(a));
+            const placed: {
+                left: number;
+                right: number;
+                top: number;
+                bottom: number;
+            }[] = [];
+            const gap = 2 / transform.k;
 
-                if (!showLabel) {
+            for (const node of candidates) {
+                const text =
+                    node.data.title.length > 40
+                        ? `${node.data.title.slice(0, 39)}…`
+                        : node.data.title;
+                const half = context.measureText(text).width / 2;
+                const top = node.y + node.radius + 3 / transform.k;
+                const box = {
+                    left: node.x - half - gap,
+                    right: node.x + half + gap,
+                    top,
+                    bottom: top + fontSize + gap,
+                };
+
+                if (
+                    placed.some(
+                        (other) =>
+                            box.left < other.right &&
+                            box.right > other.left &&
+                            box.top < other.bottom &&
+                            box.bottom > other.top,
+                    )
+                ) {
                     continue;
                 }
 
+                placed.push(box);
                 context.globalAlpha = isLit(node) ? 1 : 0.25;
                 context.fillStyle = node.data.ghost
                     ? palette.muted
                     : palette.foreground;
-                context.fillText(
-                    node.data.title.length > 40
-                        ? `${node.data.title.slice(0, 39)}…`
-                        : node.data.title,
-                    node.x,
-                    node.y + node.radius + 3 / transform.k,
-                );
+                context.fillText(text, node.x, top);
             }
 
             context.globalAlpha = 1;

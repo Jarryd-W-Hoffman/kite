@@ -14,7 +14,7 @@ it('exports a note as html and publishes it', function (): void {
     config(['kite.publish.folder' => $root]);
     $guide = Note::query()->where('path', 'Guide.md')->sole();
 
-    visit(route('notes.show', [$vault, $guide]))
+    visitSplit(route('notes.show', [$vault, $guide]))
         ->click('@note-actions')
         ->assertMissing('@export-pdf')
         ->assertScript("document.querySelector('[data-test=export-html]') !== null", true)

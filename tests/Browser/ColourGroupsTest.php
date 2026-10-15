@@ -15,7 +15,7 @@ it('creates colour groups from the graph and hides them from the legend', functi
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('vault-graph.show', $vault));
+    $page = visitSplit(route('vault-graph.show', $vault));
 
     $page->select('@graph-colour', 'group')
         ->assertSeeIn('@colour-group-legend', 'No colour groups yet.')
@@ -42,7 +42,7 @@ it('edits, reorders and deletes colour groups in the editor', function (): void 
     $first = ColourGroup::factory()->for($vault)->create(['name' => 'Projects', 'query' => 'tag:project', 'colour' => GroupColour::Blue, 'position' => 0]);
     $second = ColourGroup::factory()->for($vault)->create(['name' => 'Work', 'query' => 'folder:Work', 'colour' => GroupColour::Teal, 'position' => 1]);
 
-    visit(route('vault-graph.show', $vault))
+    visitSplit(route('vault-graph.show', $vault))
         ->assertSeeIn('@colour-group-legend', 'Projects')
         ->click('@edit-colour-groups')
         ->fill('[data-test=colour-group]:first-child input[aria-label="Query"]', 'tag:nothing')
@@ -63,7 +63,7 @@ it('marks grouped notes in the file tree unless turned off in preferences', func
     resolve(IndexVault::class)->handle($vault);
     ColourGroup::factory()->for($vault)->create(['name' => 'Projects', 'query' => 'tag:project']);
 
-    visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
         ->assertPresent('a[data-path="Plan.md"] [data-test=tree-group-dot]')
         ->assertMissing('a[data-path="Home.md"] [data-test=tree-group-dot]')
         ->click('@preferences-link')

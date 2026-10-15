@@ -12,7 +12,7 @@ it('shows embedded notes in the preview and opens them from the embed title', fu
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]));
 
     $page->assertSeeIn('.note-embed', 'Flour')
         ->assertDontSeeIn('.note-embed', 'Mix.')

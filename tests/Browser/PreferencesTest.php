@@ -10,7 +10,7 @@ it('edits preferences in a modal and applies them to the open note', function ()
     $vault = vaultWithFiles(['Note.md' => '# Note']);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->sole()]));
 
     $page->click('@preferences-link')
         ->assertVisible('@preferences-dialog')
@@ -34,7 +34,7 @@ it('opens preferences from the keyboard and closes without saving', function ():
     $vault = vaultWithFiles(['Note.md' => '# Note']);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->sole()]));
 
     $page->keys('@note-editor', 'Control+,')
         ->assertVisible('@preferences-dialog')
@@ -50,7 +50,7 @@ it('switches the theme from preferences, the sidebar and the keyboard', function
     $vault = vaultWithFiles(['Note.md' => '# Note']);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->sole()]));
     $isDark = "document.documentElement.classList.contains('dark')";
 
     $page->click('@preferences-link')

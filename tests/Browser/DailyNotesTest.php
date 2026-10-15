@@ -12,7 +12,7 @@ it("opens today's note and moves between days", function (): void {
     $vault = vaultWithFiles(['Home.md' => '# Home']);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->sole()]));
 
     $page->click('@today-link')
         ->assertSeeIn('@note-preview', 'Tuesday, 13 October 2026')
@@ -33,7 +33,7 @@ it("captures a thought into today's note", function (): void {
 
     $vault = vaultWithFiles();
 
-    $page = visit(route('capture.create'));
+    $page = visitSplit(route('capture.create'));
 
     $page->fill('@capture-text', 'Remember the string')
         ->keys('@capture-text', 'Control+Enter')

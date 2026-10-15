@@ -13,7 +13,7 @@ it('navigates from inline tags to tag pages and filters the graph', function ():
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Kite.md')->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'Kite.md')->sole()]));
 
     $page->click('a.tag-link[data-tag="project/kite"]')
         ->assertSee('1 note')

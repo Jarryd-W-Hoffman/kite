@@ -58,9 +58,26 @@ final readonly class SearchNotes
             'snippet' => str_replace(
                 [self::MARK_START, self::MARK_END],
                 ['<mark>', '</mark>'],
-                e($this->plainText((string) $row->snippet)),
+                e($this->withoutTitle($this->plainText((string) $row->snippet), (string) $row->title)),
             ),
         ], $rows);
+    }
+
+    /**
+     * A snippet from the top of a note starts with its heading, which repeats the title shown
+     * right above it; drop it, highlight markers and all.
+     */
+    private function withoutTitle(string $snippet, string $title): string
+    {
+        $marks = '['.preg_quote(self::MARK_START.self::MARK_END, '/').']*';
+        $pattern = '/^'.$marks.implode($marks, array_map(
+            fn (string $character): string => preg_quote($character, '/'),
+            mb_str_split($title),
+        )).$marks.'(?:\s+|$)/u';
+
+        $stripped = (string) preg_replace($pattern, '', $snippet, 1);
+
+        return $stripped === '' ? $snippet : $stripped;
     }
 
     /**

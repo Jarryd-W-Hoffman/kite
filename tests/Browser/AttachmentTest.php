@@ -14,7 +14,7 @@ it('renders embedded images from the vault', function (): void {
     resolve(IndexVault::class)->handle($vault);
     resolve(IndexAttachments::class)->handle($vault);
 
-    $page = visit(route('notes.show', [$vault, Note::query()->sole()]));
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->sole()]));
 
     $page->assertPresent('img.attachment-embed')
         ->assertScript("document.querySelector('img.attachment-embed').complete && document.querySelector('img.attachment-embed').naturalWidth === 1", true)

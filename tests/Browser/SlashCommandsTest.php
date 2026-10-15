@@ -16,7 +16,7 @@ function slashNote(array $files = []): array
 it('inserts blocks from the slash menu', function (): void {
     [$vault, $note] = slashNote();
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@note-editor')
         ->typeSlowly('@note-editor', '/to')
         ->assertSee('To-do')
@@ -36,7 +36,7 @@ it('inserts blocks from the slash menu', function (): void {
 it('starts block commands on their own line', function (): void {
     [$vault, $note] = slashNote();
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@note-editor')
         ->typeSlowly('@note-editor', 'Intro /divi')
         ->keys('@note-editor', 'Enter')
@@ -49,7 +49,7 @@ it('starts block commands on their own line', function (): void {
 it('inserts a template with its placeholders filled in', function (): void {
     [$vault, $note] = slashNote(['Templates/Meeting.md' => "## Attendees\n\nFor {{title}}"]);
 
-    visit(route('notes.show', [$vault, $note]))
+    visitSplit(route('notes.show', [$vault, $note]))
         ->click('@note-editor')
         ->typeSlowly('@note-editor', '/meet')
         ->assertSee('Insert this template')

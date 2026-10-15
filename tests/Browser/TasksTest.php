@@ -13,7 +13,7 @@ it('lists tasks by when they are due and ticks them off', function (): void {
     ]);
     resolve(IndexVault::class)->handle($vault);
 
-    visit(route('notes.show', [$vault, Note::query()->sole()]))
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
         ->assertSeeIn('@tasks-link', '3')
         ->click('@tasks-link')
         ->assertSeeIn('@task-group-overdue', 'Late one')

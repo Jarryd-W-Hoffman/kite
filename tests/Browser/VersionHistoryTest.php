@@ -10,7 +10,7 @@ it('shows what each version changed and restores an older one', function (): voi
     resolve(IndexVault::class)->handle($vault);
     $note = Note::query()->sole();
 
-    $page = visit(route('notes.show', [$vault, $note]))
+    $page = visitSplit(route('notes.show', [$vault, $note]))
         ->click('@note-editor')
         ->keys('@note-editor', ['Control+End', 'Enter'])
         ->typeSlowly('@note-editor', 'Line two')

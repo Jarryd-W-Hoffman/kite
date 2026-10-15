@@ -14,7 +14,7 @@ it('renders large vaults with webgl and small ones with canvas', function (): vo
     $large = vaultWithFiles($files);
     resolve(IndexVault::class)->handle($large);
 
-    $page = visit(route('vault-graph.show', $large))->resize(1440, 900);
+    $page = visitSplit(route('vault-graph.show', $large))->resize(1440, 900);
 
     $page->assertDataAttribute('@graph-canvas', 'renderer', 'webgl')
         ->assertSee('1200 notes')
@@ -24,7 +24,7 @@ it('renders large vaults with webgl and small ones with canvas', function (): vo
     $small = vaultWithFiles(['A.md' => '[[B]]', 'B.md' => '# B']);
     resolve(IndexVault::class)->handle($small);
 
-    visit(route('vault-graph.show', $small))
+    visitSplit(route('vault-graph.show', $small))
         ->assertDataAttribute('@graph-canvas', 'renderer', 'canvas')
         ->assertNoJavaScriptErrors();
 });
