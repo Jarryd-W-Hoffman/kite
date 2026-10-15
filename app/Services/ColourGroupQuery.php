@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Contracts\Database\Query\Builder;
 use InvalidArgumentException;
 
 /**
@@ -13,6 +14,9 @@ use InvalidArgumentException;
  * any nested tag below it, `folder:` the folder and everything inside it, `path:` and `title:` (or
  * a bare word) match text anywhere in the path or title, and any other `field:value` compares a
  * frontmatter field (`field:*` only requires the field to exist). Matching ignores case.
+ *
+ * A query can match one note's data in PHP (`matches()`) or narrow a query on the `notes` table
+ * (`applyTo()`), so a large vault is filtered by the database. Both give the same answer.
  */
 final readonly class ColourGroupQuery
 {
@@ -62,6 +66,63 @@ final readonly class ColourGroupQuery
     public function matches(array $note): bool
     {
         return array_all($this->terms, fn (array $term): bool => $this->matchesTerm($term['field'], $term['value'], $note) !== $term['negated']);
+    }
+
+    /**
+     * Narrow a query on the `notes` table to the notes this query matches. Text is compared with
+     * `kite_lower()`, the same Unicode lowercasing `matches()` uses.
+     *
+     * @template TBuilder of Builder
+     *
+     * @param  TBuilder  $notes
+     * @return TBuilder
+     */
+    public function applyTo(Builder $notes): Builder
+    {
+        foreach ($this->terms as ['field' => $field, 'value' => $value, 'negated' => $negated]) {
+            $constraint = fn (Builder $query): Builder => $this->constrain($query, $field, $value);
+
+            $negated ? $notes->whereNot($constraint) : $notes->where($constraint);
+        }
+
+        return $notes;
+    }
+
+    private function constrain(Builder $query, string $field, string $value): Builder
+    {
+        return match ($field) {
+            'tag' => $query->whereExists(fn (Builder $tags): Builder => $this->constrainTag(
+                $tags->selectRaw('1')->from('note_tags')->whereColumn('note_tags.note_id', 'notes.id'),
+                mb_ltrim($value, '#'),
+            )),
+            'folder' => $query->whereRaw('substr(kite_lower(notes.path), 1, ?) = ?', [mb_strlen(mb_trim($value, '/')) + 1, mb_trim($value, '/').'/']),
+            'path', 'title' => $query->whereRaw("instr(kite_lower(notes.{$field}), ?) > 0", [$value]),
+            default => $this->constrainField($query, $field, $value),
+        };
+    }
+
+    private function constrainTag(Builder $tags, string $tag): Builder
+    {
+        return $tags->where(fn (Builder $names): Builder => $names
+            ->where('note_tags.name', $tag)
+            ->orWhereRaw('substr(note_tags.name, 1, ?) = ?', [mb_strlen($tag) + 1, $tag.'/']));
+    }
+
+    /**
+     * A frontmatter field whose value, or an item of whose list, equals the value. Booleans read
+     * as `true`/`false`; nested maps never match.
+     */
+    private function constrainField(Builder $query, string $field, string $value): Builder
+    {
+        $scalar = fn (string $item): string => "({$item}.type IN ('text', 'integer', 'real') AND kite_lower({$item}.value) = ?) OR ({$item}.type IN ('true', 'false') AND {$item}.type = ?)";
+        $bindings = $value === '*' ? [$field] : [$field, $value, $value, $value, $value];
+
+        return $query->whereRaw(
+            'EXISTS (SELECT 1 FROM json_each(notes.frontmatter) AS field WHERE kite_lower(field.key) = ?'
+            .($value === '*' ? '' : ' AND ('.$scalar('field')." OR (field.type = 'array' AND EXISTS (SELECT 1 FROM json_each(field.value) AS item WHERE ".$scalar('item').')))')
+            .')',
+            $bindings,
+        );
     }
 
     /**
