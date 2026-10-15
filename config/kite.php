@@ -121,4 +121,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Development
+    |--------------------------------------------------------------------------
+    |
+    | The processes `php artisan kite:dev` runs side by side, each stopped as
+    | a whole process group when either ends.
+    |
+    */
+
+    'dev' => [
+        'commands' => [
+            'app' => ['php', 'artisan', 'native:run', '--no-interaction'],
+            'vite' => ['bun', 'run', 'dev'],
+        ],
+    ],
+
 ];

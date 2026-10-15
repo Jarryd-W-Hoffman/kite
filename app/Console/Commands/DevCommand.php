@@ -1,0 +1,84 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
+use Illuminate\Console\Command;
+use Illuminate\Support\Sleep;
+use Symfony\Component\Process\Process;
+
+/**
+ * Runs the desktop app and Vite together for development, and stops everything when either one
+ * ends or the command is interrupted. Each runs in its own process group, so Electron and the
+ * helpers it starts are stopped too instead of being left running without Vite.
+ */
+#[Description('Run the Kite desktop app and the Vite dev server together')]
+#[Signature('kite:dev')]
+final class DevCommand extends Command
+{
+    /** How long a process group gets to exit after SIGTERM before it is killed. */
+    private const int GRACE_SECONDS = 3;
+
+    private bool $interrupted = false;
+
+    public function handle(): int
+    {
+        /** @var array<string, list<string>> $commands */
+        $commands = config('kite.dev.commands');
+        $processes = [];
+
+        foreach ($commands as $name => $command) {
+            $process = new Process(['setsid', ...$command], base_path(), null, null, null);
+            $process->start(function (string $type, string $output) use ($name): void {
+                foreach (explode("\n", mb_rtrim($output, "\n")) as $line) {
+                    $this->line("<fg=gray>[{$name}]</> {$line}");
+                }
+            });
+            $processes[$name] = $process;
+        }
+
+        pcntl_async_signals(true);
+        pcntl_signal(SIGINT, fn (): bool => $this->interrupted = true);
+        pcntl_signal(SIGTERM, fn (): bool => $this->interrupted = true);
+
+        while (! $this->interrupted && array_all($processes, fn (Process $process): bool => $process->isRunning())) {
+            Sleep::usleep(100_000);
+        }
+
+        $finished = array_filter($processes, fn (Process $process): bool => ! $process->isRunning());
+
+        foreach ($processes as $process) {
+            $this->stopGroup($process);
+        }
+
+        $this->components->info('Stopped '.implode(' and ', array_keys($processes)).'.');
+
+        $first = reset($finished);
+
+        return $this->interrupted || $first === false ? self::SUCCESS : (int) $first->getExitCode();
+    }
+
+    /**
+     * Signal the whole process group (setsid made the process its leader), then kill what's left.
+     */
+    private function stopGroup(Process $process): void
+    {
+        $group = $process->getPid();
+
+        if ($group !== null) {
+            posix_kill(-$group, SIGTERM);
+
+            // isRunning() reaps the leader, so an empty group stops answering the signal-0 probe.
+            for ($waited = 0; $waited < self::GRACE_SECONDS * 10 && ($process->isRunning() || posix_kill(-$group, 0)); $waited++) {
+                Sleep::usleep(100_000);
+            }
+
+            posix_kill(-$group, SIGKILL);
+        }
+
+        $process->stop(0);
+    }
+}

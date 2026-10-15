@@ -113,7 +113,7 @@
         "native:dev": [
             "Composer\\Config::disableProcessTimeout",
             "@php artisan native:migrate --no-interaction",
-            "bunx concurrently -k -c \"#93c5fd,#c4b5fd\" \"php artisan native:run --no-interaction\" \"bun run dev\" --names=app,vite"
+            "@php artisan kite:dev"
         ]
     },
     "extra": {
