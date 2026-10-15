@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Events\QuickCaptureRequested;
 use App\Http\Requests\UpdatePreferencesRequest;
+use App\Models\Vault;
 use App\Services\Settings;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -18,6 +19,9 @@ final readonly class PreferencesController
         $previousShortcut = $settings->all()['capture_shortcut'];
 
         $settings->update($request->validated());
+
+        // Ignored, daily and template folders decide what every vault's sidebar lists.
+        Vault::query()->increment('tree_revision');
 
         $shortcut = $settings->all()['capture_shortcut'];
 

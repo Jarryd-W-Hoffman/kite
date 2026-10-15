@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read string $path
  * @property-read CarbonInterface|null $opened_at
  * @property-read CarbonInterface|null $indexed_at
+ * @property-read int $tree_revision
  * @property-read CarbonInterface $created_at
  * @property-read CarbonInterface $updated_at
  */
@@ -23,6 +24,17 @@ final class Vault extends Model
 {
     /** @use HasFactory<VaultFactory> */
     use HasFactory;
+
+    /**
+     * Record that something the sidebar shows changed: which notes there are, their paths,
+     * titles, tags, properties or lock, the folders, or the colour groups. The workspace's file
+     * tree and friends are sent once per revision, so the window only downloads them again after
+     * this is called.
+     */
+    public static function markTreeChanged(int $vaultId): void
+    {
+        self::query()->whereKey($vaultId)->increment('tree_revision');
+    }
 
     /**
      * @return array<string, string>
@@ -35,9 +47,18 @@ final class Vault extends Model
             'path' => 'string',
             'opened_at' => 'datetime',
             'indexed_at' => 'datetime',
+            'tree_revision' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The tree revision as stored now, which may be newer than this model's copy.
+     */
+    public function currentTreeRevision(): int
+    {
+        return self::query()->whereKey($this->id)->sole(['tree_revision'])->tree_revision;
     }
 
     /**

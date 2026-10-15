@@ -36,6 +36,11 @@ final class Note extends Model
     use HasFactory;
 
     /**
+     * Fields the workspace sidebar shows or groups notes by.
+     */
+    public const array TREE_FIELDS = ['path', 'title', 'frontmatter', 'locked'];
+
+    /**
      * @return array<string, string>
      */
     public function casts(): array

@@ -36,6 +36,8 @@ final readonly class CreateFolder
 
         $this->files->makeFolder($vault, $path);
 
+        Vault::markTreeChanged($vault->id);
+
         return $path;
     }
 }
