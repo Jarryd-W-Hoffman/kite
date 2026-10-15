@@ -150,3 +150,11 @@ it('collects tasks outside code with their lines and due dates', function (): vo
         ['line' => 12, 'text' => 'Nested', 'done' => true, 'due' => null],
     ]);
 });
+
+it('leaves inline tags out of titles taken from the heading', function (string $heading, string $title): void {
+    expect(resolve(MarkdownParser::class)->parse("# {$heading}\n\nBody", 'Folder/File name.md')->title)->toBe($title);
+})->with([
+    'trailing tag' => ['Launch plan #work', 'Launch plan'],
+    'tags between words' => ['Topic #a [[Home]] #b/c', 'Topic Home'],
+    'only tags' => ['#idea #later', 'File name'],
+]);

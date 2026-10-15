@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\Vault;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -35,7 +36,7 @@ final readonly class Templates
 
         return array_values(DB::table('notes')
             ->where('vault_id', $vault->id)
-            ->where('path', 'like', str_replace(['%', '_'], ['\%', '\_'], $folder).'/%')
+            ->whereRaw('substr(path, 1, ?) = ?', [mb_strlen($folder) + 1, $folder.'/'])
             ->orderByRaw('path COLLATE NOCASE')
             ->get(['id', 'path'])
             ->map(fn (object $row): array => [
@@ -44,6 +45,30 @@ final readonly class Templates
                 'name' => mb_substr(Row::string($row, 'path'), mb_strlen($folder) + 1, -3),
             ])
             ->all());
+    }
+
+    /**
+     * Leave notes in the templates folder out of a query: their placeholders and checklists are
+     * patterns for new notes, not notes or tasks themselves.
+     *
+     * @template TBuilder of Builder
+     *
+     * @param  TBuilder  $query
+     * @param  'path'|'notes.path'  $column
+     * @return TBuilder
+     */
+    public function exclude(Builder $query, string $column = 'path'): Builder
+    {
+        $folder = $this->folder();
+
+        if ($folder !== '') {
+            $query->whereRaw(
+                $column === 'path' ? 'substr(path, 1, ?) <> ?' : 'substr(notes.path, 1, ?) <> ?',
+                [mb_strlen($folder) + 1, $folder.'/'],
+            );
+        }
+
+        return $query;
     }
 
     public function contains(string $path): bool
