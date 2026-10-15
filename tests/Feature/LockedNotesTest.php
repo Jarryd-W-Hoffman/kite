@@ -42,9 +42,11 @@ it('sets up a passphrase and unlocks the vault with it', function (): void {
     $this->postJson(route('vault-passphrase.store', $vault), ['passphrase' => 'correct horse', 'passphrase_confirmation' => 'different'])
         ->assertJsonValidationErrors('passphrase');
 
-    $key = $this->postJson(route('vault-passphrase.store', $vault), ['passphrase' => 'correct horse', 'passphrase_confirmation' => 'correct horse'])
-        ->assertCreated()
-        ->json('key');
+    $response = $this->postJson(route('vault-passphrase.store', $vault), ['passphrase' => 'correct horse', 'passphrase_confirmation' => 'correct horse'])
+        ->assertCreated();
+    $key = $response->json('key');
+
+    expect($this->locks->unlockWithRecoveryKey($vault, $response->json('recovery_key')))->toBe(base64_decode((string) $key, true));
 
     $this->postJson(route('vault-passphrase.store', $vault), ['passphrase' => 'another one', 'passphrase_confirmation' => 'another one'])
         ->assertJsonValidationErrors(['passphrase' => 'This vault already has a passphrase.']);
@@ -52,6 +54,67 @@ it('sets up a passphrase and unlocks the vault with it', function (): void {
     $this->postJson(route('vault-key.store', $vault), ['passphrase' => 'correct horse'])->assertExactJson(['key' => $key]);
     $this->postJson(route('vault-key.store', $vault), ['passphrase' => 'wrong horse'])
         ->assertJsonValidationErrors(['passphrase' => 'That passphrase is not right.']);
+});
+
+it('changes the passphrase with the current one', function (): void {
+    $this->putJson(route('vault-passphrase.update', $this->vault), ['passphrase' => 'staple battery', 'passphrase_confirmation' => 'staple battery'])
+        ->assertJsonValidationErrors(['current_passphrase', 'recovery_key']);
+
+    $this->putJson(route('vault-passphrase.update', $this->vault), ['current_passphrase' => 'wrong horse', 'passphrase' => 'staple battery', 'passphrase_confirmation' => 'staple battery'])
+        ->assertJsonValidationErrors(['current_passphrase' => 'That passphrase is not right.']);
+
+    $this->putJson(route('vault-passphrase.update', $this->vault), ['current_passphrase' => 'correct horse battery', 'passphrase' => 'short', 'passphrase_confirmation' => 'short'])
+        ->assertJsonValidationErrors('passphrase');
+
+    $this->putJson(route('vault-passphrase.update', $this->vault), ['current_passphrase' => 'correct horse battery', 'passphrase' => 'staple battery', 'passphrase_confirmation' => 'staple battery'])
+        ->assertOk()
+        ->assertExactJson(['key' => base64_encode($this->key), 'recovery_key' => null]);
+
+    expect($this->locks->unlock($this->vault, 'correct horse battery'))->toBeNull()
+        ->and($this->locks->unlock($this->vault, 'staple battery'))->toBe($this->key);
+});
+
+it('resets a forgotten passphrase with the recovery key, which is then replaced', function (): void {
+    lockSecret();
+    $recoveryKey = $this->locks->createRecoveryKey($this->vault, $this->key);
+
+    $this->putJson(route('vault-passphrase.update', $this->vault), ['recovery_key' => 'ABCD-EFGH', 'passphrase' => 'staple battery', 'passphrase_confirmation' => 'staple battery'])
+        ->assertJsonValidationErrors(['recovery_key' => 'That recovery key is not right.']);
+
+    $response = $this->putJson(route('vault-passphrase.update', $this->vault), ['recovery_key' => $recoveryKey, 'passphrase' => 'staple battery', 'passphrase_confirmation' => 'staple battery'])
+        ->assertOk()
+        ->assertJsonPath('key', base64_encode($this->key));
+    $replacement = (string) $response->json('recovery_key');
+
+    expect($replacement)->not->toBe($recoveryKey)
+        ->and($this->locks->unlockWithRecoveryKey($this->vault, $recoveryKey))->toBeNull()
+        ->and($this->locks->unlockWithRecoveryKey($this->vault, $replacement))->toBe($this->key)
+        ->and($this->locks->unlock($this->vault, 'staple battery'))->toBe($this->key)
+        ->and($this->locks->unlockNote((string) file_get_contents($this->vault->path.'/Secret.md'), $this->key))->toBe("# Secret\n\nThe code is swordfish");
+});
+
+it('makes a new recovery key when given the passphrase', function (): void {
+    $this->postJson(route('vault-recovery-key.store', $this->vault), ['passphrase' => 'wrong horse'])
+        ->assertJsonValidationErrors(['passphrase' => 'That passphrase is not right.']);
+
+    $recoveryKey = $this->postJson(route('vault-recovery-key.store', $this->vault), ['passphrase' => 'correct horse battery'])
+        ->assertCreated()
+        ->json('recovery_key');
+
+    expect($this->locks->unlockWithRecoveryKey($this->vault, (string) $recoveryKey))->toBe($this->key);
+
+    $this->get(route('notes.show', [$this->vault, $this->plain]))
+        ->assertInertia(fn ($page) => $page->where('recovery_key_set', true));
+});
+
+it('limits passphrase and recovery key guesses per vault', function (): void {
+    foreach (range(1, 10) as $attempt) {
+        $this->postJson(route('vault-key.store', $this->vault), ['passphrase' => 'guess '.$attempt])->assertUnprocessable();
+    }
+
+    $this->postJson(route('vault-key.store', $this->vault), ['passphrase' => 'correct horse battery'])->assertTooManyRequests();
+    $this->putJson(route('vault-passphrase.update', $this->vault), ['recovery_key' => 'ABCD', 'passphrase' => 'staple battery', 'passphrase_confirmation' => 'staple battery'])->assertTooManyRequests();
+    $this->postJson(route('vault-key.store', vaultWithFiles([])), ['passphrase' => 'anything'])->assertUnprocessable();
 });
 
 it('locks a note, dropping its plain history and comments', function (): void {
@@ -98,6 +161,7 @@ it('opens and saves a locked note only with the key', function (): void {
             ->where('note.unlocked', false)
             ->where('note.contents', '')
             ->where('passphrase_set', true)
+            ->where('recovery_key_set', false)
             ->where('tree.1.locked', true));
 
     ($this->withKey)()->get(route('notes.show', [$this->vault, $this->secret]))

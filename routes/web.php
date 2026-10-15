@@ -48,6 +48,7 @@ use App\Http\Controllers\VaultGraphController;
 use App\Http\Controllers\VaultKeyController;
 use App\Http\Controllers\VaultPassphraseController;
 use App\Http\Controllers\VaultPreviewController;
+use App\Http\Controllers\VaultRecoveryKeyController;
 use App\Http\Controllers\VaultSearchController;
 use App\Http\Controllers\VaultStatusController;
 use App\Http\Controllers\VaultSyncController;
@@ -90,7 +91,11 @@ Route::post('vaults/{vault}/colour-groups', [ColourGroupController::class, 'stor
 Route::put('vaults/{vault}/colour-groups/order', [ColourGroupOrderController::class, 'update'])->name('colour-group-order.update');
 Route::post('vaults/{vault}/views', [TableViewController::class, 'store'])->name('table-views.store');
 Route::post('vaults/{vault}/passphrase', [VaultPassphraseController::class, 'store'])->name('vault-passphrase.store');
-Route::post('vaults/{vault}/key', [VaultKeyController::class, 'store'])->name('vault-key.store');
+Route::middleware('throttle:vault-passphrase')->group(function (): void {
+    Route::put('vaults/{vault}/passphrase', [VaultPassphraseController::class, 'update'])->name('vault-passphrase.update');
+    Route::post('vaults/{vault}/key', [VaultKeyController::class, 'store'])->name('vault-key.store');
+    Route::post('vaults/{vault}/recovery-key', [VaultRecoveryKeyController::class, 'store'])->name('vault-recovery-key.store');
+});
 Route::post('vaults/{vault}/imports/notion', [NotionImportController::class, 'store'])->name('notion-imports.store');
 Route::get('vaults/{vault}/tasks', [TaskController::class, 'index'])->middleware(WatchVault::class)->name('tasks.index');
 Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->middleware(WatchVault::class)->name('vault-graph.show');
