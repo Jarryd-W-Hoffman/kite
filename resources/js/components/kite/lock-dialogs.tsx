@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     Check,
     Copy,
@@ -22,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useClipboard } from '@/hooks/use-clipboard';
+import type { LockStep } from '@/hooks/use-note-lock';
 import { requestJson } from '@/lib/kite-http';
 import {
     isUnlocked,
@@ -871,5 +873,54 @@ function RecoveryKeyForm({
                 </Button>
             </DialogFooter>
         </form>
+    );
+}
+
+/**
+ * The dialogs of a note's lock flow, one at a time: choosing a passphrase or unlocking the vault
+ * before a note is locked, changing the passphrase, or making a recovery key.
+ */
+export function NoteLockDialogs({
+    vault,
+    step,
+    onClose,
+    onReadyToLock,
+    recoveryKeySet,
+}: {
+    vault: VaultSummary;
+    step: LockStep | null;
+    onClose: () => void;
+    onReadyToLock: () => void;
+    recoveryKeySet: boolean;
+}) {
+    const closeOnDismiss = (open: boolean) => !open && onClose();
+
+    return (
+        <>
+            <SetPassphraseDialog
+                vault={vault}
+                open={step === 'passphrase'}
+                onOpenChange={closeOnDismiss}
+                onDone={onReadyToLock}
+            />
+            <UnlockDialog
+                vault={vault}
+                open={step === 'unlock'}
+                onOpenChange={closeOnDismiss}
+                onUnlocked={onReadyToLock}
+            />
+            <ChangePassphraseDialog
+                vault={vault}
+                open={step === 'change-passphrase'}
+                onOpenChange={closeOnDismiss}
+            />
+            <RecoveryKeyDialog
+                vault={vault}
+                open={step === 'recovery-key'}
+                onOpenChange={closeOnDismiss}
+                replacing={recoveryKeySet}
+                onCreated={() => router.reload({ only: ['recovery_key_set'] })}
+            />
+        </>
     );
 }
