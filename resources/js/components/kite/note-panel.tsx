@@ -8,6 +8,7 @@ import { PropertiesEditor } from '@/components/kite/properties-editor';
 import type { Properties } from '@/components/kite/properties-editor';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { readStored, stringListCodec, writeStored } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { store as linkMention } from '@/routes/note-mentions';
 import { show, store } from '@/routes/notes';
@@ -51,13 +52,7 @@ function formatValue(value: unknown): string {
 const COLLAPSED_KEY = 'kite:panel-collapsed';
 
 function readCollapsed(): string[] {
-    try {
-        return JSON.parse(
-            localStorage.getItem(COLLAPSED_KEY) ?? '[]',
-        ) as string[];
-    } catch {
-        return [];
-    }
+    return readStored(COLLAPSED_KEY, stringListCodec, []);
 }
 
 /**
@@ -80,9 +75,10 @@ function Section({
         const next = !collapsed;
         const stored = readCollapsed().filter((item) => item !== title);
 
-        localStorage.setItem(
+        writeStored(
             COLLAPSED_KEY,
-            JSON.stringify(next ? [...stored, title] : stored),
+            stringListCodec,
+            next ? [...stored, title] : stored,
         );
         setCollapsed(next);
     };

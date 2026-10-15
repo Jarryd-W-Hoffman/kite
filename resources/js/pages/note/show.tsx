@@ -1,53 +1,27 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import {
-    CalendarDays,
-    ChevronLeft,
-    ChevronRight,
-    Columns2,
-    Eye,
-    FileCode,
-    FileDown,
-    FilePlus2,
-    Focus,
-    Globe,
-    History,
-    KeyRound,
-    LoaderCircle,
-    LockKeyhole,
-    LockKeyholeOpen,
-    Merge,
-    MessageSquare,
-    MoreHorizontal,
-    PanelRight,
-    PencilLine,
-    Star,
-    Trash2,
-} from 'lucide-react';
+import { LockKeyhole, MessageSquare, PanelRight, Star } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { CommandPalette } from '@/components/kite/command-palette';
 import { CommentRail } from '@/components/kite/comment-rail';
 import { DeleteNoteDialog } from '@/components/kite/delete-note-dialog';
-import { EmptyState } from '@/components/kite/empty-state';
 import { countWords, FocusBar } from '@/components/kite/focus-bar';
-import { Kbd } from '@/components/kite/kbd';
-import {
-    LockedNoteScreen,
-    ChangePassphraseDialog,
-    RecoveryKeyDialog,
-    SetPassphraseDialog,
-    UnlockDialog,
-    useVaultUnlocked,
-} from '@/components/kite/lock-dialogs';
+import { NoteLockDialogs } from '@/components/kite/lock-dialogs';
+import { NoteActionsMenu } from '@/components/kite/note-actions-menu';
 import { NoteEditor } from '@/components/kite/note-editor';
 import type {
     EditorSelectionText,
     NoteEditorHandle,
 } from '@/components/kite/note-editor';
+import {
+    DayNavigation,
+    NotePathTitle,
+    SaveStatus,
+    ViewModeToggle,
+} from '@/components/kite/note-header';
 import { NotePanel } from '@/components/kite/note-panel';
 import { NotePreview, scrollToHeading } from '@/components/kite/note-preview';
-import type { Properties } from '@/components/kite/properties-editor';
 import {
     ExtractNoteDialog,
     MergeNoteDialog,
@@ -57,66 +31,58 @@ import { TabBar } from '@/components/kite/tab-bar';
 import { VersionHistoryDialog } from '@/components/kite/version-history-dialog';
 import {
     WorkspaceSidebar,
-    createNote,
     openDailyNote,
 } from '@/components/kite/workspace-sidebar';
-import { Button } from '@/components/ui/button';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+    EmptyWorkspace,
+    LockedWorkspace,
+} from '@/components/kite/workspace-states';
+import { Button } from '@/components/ui/button';
 import { useAppCommands } from '@/hooks/use-app-commands';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useNoteComments } from '@/hooks/use-note-comments';
 import { useNoteDocument } from '@/hooks/use-note-document';
 import { useNoteLinkModifiers } from '@/hooks/use-note-link-modifiers';
+import { useNoteLock } from '@/hooks/use-note-lock';
+import { useNoteProperties } from '@/hooks/use-note-properties';
+import { useNoteStar } from '@/hooks/use-note-star';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { requestJson } from '@/lib/kite-http';
 import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
-import { formatShortcut } from '@/lib/shortcuts';
 import { BASE_COMMANDS } from '@/lib/slash-commands';
 import type { SlashCommand } from '@/lib/slash-commands';
+import {
+    booleanCodec,
+    idCodec,
+    oneOfCodec,
+    readStored,
+    useStoredState,
+    writeStored,
+} from '@/lib/storage';
 import { cn, editorWidthClass } from '@/lib/utils';
-import { isUnlocked, lockVault, onBeforeVaultLock } from '@/lib/vault-keys';
+import { lockVault } from '@/lib/vault-keys';
 import { show as noteExport } from '@/routes/note-exports';
-import { update as updateLock } from '@/routes/note-lock';
 import { update as updatePath } from '@/routes/note-path';
-import { update as updateProperties } from '@/routes/note-properties';
 import { store as publishNote } from '@/routes/note-publications';
-import { update as updateStar } from '@/routes/note-star';
 import { store as restoreVersion } from '@/routes/note-version-restores';
 import { show as showTemplate } from '@/routes/templates';
 import type { NoteDetail, OutlineItem, WorkspaceProps } from '@/types';
 
-type ViewMode = 'edit' | 'split' | 'preview';
+const VIEW_MODES = ['edit', 'split', 'preview'] as const;
 
-function storedSplit(vaultId: number): number | null {
-    const stored = Number(localStorage.getItem(`kite:split:${vaultId}`));
+type ViewMode = (typeof VIEW_MODES)[number];
 
-    return Number.isInteger(stored) && stored > 0 ? stored : null;
-}
+const viewModeCodec = oneOfCodec(VIEW_MODES);
+const panelCodec = oneOfCodec(['open', 'closed'] as const);
 
-function storedViewMode(): ViewMode {
-    const stored = localStorage.getItem('kite:view-mode');
-
-    // Live preview makes the editor read like the note, so it's the default view.
-    return stored === 'split' || stored === 'preview' ? stored : 'edit';
-}
+const splitKey = (vaultId: number) => `kite:split:${vaultId}`;
 
 export default function NoteShow(props: WorkspaceProps) {
     const { vault, vaults, tree, folders, tags, note, indexing } = props;
     const colourGroups = props.colour_groups;
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [panelOpen, setPanelOpen] = useState(
-        () => localStorage.getItem('kite:panel') !== 'closed',
+        () => readStored('kite:panel', panelCodec, 'open') === 'open',
     );
 
     // Focus mode hides everything but the note; it lasts until left, across notes.
@@ -124,7 +90,7 @@ export default function NoteShow(props: WorkspaceProps) {
 
     const togglePanel = () => {
         setPanelOpen((open) => {
-            localStorage.setItem('kite:panel', open ? 'closed' : 'open');
+            writeStored('kite:panel', panelCodec, open ? 'closed' : 'open');
 
             return !open;
         });
@@ -176,111 +142,6 @@ export default function NoteShow(props: WorkspaceProps) {
     );
 }
 
-const GETTING_STARTED: { shortcut: string; text: ReactNode }[] = [
-    { shortcut: 'Mod+N', text: 'Create a note' },
-    { shortcut: 'Mod+K', text: 'Search notes, or create one by name' },
-    { shortcut: 'Mod+D', text: "Open today's daily note" },
-    { shortcut: 'Mod+G', text: 'See how your notes connect' },
-    {
-        shortcut: '[[',
-        text: 'Link to another note; missing notes are created on click',
-    },
-    { shortcut: '#', text: 'Tag a note, e.g. #project/kite' },
-];
-
-function EmptyWorkspace({ vault, indexing, watching }: WorkspaceProps) {
-    useVaultSync(vault, () => router.reload(), watching);
-
-    return (
-        <main className="flex flex-1 flex-col">
-            <div className="kite-drag h-12 shrink-0 border-b" />
-            <div className="flex flex-1 flex-col items-center justify-center gap-8 overflow-y-auto">
-                {indexing ? (
-                    <EmptyState
-                        icon={LoaderCircle}
-                        iconClassName="animate-spin"
-                        title={`Indexing ${vault.name}…`}
-                        description="Your notes will appear as soon as they are read."
-                    />
-                ) : (
-                    <>
-                        <EmptyState
-                            icon={FilePlus2}
-                            title={`${vault.name} is empty`}
-                            description={
-                                <>
-                                    Create your first note, or add .md files to{' '}
-                                    <code className="font-mono break-all">
-                                        {vault.path}
-                                    </code>
-                                    .
-                                </>
-                            }
-                        >
-                            <Button onClick={() => createNote(vault, 'Home')}>
-                                <FilePlus2 />
-                                Create a note
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={() => openDailyNote(vault)}
-                            >
-                                <CalendarDays />
-                                Today&apos;s note
-                            </Button>
-                        </EmptyState>
-                        <section
-                            className="w-full max-w-md rounded-xl border bg-card p-4 shadow-kite-sm"
-                            data-test="getting-started"
-                        >
-                            <h2 className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                Getting started
-                            </h2>
-                            <ul className="space-y-2 text-sm">
-                                {GETTING_STARTED.map((tip) => (
-                                    <li
-                                        key={tip.shortcut}
-                                        className="flex items-center gap-3"
-                                    >
-                                        <Kbd
-                                            shortcut={tip.shortcut}
-                                            className="w-14 shrink-0 text-center"
-                                        />
-                                        <span>{tip.text}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </section>
-                    </>
-                )}
-            </div>
-        </main>
-    );
-}
-
-/**
- * A locked note while its vault is locked: its name, and the passphrase field to open it.
- */
-function LockedWorkspace({
-    vault,
-    note,
-}: WorkspaceProps & { note: NoteDetail }) {
-    return (
-        <main className="flex min-w-0 flex-1 flex-col">
-            <TabBar vault={vault} note={{ id: note.id, title: note.title }} />
-            <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-3 text-sm">
-                <LockKeyhole className="size-3.5 text-muted-foreground" />
-                <span className="truncate font-medium">{note.title}</span>
-            </header>
-            <LockedNoteScreen
-                vault={vault}
-                title={note.title}
-                onUnlocked={() => router.reload()}
-            />
-        </main>
-    );
-}
-
 type NoteWorkspaceProps = WorkspaceProps & {
     note: NoteDetail;
     panelOpen: boolean;
@@ -310,21 +171,19 @@ function NoteWorkspace({
 }: NoteWorkspaceProps) {
     const { kite } = usePage().props;
     const { editor } = kite;
-    const [viewMode, setViewMode] = useState<ViewMode>(storedViewMode);
+    // Live preview makes the editor read like the note, so it's the default view.
+    const [viewMode, setViewMode] = useState<ViewMode>(() =>
+        readStored('kite:view-mode', viewModeCodec, 'edit'),
+    );
     const [renaming, setRenaming] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [merging, setMerging] = useState(false);
-    const locked = note.locked === true;
-    const vaultUnlocked = useVaultUnlocked(vault.id);
-    const [lockStep, setLockStep] = useState<
-        'passphrase' | 'unlock' | 'change-passphrase' | 'recovery-key' | null
-    >(null);
     const [extracting, setExtracting] = useState<EditorSelectionText | null>(
         null,
     );
     const [splitNoteId, setSplitNoteId] = useState<number | null>(() =>
-        storedSplit(vault.id),
+        readStored(splitKey(vault.id), idCodec, null),
     );
     const editorRef = useRef<NoteEditorHandle>(null);
     const { contents, setContents, meta, saveState, save, isDirty, adopt } =
@@ -340,8 +199,10 @@ function NoteWorkspace({
                 }),
         });
 
-    const [commentsOpen, setCommentsOpen] = useState(
-        () => localStorage.getItem('kite:comments-open') === 'true',
+    const [commentsOpen, setCommentsOpen] = useStoredState(
+        'kite:comments-open',
+        booleanCodec,
+        false,
     );
     const pendingReveal = useRef<string | null>(null);
     const [cursorLine, setCursorLine] = useState<number | null>(null);
@@ -351,41 +212,19 @@ function NoteWorkspace({
     // Focus mode shows one pane: the editor, or the preview when that's what was showing.
     const shownMode =
         (tooNarrowToSplit || focus) && viewMode === 'split' ? 'edit' : viewMode;
-    const [starred, setStarred] = useState(note.starred === true);
-
-    // Save a locked note before its vault locks, then close it.
-    useEffect(
-        () =>
-            onBeforeVaultLock((vaultId) =>
-                locked && vaultId === vault.id ? save() : undefined,
-            ),
-        [locked, vault.id, save],
+    const { starred, toggleStar } = useNoteStar(
+        vault,
+        note.id,
+        note.starred === true,
     );
-
-    useEffect(() => {
-        if (locked && !vaultUnlocked) {
-            router.reload();
-        }
-    }, [locked, vaultUnlocked]);
-
-    const lockUrl = updateLock({ vault: vault.id, note: note.id }).url;
-    const lockNow = () =>
-        void save().then(() =>
-            router.put(lockUrl, {}, { preserveScroll: true }),
-        );
-    const lockNote = () => {
-        if (!passphraseSet) {
-            setLockStep('passphrase');
-        } else if (!isUnlocked(vault.id)) {
-            setLockStep('unlock');
-        } else {
-            lockNow();
-        }
-    };
-    const removeLock = () =>
-        void save().then(() =>
-            router.delete(lockUrl, { preserveScroll: true }),
-        );
+    const {
+        locked,
+        step: lockStep,
+        setStep: setLockStep,
+        lockNow,
+        lockNote,
+        removeLock,
+    } = useNoteLock(vault, note, save, passphraseSet);
 
     useEffect(() => {
         if (!focus) {
@@ -408,58 +247,13 @@ function NoteWorkspace({
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [focus, onToggleFocus]);
 
-    const toggleStar = () => {
-        const next = !starred;
-
-        setStarred(next);
-        router.put(
-            updateStar({ vault: vault.id, note: note.id }).url,
-            { starred: next },
-            {
-                only: ['favourites'],
-                preserveScroll: true,
-                preserveState: true,
-                onError: () => setStarred(!next),
-            },
-        );
-    };
-    const [properties, setProperties] = useState<Properties>(meta.frontmatter);
-    const [savedFrontmatter, setSavedFrontmatter] = useState(meta.frontmatter);
-
-    // A save (or a change on disk) brings the parsed frontmatter back from the server.
-    if (meta.frontmatter !== savedFrontmatter) {
-        setSavedFrontmatter(meta.frontmatter);
-        setProperties(meta.frontmatter);
-    }
-
-    const latestContents = useRef(contents);
-    const propertyQueue = useRef<Promise<void>>(Promise.resolve());
-
-    useEffect(() => {
-        latestContents.current = contents;
-    }, [contents]);
-
-    // Changes run one at a time on the newest text, so quick edits never undo each other.
-    const changeProperties = (next: Properties) => {
-        setProperties(next);
-        propertyQueue.current = propertyQueue.current.then(async () => {
-            try {
-                const response = await requestJson<{
-                    contents: string;
-                    properties: Properties;
-                }>(updateProperties({ vault: vault.id, note: note.id }), {
-                    contents: latestContents.current,
-                    properties: next,
-                });
-
-                latestContents.current = response.contents;
-                setContents(response.contents);
-                setProperties(response.properties);
-            } catch {
-                toast.error('Could not update the properties.');
-            }
-        });
-    };
+    const { properties, changeProperties } = useNoteProperties(
+        vault,
+        note.id,
+        meta.frontmatter,
+        contents,
+        setContents,
+    );
     const noteComments = useNoteComments({
         vault,
         noteId: note.id,
@@ -471,10 +265,7 @@ function NoteWorkspace({
         (comment) => !comment.resolved,
     ).length;
 
-    const toggleComments = (open: boolean) => {
-        setCommentsOpen(open);
-        localStorage.setItem('kite:comments-open', String(open));
-    };
+    const toggleComments = (open: boolean) => setCommentsOpen(open);
 
     const selectComment = (id: string) => {
         noteComments.setActiveId(id);
@@ -503,12 +294,7 @@ function NoteWorkspace({
     const openSplit = useCallback(
         (id: number | null) => {
             setSplitNoteId(id);
-
-            if (id === null) {
-                localStorage.removeItem(`kite:split:${vault.id}`);
-            } else {
-                localStorage.setItem(`kite:split:${vault.id}`, String(id));
-            }
+            writeStored(splitKey(vault.id), idCodec, id);
         },
         [vault.id],
     );
@@ -572,11 +358,22 @@ function NoteWorkspace({
     };
 
     const changeViewMode = (mode: string) => {
-        if (mode === 'edit' || mode === 'split' || mode === 'preview') {
-            setViewMode(mode);
-            localStorage.setItem('kite:view-mode', mode);
+        const parsed = viewModeCodec.parse(mode);
+
+        if (parsed !== undefined) {
+            setViewMode(parsed);
+            writeStored('kite:view-mode', viewModeCodec, parsed);
         }
     };
+
+    const publish = () =>
+        void save().then(() =>
+            router.post(
+                publishNote({ vault: vault.id, note: note.id }).url,
+                {},
+                { preserveScroll: true },
+            ),
+        );
 
     useAppCommands({
         'toggle-preview': () =>
@@ -610,16 +407,7 @@ function NoteWorkspace({
         'focus-mode': onToggleFocus,
         'export-html': locked ? undefined : () => void exportNote('html'),
         'export-pdf': locked ? undefined : () => void exportNote('pdf'),
-        publish: locked
-            ? undefined
-            : () =>
-                  void save().then(() =>
-                      router.post(
-                          publishNote({ vault: vault.id, note: note.id }).url,
-                          {},
-                          { preserveScroll: true },
-                      ),
-                  ),
+        publish: locked ? undefined : publish,
     });
 
     const submitRename = (path: string) => {
@@ -769,41 +557,12 @@ function NoteWorkspace({
                             'border-transparent opacity-0 transition-opacity duration-300 focus-within:opacity-100 hover:opacity-100',
                     )}
                 >
-                    {renaming ? (
-                        <input
-                            autoFocus
-                            defaultValue={note.path.replace(/\.md$/i, '')}
-                            aria-label="Note path"
-                            onBlur={(event) => submitRename(event.target.value)}
-                            onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                    submitRename(event.currentTarget.value);
-                                } else if (event.key === 'Escape') {
-                                    setRenaming(false);
-                                }
-                            }}
-                            className="kite-no-drag min-w-0 flex-1 rounded-md border bg-background px-2 py-1 font-mono text-sm outline-none focus:ring-2 focus:ring-ring"
-                        />
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={() => setRenaming(true)}
-                            title="Rename or move"
-                            className="kite-no-drag flex min-w-0 items-center gap-1 rounded-md px-2 py-1 text-[13.5px] transition-colors hover:bg-accent"
-                        >
-                            <span className="truncate text-muted-foreground">
-                                {note.path.includes('/')
-                                    ? `${note.path.slice(0, note.path.lastIndexOf('/'))} / `
-                                    : ''}
-                            </span>
-                            <span className="truncate font-medium">
-                                {note.path
-                                    .split('/')
-                                    .pop()
-                                    ?.replace(/\.md$/i, '')}
-                            </span>
-                        </button>
-                    )}
+                    <NotePathTitle
+                        path={note.path}
+                        renaming={renaming}
+                        onRenamingChange={setRenaming}
+                        onRename={submitRename}
+                    />
 
                     {locked && (
                         <span
@@ -816,79 +575,16 @@ function NoteWorkspace({
                         </span>
                     )}
 
-                    <span
-                        className={cn(
-                            'flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground/80',
-                            saveState === 'error' && 'text-destructive',
-                        )}
-                        aria-live="polite"
-                    >
-                        <span
-                            aria-hidden
-                            className={cn(
-                                'size-1.5 rounded-full bg-emerald-500/70 transition-colors',
-                                saveState === 'unsaved' && 'bg-amber-500/80',
-                                saveState === 'saving' &&
-                                    'animate-pulse bg-primary/70',
-                                saveState === 'error' && 'bg-destructive',
-                            )}
-                        />
-                        {
-                            {
-                                saved: 'Saved',
-                                unsaved: 'Edited',
-                                saving: 'Saving…',
-                                error: 'Not saved',
-                            }[saveState]
-                        }
-                    </span>
+                    <SaveStatus state={saveState} />
 
                     <div className="kite-no-drag ml-auto flex items-center gap-1">
                         {meta.daily_date && (
-                            <div className="mr-1 flex items-center">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8"
-                                    aria-label="Previous day"
-                                    data-test="previous-day"
-                                    onClick={() => shiftDay(-1)}
-                                >
-                                    <ChevronLeft />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8"
-                                    aria-label="Next day"
-                                    data-test="next-day"
-                                    onClick={() => shiftDay(1)}
-                                >
-                                    <ChevronRight />
-                                </Button>
-                            </div>
+                            <DayNavigation onShift={shiftDay} />
                         )}
-                        <ToggleGroup
-                            type="single"
-                            size="sm"
+                        <ViewModeToggle
                             value={viewMode}
-                            onValueChange={changeViewMode}
-                            aria-label="View mode"
-                            className="mr-1 rounded-lg bg-muted p-0.5 [&_[data-slot=toggle-group-item]]:h-7 [&_[data-slot=toggle-group-item]]:rounded-md [&_[data-slot=toggle-group-item]]:px-2 [&_[data-slot=toggle-group-item]]:text-muted-foreground [&_[data-slot=toggle-group-item][data-state=on]]:bg-background [&_[data-slot=toggle-group-item][data-state=on]]:text-foreground [&_[data-slot=toggle-group-item][data-state=on]]:shadow-kite-sm"
-                        >
-                            <ToggleGroupItem value="edit" aria-label="Edit">
-                                <PencilLine />
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="split" aria-label="Split">
-                                <Columns2 />
-                            </ToggleGroupItem>
-                            <ToggleGroupItem
-                                value="preview"
-                                aria-label="Preview"
-                            >
-                                <Eye />
-                            </ToggleGroupItem>
-                        </ToggleGroup>
+                            onChange={changeViewMode}
+                        />
 
                         <Button
                             variant="ghost"
@@ -940,169 +636,27 @@ function NoteWorkspace({
                             <PanelRight />
                         </Button>
 
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8"
-                                    aria-label="Note actions"
-                                    data-test="note-actions"
-                                >
-                                    <MoreHorizontal />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                    onSelect={() => setRenaming(true)}
-                                >
-                                    <PencilLine />
-                                    Rename or move
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onSelect={onToggleFocus}
-                                    data-test="enter-focus"
-                                >
-                                    <Focus />
-                                    Focus mode
-                                    <DropdownMenuShortcut>
-                                        {formatShortcut(
-                                            'Mod+Shift+F',
-                                            kite.platform,
-                                        )}
-                                    </DropdownMenuShortcut>
-                                </DropdownMenuItem>
-                                {!locked && (
-                                    <DropdownMenuItem
-                                        onSelect={() => setMerging(true)}
-                                        data-test="merge-note"
-                                    >
-                                        <Merge />
-                                        Merge into…
-                                    </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem
-                                    onSelect={() => setHistoryOpen(true)}
-                                    data-test="open-history"
-                                >
-                                    <History />
-                                    Version history
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                {locked ? (
-                                    <>
-                                        <DropdownMenuItem
-                                            onSelect={removeLock}
-                                            data-test="remove-lock"
-                                        >
-                                            <LockKeyholeOpen />
-                                            Remove lock
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onSelect={() =>
-                                                void lockVault(vault.id)
-                                            }
-                                            data-test="lock-vault"
-                                        >
-                                            <LockKeyhole />
-                                            Lock vault now
-                                        </DropdownMenuItem>
-                                    </>
-                                ) : (
-                                    <DropdownMenuItem
-                                        onSelect={lockNote}
-                                        data-test="lock-note"
-                                    >
-                                        <LockKeyhole />
-                                        Lock note…
-                                    </DropdownMenuItem>
-                                )}
-                                {passphraseSet && (
-                                    <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger data-test="vault-passphrase-menu">
-                                            <KeyRound />
-                                            Vault passphrase
-                                        </DropdownMenuSubTrigger>
-                                        <DropdownMenuSubContent>
-                                            <DropdownMenuItem
-                                                onSelect={() =>
-                                                    setLockStep(
-                                                        'change-passphrase',
-                                                    )
-                                                }
-                                                data-test="change-passphrase"
-                                            >
-                                                Change passphrase…
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onSelect={() =>
-                                                    setLockStep('recovery-key')
-                                                }
-                                                data-test="new-recovery-key"
-                                            >
-                                                {recoveryKeySet
-                                                    ? 'New recovery key…'
-                                                    : 'Create recovery key…'}
-                                            </DropdownMenuItem>
-                                        </DropdownMenuSubContent>
-                                    </DropdownMenuSub>
-                                )}
-                                {!locked && (
-                                    <>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            onSelect={() =>
-                                                void exportNote('html')
-                                            }
-                                            data-test="export-html"
-                                        >
-                                            <FileCode />
-                                            Export as HTML
-                                        </DropdownMenuItem>
-                                        {kite.native && (
-                                            <DropdownMenuItem
-                                                onSelect={() =>
-                                                    void exportNote('pdf')
-                                                }
-                                                data-test="export-pdf"
-                                            >
-                                                <FileDown />
-                                                Export as PDF
-                                            </DropdownMenuItem>
-                                        )}
-                                        <DropdownMenuItem
-                                            onSelect={() =>
-                                                void save().then(() =>
-                                                    router.post(
-                                                        publishNote({
-                                                            vault: vault.id,
-                                                            note: note.id,
-                                                        }).url,
-                                                        {},
-                                                        {
-                                                            preserveScroll: true,
-                                                        },
-                                                    ),
-                                                )
-                                            }
-                                            data-test="publish-note"
-                                        >
-                                            <Globe />
-                                            Publish as a web page
-                                        </DropdownMenuItem>
-                                    </>
-                                )}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    variant="destructive"
-                                    onSelect={() => setDeleting(true)}
-                                    data-test="delete-note"
-                                >
-                                    <Trash2 />
-                                    Delete note
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <NoteActionsMenu
+                            locked={locked}
+                            native={kite.native}
+                            platform={kite.platform}
+                            passphraseSet={passphraseSet}
+                            recoveryKeySet={recoveryKeySet}
+                            onRename={() => setRenaming(true)}
+                            onFocus={onToggleFocus}
+                            onMerge={() => setMerging(true)}
+                            onHistory={() => setHistoryOpen(true)}
+                            onLockNote={lockNote}
+                            onRemoveLock={removeLock}
+                            onLockVault={() => void lockVault(vault.id)}
+                            onChangePassphrase={() =>
+                                setLockStep('change-passphrase')
+                            }
+                            onRecoveryKey={() => setLockStep('recovery-key')}
+                            onExport={(format) => void exportNote(format)}
+                            onPublish={publish}
+                            onDelete={() => setDeleting(true)}
+                        />
                     </div>
                 </header>
 
@@ -1258,32 +812,12 @@ function NoteWorkspace({
                 }}
             />
 
-            <SetPassphraseDialog
+            <NoteLockDialogs
                 vault={vault}
-                open={lockStep === 'passphrase'}
-                onOpenChange={(open) => !open && setLockStep(null)}
-                onDone={lockNow}
-            />
-
-            <UnlockDialog
-                vault={vault}
-                open={lockStep === 'unlock'}
-                onOpenChange={(open) => !open && setLockStep(null)}
-                onUnlocked={lockNow}
-            />
-
-            <ChangePassphraseDialog
-                vault={vault}
-                open={lockStep === 'change-passphrase'}
-                onOpenChange={(open) => !open && setLockStep(null)}
-            />
-
-            <RecoveryKeyDialog
-                vault={vault}
-                open={lockStep === 'recovery-key'}
-                onOpenChange={(open) => !open && setLockStep(null)}
-                replacing={recoveryKeySet}
-                onCreated={() => router.reload({ only: ['recovery_key_set'] })}
+                step={lockStep}
+                onClose={() => setLockStep(null)}
+                onReadyToLock={lockNow}
+                recoveryKeySet={recoveryKeySet}
             />
 
             <MergeNoteDialog

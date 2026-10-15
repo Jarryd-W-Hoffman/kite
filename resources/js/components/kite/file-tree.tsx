@@ -26,6 +26,7 @@ import { groupColourVariable } from '@/lib/colour-groups';
 import type { ColourGroup } from '@/lib/colour-groups';
 import { buildTree, noteFolder, noteName } from '@/lib/note-tree';
 import type { TreeFolder } from '@/lib/note-tree';
+import { readStored, stringListCodec, writeStored } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { update as updateFolder } from '@/routes/folders';
 import { update as updatePath } from '@/routes/note-path';
@@ -127,17 +128,9 @@ export function FileTree({
     onDeleteFolder,
 }: Props) {
     const tree = useMemo(() => buildTree(notes, folders), [notes, folders]);
-    const [collapsed, setCollapsed] = useState<Set<string>>(() => {
-        try {
-            return new Set(
-                JSON.parse(
-                    localStorage.getItem(storageKey(vault)) ?? '[]',
-                ) as string[],
-            );
-        } catch {
-            return new Set();
-        }
-    });
+    const [collapsed, setCollapsed] = useState<Set<string>>(
+        () => new Set(readStored(storageKey(vault), stringListCodec, [])),
+    );
     const [dropTarget, setDropTarget] = useState<string | null>(null);
     const dragged = useRef<Dragged | null>(null);
     const expandTimer = useRef<{ folder: string; id: number } | null>(null);
@@ -152,7 +145,7 @@ export function FileTree({
                 next.delete(path);
             }
 
-            localStorage.setItem(storageKey(vault), JSON.stringify([...next]));
+            writeStored(storageKey(vault), stringListCodec, [...next]);
 
             return next;
         });

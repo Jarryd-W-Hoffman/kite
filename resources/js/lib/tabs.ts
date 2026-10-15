@@ -1,3 +1,10 @@
+import {
+    booleanCodec,
+    jsonCodec,
+    readStored,
+    writeStored,
+} from '@/lib/storage';
+
 export type Tab = {
     id: number;
     title: string;
@@ -16,24 +23,38 @@ function key(vaultId: number): string {
     return `kite:tabs:${vaultId}`;
 }
 
+function isTab(value: unknown): value is Tab {
+    const tab = value as Partial<Tab> | null;
+
+    return (
+        typeof tab === 'object' &&
+        tab !== null &&
+        typeof tab.id === 'number' &&
+        typeof tab.title === 'string' &&
+        (tab.pinned === undefined || typeof tab.pinned === 'boolean')
+    );
+}
+
+const tabStateCodec = jsonCodec((value): value is TabState => {
+    const state = value as Partial<TabState> | null;
+
+    return (
+        typeof state === 'object' &&
+        state !== null &&
+        Array.isArray(state.tabs) &&
+        state.tabs.every(isTab) &&
+        (state.active === null || typeof state.active === 'number')
+    );
+});
+
+const flagCodec = booleanCodec;
+
 export function readTabs(vaultId: number): TabState {
-    try {
-        const state = JSON.parse(
-            localStorage.getItem(key(vaultId)) ?? 'null',
-        ) as TabState | null;
-
-        if (state && Array.isArray(state.tabs)) {
-            return state;
-        }
-    } catch {
-        // Fall through to an empty set of tabs.
-    }
-
-    return { tabs: [], active: null };
+    return readStored(key(vaultId), tabStateCodec, { tabs: [], active: null });
 }
 
 function writeTabs(vaultId: number, state: TabState): TabState {
-    localStorage.setItem(key(vaultId), JSON.stringify(state));
+    writeStored(key(vaultId), tabStateCodec, state);
 
     return state;
 }
@@ -42,7 +63,7 @@ function writeTabs(vaultId: number, state: TabState): TabState {
  * Ask the next note visit to open in a new tab rather than replacing the current one.
  */
 export function requestNewTab(): void {
-    sessionStorage.setItem(NEW_TAB_FLAG, '1');
+    writeStored(NEW_TAB_FLAG, flagCodec, true, 'session');
 }
 
 /**
@@ -50,8 +71,8 @@ export function requestNewTab(): void {
  */
 export function visitTab(vaultId: number, note: Tab): TabState {
     const state = readTabs(vaultId);
-    const wantsNewTab = sessionStorage.getItem(NEW_TAB_FLAG) === '1';
-    sessionStorage.removeItem(NEW_TAB_FLAG);
+    const wantsNewTab = readStored(NEW_TAB_FLAG, flagCodec, false, 'session');
+    writeStored(NEW_TAB_FLAG, flagCodec, null, 'session');
 
     const existing = state.tabs.findIndex((tab) => tab.id === note.id);
     let tabs = [...state.tabs];

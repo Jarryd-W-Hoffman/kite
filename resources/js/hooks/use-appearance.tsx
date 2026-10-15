@@ -1,9 +1,12 @@
 import { useSyncExternalStore } from 'react';
 import { requestJson } from '@/lib/kite-http';
+import { oneOfCodec, readStored, writeStored } from '@/lib/storage';
 import { update as updateAppearanceRoute } from '@/routes/appearance';
 
 export type ResolvedAppearance = 'light' | 'dark';
 export type Appearance = ResolvedAppearance | 'system';
+
+const appearanceCodec = oneOfCodec<Appearance>(['light', 'dark', 'system']);
 
 export type UseAppearanceReturn = {
     readonly appearance: Appearance;
@@ -36,7 +39,7 @@ const getStoredAppearance = (): Appearance => {
         return 'system';
     }
 
-    return (localStorage.getItem('appearance') as Appearance) || 'system';
+    return readStored('appearance', appearanceCodec, 'system');
 };
 
 const isDarkMode = (appearance: Appearance): boolean => {
@@ -77,8 +80,8 @@ export function initializeTheme(): void {
         return;
     }
 
-    if (!localStorage.getItem('appearance')) {
-        localStorage.setItem('appearance', 'system');
+    if (readStored('appearance', appearanceCodec, null) === null) {
+        writeStored('appearance', appearanceCodec, 'system');
         setCookie('appearance', 'system');
     }
 
@@ -104,7 +107,7 @@ export function useAppearance(): UseAppearanceReturn {
         currentAppearance = mode;
 
         // Store in localStorage for client-side persistence...
-        localStorage.setItem('appearance', mode);
+        writeStored('appearance', appearanceCodec, mode);
 
         // Store in cookie for SSR...
         setCookie('appearance', mode);
