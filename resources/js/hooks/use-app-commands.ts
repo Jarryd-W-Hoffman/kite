@@ -15,6 +15,7 @@ export type AppCommand =
     | 'shortcuts'
     | 'tasks'
     | 'new-view'
+    | 'new-canvas'
     | 'toggle-star'
     | 'toggle-comments'
     | 'toggle-panel'

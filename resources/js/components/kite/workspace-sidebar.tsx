@@ -21,6 +21,7 @@ import {
     Settings2,
     Star,
     Sun,
+    Presentation,
     Table2,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -55,6 +56,7 @@ import type { Appearance } from '@/hooks/use-appearance';
 import type { ColourGroup } from '@/lib/colour-groups';
 import { formatShortcut } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
+import { show as showCanvas, store as storeCanvas } from '@/routes/canvases';
 import { store as openDaily } from '@/routes/daily-notes';
 import { show as showNote } from '@/routes/notes';
 import { store } from '@/routes/notes';
@@ -84,6 +86,7 @@ type Props = {
     graphActive?: boolean;
     tasksActive?: boolean;
     activeViewId?: number | null;
+    activeCanvasPath?: string | null;
     activeTag?: string | null;
     onSearch: () => void;
 };
@@ -112,6 +115,7 @@ export function WorkspaceSidebar({
     graphActive = false,
     tasksActive = false,
     activeViewId = null,
+    activeCanvasPath = null,
     activeTag = null,
     onSearch,
 }: Props) {
@@ -127,6 +131,7 @@ export function WorkspaceSidebar({
         templates = [],
         open_tasks: openTasks = 0,
         table_views: tableViews = [],
+        canvases = [],
         favourites = [],
         recent_notes: recentNotes = [],
         daily_dates: dailyDates = [],
@@ -135,6 +140,7 @@ export function WorkspaceSidebar({
         templates?: NoteTemplate[];
         open_tasks?: number;
         table_views?: { id: number; name: string }[];
+        canvases?: { path: string; name: string }[];
         favourites?: NoteLinkSummary[];
         recent_notes?: NoteLinkSummary[];
         daily_dates?: string[];
@@ -156,6 +162,7 @@ export function WorkspaceSidebar({
         'new-from-template': () => setTemplateFolder(''),
         tasks: () => router.visit(tasksIndex(vault.id)),
         'new-view': () => router.post(storeView(vault.id).url),
+        'new-canvas': () => router.post(storeCanvas(vault.id).url),
         search: onSearch,
         graph: () => router.visit(showGraph(vault.id)),
         'toggle-theme': () =>
@@ -386,6 +393,35 @@ export function WorkspaceSidebar({
                             }
                             active={view.id === activeViewId}
                             testId="view-link"
+                        />
+                    ))}
+                </div>
+
+                <div className="mt-5">
+                    <SectionHeading title="Canvases">
+                        <SectionAction
+                            label="New canvas"
+                            onClick={() =>
+                                router.post(storeCanvas(vault.id).url)
+                            }
+                            testId="new-canvas"
+                        >
+                            <Plus />
+                        </SectionAction>
+                    </SectionHeading>
+                    {canvases.map((canvas) => (
+                        <NavItem
+                            key={canvas.path}
+                            icon={Presentation}
+                            label={canvas.name}
+                            href={
+                                showCanvas({
+                                    vault: vault.id,
+                                    path: canvas.path,
+                                }).url
+                            }
+                            active={canvas.path === activeCanvasPath}
+                            testId="canvas-link"
                         />
                     ))}
                 </div>
