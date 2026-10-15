@@ -42,9 +42,28 @@ final readonly class VaultFilesystem
         return implode('/', $segments);
     }
 
+    /**
+     * The absolute path of a vault-relative path, refusing one that a symlink leads out of the vault.
+     */
     public function absolutePath(Vault $vault, string $path): string
     {
-        return $vault->path.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $this->normalise($path));
+        return $this->contained($vault, $vault->path.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $this->normalise($path)));
+    }
+
+    /**
+     * Return an absolute path inside the vault folder, or throw when following symlinks takes it
+     * outside: a shared vault could otherwise link a note to a private file elsewhere on disk, or
+     * a folder to somewhere notes would be written.
+     */
+    public function contained(Vault $vault, string $absolutePath): string
+    {
+        throw_unless(
+            $this->isInside($vault, $absolutePath),
+            InvalidArgumentException::class,
+            "The path [{$absolutePath}] leads outside the vault.",
+        );
+
+        return $absolutePath;
     }
 
     /**
@@ -105,7 +124,8 @@ final readonly class VaultFilesystem
             ->ignoreDotFiles(true)
             ->ignoreVCS(true)
             ->ignoreUnreadableDirs()
-            ->exclude($this->ignoredFolders());
+            ->exclude($this->ignoredFolders())
+            ->filter(fn (SplFileInfo $directory): bool => ! $directory->isLink() || $this->isInside($vault, $directory->getPathname()));
 
         $folders = [];
 
@@ -258,6 +278,32 @@ final readonly class VaultFilesystem
     }
 
     /**
+     * Whether a path stays inside the vault once symlinks are followed. A path that doesn't exist
+     * yet is judged by the nearest folder above it that does.
+     */
+    private function isInside(Vault $vault, string $absolutePath): bool
+    {
+        $root = realpath($vault->path);
+        $existing = $absolutePath;
+
+        if ($root === false) {
+            return false;
+        }
+
+        while (($resolved = realpath($existing)) === false) {
+            $parent = dirname($existing);
+
+            if ($parent === $existing) {
+                return false;
+            }
+
+            $existing = $parent;
+        }
+
+        return $resolved === $root || str_starts_with($resolved, $root.DIRECTORY_SEPARATOR);
+    }
+
+    /**
      * @return array<string, array{size: int, modified_at: int}>
      */
     private function filesMatching(Vault $vault, string $pattern): array
@@ -269,7 +315,8 @@ final readonly class VaultFilesystem
             ->ignoreDotFiles(true)
             ->ignoreVCS(true)
             ->ignoreUnreadableDirs()
-            ->exclude($this->ignoredFolders());
+            ->exclude($this->ignoredFolders())
+            ->filter(fn (SplFileInfo $file): bool => ! $file->isLink() || $this->isInside($vault, $file->getPathname()));
 
         $files = [];
 

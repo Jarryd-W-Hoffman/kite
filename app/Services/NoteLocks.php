@@ -31,6 +31,11 @@ final readonly class NoteLocks
 
     private const string CHECK = 'kite';
 
+    public function __construct(private VaultFilesystem $files = new VaultFilesystem)
+    {
+        //
+    }
+
     /**
      * Choose the vault's passphrase, returning the key it unlocks.
      */
@@ -180,6 +185,6 @@ final readonly class NoteLocks
 
     private function file(Vault $vault): string
     {
-        return $vault->path.DIRECTORY_SEPARATOR.self::FILE;
+        return $this->files->contained($vault, $vault->path.DIRECTORY_SEPARATOR.self::FILE);
     }
 }
