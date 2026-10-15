@@ -11,6 +11,7 @@ import {
     Focus,
     Globe,
     History,
+    KeyRound,
     LoaderCircle,
     LockKeyhole,
     LockKeyholeOpen,
@@ -33,6 +34,8 @@ import { countWords, FocusBar } from '@/components/kite/focus-bar';
 import { Kbd } from '@/components/kite/kbd';
 import {
     LockedNoteScreen,
+    ChangePassphraseDialog,
+    RecoveryKeyDialog,
     SetPassphraseDialog,
     UnlockDialog,
     useVaultUnlocked,
@@ -64,6 +67,9 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuShortcut,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -295,6 +301,7 @@ function NoteWorkspace({
     comments_error: commentsError,
     templates = [],
     passphrase_set: passphraseSet = false,
+    recovery_key_set: recoveryKeySet = false,
     panelOpen,
     onTogglePanel,
     focus,
@@ -309,9 +316,9 @@ function NoteWorkspace({
     const [merging, setMerging] = useState(false);
     const locked = note.locked === true;
     const vaultUnlocked = useVaultUnlocked(vault.id);
-    const [lockStep, setLockStep] = useState<'passphrase' | 'unlock' | null>(
-        null,
-    );
+    const [lockStep, setLockStep] = useState<
+        'passphrase' | 'unlock' | 'change-passphrase' | 'recovery-key' | null
+    >(null);
     const [extracting, setExtracting] = useState<EditorSelectionText | null>(
         null,
     );
@@ -573,6 +580,14 @@ function NoteWorkspace({
             : () => toggleComments(!commentsOpen),
         'lock-note': locked ? removeLock : lockNote,
         'lock-vault': () => void lockVault(vault.id),
+        'change-passphrase': () =>
+            passphraseSet
+                ? setLockStep('change-passphrase')
+                : toast.info('Lock a note first to choose a vault passphrase.'),
+        'recovery-key': () =>
+            passphraseSet
+                ? setLockStep('recovery-key')
+                : toast.info('Lock a note first to choose a vault passphrase.'),
         'toggle-panel': onTogglePanel,
         'version-history': () => setHistoryOpen(true),
         'extract-selection': () => {
@@ -995,6 +1010,36 @@ function NoteWorkspace({
                                         Lock note…
                                     </DropdownMenuItem>
                                 )}
+                                {passphraseSet && (
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger data-test="vault-passphrase-menu">
+                                            <KeyRound />
+                                            Vault passphrase
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                            <DropdownMenuItem
+                                                onSelect={() =>
+                                                    setLockStep(
+                                                        'change-passphrase',
+                                                    )
+                                                }
+                                                data-test="change-passphrase"
+                                            >
+                                                Change passphrase…
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onSelect={() =>
+                                                    setLockStep('recovery-key')
+                                                }
+                                                data-test="new-recovery-key"
+                                            >
+                                                {recoveryKeySet
+                                                    ? 'New recovery key…'
+                                                    : 'Create recovery key…'}
+                                            </DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                )}
                                 {!locked && (
                                     <>
                                         <DropdownMenuSeparator />
@@ -1218,6 +1263,20 @@ function NoteWorkspace({
                 open={lockStep === 'unlock'}
                 onOpenChange={(open) => !open && setLockStep(null)}
                 onUnlocked={lockNow}
+            />
+
+            <ChangePassphraseDialog
+                vault={vault}
+                open={lockStep === 'change-passphrase'}
+                onOpenChange={(open) => !open && setLockStep(null)}
+            />
+
+            <RecoveryKeyDialog
+                vault={vault}
+                open={lockStep === 'recovery-key'}
+                onOpenChange={(open) => !open && setLockStep(null)}
+                replacing={recoveryKeySet}
+                onCreated={() => router.reload({ only: ['recovery_key_set'] })}
             />
 
             <MergeNoteDialog

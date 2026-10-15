@@ -91,6 +91,8 @@ export type WorkspaceProps = {
     templates?: NoteTemplate[];
     /** The vault has a passphrase for locked notes. */
     passphrase_set?: boolean;
+    /** The vault's passphrase has a recovery key (vaults locked before recovery keys may not). */
+    recovery_key_set?: boolean;
 };
 
 export type NoteTemplate = { id: number; path: string; name: string };
