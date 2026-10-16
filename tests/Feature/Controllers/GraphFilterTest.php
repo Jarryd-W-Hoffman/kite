@@ -90,3 +90,14 @@ it('has an empty neighbourhood for a note with no links', function (): void {
 
     expect($graph)->toBe(['nodes' => [['id' => 'n'.($this->note)('Lonely')->id, 'note_id' => ($this->note)('Lonely')->id, 'title' => 'Lonely', 'path' => 'Lonely.md', 'depth' => 0, 'degree' => 0, 'ghost' => false]], 'edges' => [], 'truncated' => false]);
 });
+
+it('draws one link between two notes however often they link, and no self-links', function (): void {
+    writeVaultFile($this->vault, 'E.md', "# E\n\n[[E]] [[D]] and again [[D]]");
+    resolve(IndexVault::class)->handle($this->vault);
+
+    $graph = $this->getJson(route('note-graphs.show', [$this->vault, ($this->note)('E'), 'depth' => 1]))->json();
+
+    expect(collect($graph['nodes'])->pluck('title')->sort()->values()->all())->toBe(['D', 'E', 'Other ghost'])
+        ->and($graph['edges'])->toHaveCount(2)
+        ->and(collect($graph['nodes'])->firstWhere('title', 'E')['degree'])->toBe(1);
+});
