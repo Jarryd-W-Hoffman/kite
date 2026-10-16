@@ -31,3 +31,21 @@ it('edits frontmatter as typed properties', function (): void {
     expect(file_get_contents($vault->path.'/Plan.md'))
         ->toBe("---\nstatus: active\ndone: true\ndue: '2026-10-14'\ntags:\n  - work\npriority: 0\n---\n# Plan\n\nBody");
 });
+
+it('keeps every property change made in quick succession', function (): void {
+    $vault = vaultWithFiles(['Plan.md' => "---\nstatus: draft\ndone: false\ntags: [work, urgent, later]\n---\n# Plan\n\nBody"]);
+    resolve(IndexVault::class)->handle($vault);
+
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
+        ->fill('[aria-label="Property value status"]', 'active')
+        ->keys('[aria-label="Property value status"]', 'Enter')
+        ->click('[aria-label="Property value done"]')
+        ->click('[aria-label="Remove urgent"]')
+        ->click('[aria-label="Remove later"]')
+        ->wait(2)
+        ->assertChecked('[aria-label="Property value done"]')
+        ->assertNoJavaScriptErrors();
+
+    expect(file_get_contents($vault->path.'/Plan.md'))
+        ->toBe("---\nstatus: active\ndone: true\ntags:\n  - work\n---\n# Plan\n\nBody");
+});

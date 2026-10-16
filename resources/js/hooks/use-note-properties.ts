@@ -8,7 +8,8 @@ import type { VaultSummary } from '@/types';
 /**
  * A note's properties (its frontmatter) as edited in the properties panel. Each change is
  * written into the note's text on the server; changes run one at a time on the newest text, so
- * quick edits never undo each other.
+ * quick edits never undo each other. While changes are on their way, only the last one's reply
+ * updates what's shown: an earlier reply would put back values a later change has replaced.
  */
 export function useNoteProperties(
     vault: VaultSummary,
@@ -19,13 +20,19 @@ export function useNoteProperties(
 ) {
     const [properties, setProperties] = useState<Properties>(frontmatter);
     const [savedFrontmatter, setSavedFrontmatter] = useState(frontmatter);
+    const [pending, setPending] = useState(0);
     const latestContents = useRef(contents);
+    const latestChange = useRef(0);
     const queue = useRef<Promise<void>>(Promise.resolve());
 
-    // A save (or a change on disk) brings the parsed frontmatter back from the server.
+    // A save (or a change on disk) brings the parsed frontmatter back from the server; changes
+    // still on their way are newer, so they win.
     if (frontmatter !== savedFrontmatter) {
         setSavedFrontmatter(frontmatter);
-        setProperties(frontmatter);
+
+        if (pending === 0) {
+            setProperties(frontmatter);
+        }
     }
 
     useEffect(() => {
@@ -33,7 +40,10 @@ export function useNoteProperties(
     }, [contents]);
 
     const changeProperties = (next: Properties) => {
+        const change = ++latestChange.current;
+
         setProperties(next);
+        setPending((count) => count + 1);
         queue.current = queue.current.then(async () => {
             try {
                 const response = await requestJson<{
@@ -46,9 +56,14 @@ export function useNoteProperties(
 
                 latestContents.current = response.contents;
                 setContents(response.contents);
-                setProperties(response.properties);
+
+                if (change === latestChange.current) {
+                    setProperties(response.properties);
+                }
             } catch {
                 toast.error('Could not update the properties.');
+            } finally {
+                setPending((count) => count - 1);
             }
         });
     };
