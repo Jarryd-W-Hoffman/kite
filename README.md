@@ -178,9 +178,9 @@ Get the latest version from [Releases](https://github.com/Jarryd-W-Hoffman/kite/
 | --- | --- | --- |
 | **Windows** | `Kite-x.y.z-setup.exe` | Windows may warn about an unrecognised app: choose **More info → Run anyway**. |
 | **macOS** | `Kite-x.y.z-arm64.dmg` (Apple Silicon) or `-x64.dmg` (Intel) | The app isn't signed yet, so macOS blocks it the first time. Open **System Settings → Privacy & Security** and choose **Open Anyway**. |
-| **Linux** | `Kite-x.y.z.AppImage` or `kite_x.y.z_amd64.deb` | The AppImage needs FUSE 2: `sudo apt install libfuse2t64` (Ubuntu 24.04 and later) or `libfuse2`. |
+| **Linux** | `kite_x.y.z_amd64.deb` (Debian, Ubuntu) or `Kite-x.y.z.AppImage` | Prefer the `.deb` on Ubuntu: it sets up the sandbox Ubuntu 24.04 and later require. The AppImage needs FUSE 2 (`sudo apt install libfuse2t64`, or `libfuse2` before 24.04), and on Ubuntu 24.04 and later it has to be started with `--no-sandbox`. |
 
-**Updates:** Kite checks for new versions when it starts and installs them when you quit. It also offers **Restart now** once an update has downloaded. This works on Windows and with the Linux AppImage. The `.deb`, and macOS until the app is signed, need new versions downloaded by hand.
+**Updates:** Kite checks for new versions when it starts and installs them when you quit. It also offers **Restart now** once an update has downloaded. This works on Windows and Linux; the `.deb` asks for your password to install. On macOS, new versions need downloading by hand until the app is signed.
 
 ## Getting started
 
