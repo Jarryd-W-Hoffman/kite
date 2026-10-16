@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/react';
-import { FilePlus2, FileText, Search } from 'lucide-react';
+import { FilePlus2, FileText, Search, SearchCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
     Dialog,
@@ -14,6 +14,7 @@ import { isAbortError, requestJson } from '@/lib/kite-http';
 import { formatShortcut } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
 import { show, store } from '@/routes/notes';
+import { store as storeSearch } from '@/routes/saved-searches';
 import { index as search } from '@/routes/vault-search';
 import type { SearchResult, VaultSummary } from '@/types';
 
@@ -31,6 +32,7 @@ const FILTER = /(?<!\S)-?[\p{L}_][\p{L}\p{N}_-]*:(?!\/\/)(?:"[^"]*"|\S+)/gu;
 type Item =
     | { type: 'note'; result: SearchResult }
     | { type: 'create'; title: string }
+    | { type: 'save'; query: string }
     | { type: 'command'; command: PaletteCommand };
 
 export function CommandPalette({
@@ -98,6 +100,10 @@ export function CommandPalette({
               )
                   ? [{ type: 'create' as const, title: trimmed }]
                   : []),
+              // Keep what was typed, filters and all, as a sidebar search.
+              ...(trimmed !== '' && resultsQuery === query
+                  ? [{ type: 'save' as const, query: trimmed }]
+                  : []),
           ];
 
     const close = () => {
@@ -122,6 +128,8 @@ export function CommandPalette({
             );
         } else if (item.type === 'note') {
             router.visit(show({ vault: vault.id, note: item.result.id }));
+        } else if (item.type === 'save') {
+            router.post(storeSearch(vault.id).url, { query: item.query });
         } else {
             router.post(store(vault.id).url, { title: item.title });
         }
@@ -242,7 +250,9 @@ export function CommandPalette({
                                     ? item.result.id
                                     : item.type === 'command'
                                       ? `command-${item.command.id}`
-                                      : `create-${item.title}`
+                                      : item.type === 'save'
+                                        ? `save-${item.query}`
+                                        : `create-${item.title}`
                             }
                             id={`kite-palette-item-${index}`}
                             data-index={index}
@@ -310,6 +320,21 @@ export function CommandPalette({
                                             )}
                                         </kbd>
                                     )}
+                                </>
+                            ) : item.type === 'save' ? (
+                                <>
+                                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+                                        <SearchCheck className="size-4" />
+                                    </span>
+                                    <span
+                                        className="self-center"
+                                        data-test="palette-save-search"
+                                    >
+                                        Save search{' '}
+                                        <span className="font-medium">
+                                            “{item.query}”
+                                        </span>
+                                    </span>
                                 </>
                             ) : (
                                 <>

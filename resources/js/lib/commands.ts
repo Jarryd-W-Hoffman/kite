@@ -16,6 +16,7 @@ import {
     PanelRight,
     Settings2,
     Presentation,
+    SearchCheck,
     Star,
     Table2,
     X,
@@ -82,6 +83,12 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         label: 'New canvas',
         icon: Presentation,
         keywords: 'whiteboard board diagram map',
+    },
+    {
+        id: 'new-search',
+        label: 'New saved search',
+        icon: SearchCheck,
+        keywords: 'filter query smart folder',
     },
     {
         id: 'toggle-theme',

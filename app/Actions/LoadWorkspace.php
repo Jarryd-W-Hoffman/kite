@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Note;
 use App\Models\NoteLink;
+use App\Models\SavedSearch;
 use App\Models\TableView;
 use App\Models\Vault;
 use App\Services\Canvases;
@@ -73,6 +74,7 @@ final readonly class LoadWorkspace
             'favourites' => fn (): array => $this->noteLinks($vault, 'starred_at', 'asc', 50),
             'recent_notes' => fn (): array => $this->noteLinks($vault, 'opened_at', 'desc', 6),
             'canvases' => fn (): array => $this->canvases->all($vault),
+            'saved_searches' => fn (): array => $vault->savedSearches()->orderBy('name')->get(['id', 'name'])->map(fn (SavedSearch $search): array => ['id' => $search->id, 'name' => $search->name])->all(),
             'table_views' => fn (): array => $vault->tableViews()->orderBy('name')->get(['id', 'name'])->map(fn (TableView $view): array => ['id' => $view->id, 'name' => $view->name])->all(),
             'open_tasks' => fn (): int => $this->templates->exclude(DB::table('note_tasks')->join('notes', 'notes.id', '=', 'note_tasks.note_id')->where('note_tasks.vault_id', $vault->id)->where('note_tasks.done', false), 'notes.path')->count(),
             'tags' => $once('tags', fn (): array => $this->tags($vault)),
