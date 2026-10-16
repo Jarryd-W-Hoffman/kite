@@ -17,7 +17,7 @@ export default function CaptureCreate({ vault }: Props) {
         <>
             <Head title="Quick capture" />
 
-            <main className="kite-drag flex h-svh flex-col bg-background">
+            <main className="flex h-svh flex-col bg-background">
                 <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border/70 px-4 text-[13px]">
                     <span className="flex size-5 items-center justify-center rounded-md bg-gradient-to-br from-primary to-[oklch(0.62_0.2_310)] text-primary-foreground">
                         <Zap className="size-3" />
@@ -32,7 +32,7 @@ export default function CaptureCreate({ vault }: Props) {
                 <Form
                     {...store.form()}
                     resetOnSuccess={['text']}
-                    className="kite-no-drag flex min-h-0 flex-1 flex-col"
+                    className="flex min-h-0 flex-1 flex-col"
                 >
                     {({ processing, errors }) => (
                         <>
