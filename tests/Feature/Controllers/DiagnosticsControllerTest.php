@@ -39,10 +39,10 @@ it('reports versions, vaults, settings and recent errors with the home folder sh
     expect($report)->toContain('## Kite diagnostics')
         ->toContain('- Kite '.config('nativephp.version').' (browser)')
         ->toContain('PHP '.PHP_VERSION)
-        ->toContain('- ~/'.basename(dirname($vault->path)).'/'.basename($vault->path).': 2 notes')
+        ->toContain('- '.osPath('~/'.basename(dirname($vault->path)).'/'.basename($vault->path)).': 2 notes')
         ->toContain('- daily_folder: "Daily"')
         ->toContain('2026-10-14 09:00:00 ERROR: Old failure')
-        ->toContain('2026-10-15 09:01:00 ERROR: Could not read ~/')
+        ->toContain('2026-10-15 09:01:00 ERROR: Could not read ~'.DIRECTORY_SEPARATOR)
         ->toContain('2026-10-15 09:02:00 CRITICAL: '.str_repeat('x', 299).'…')
         ->not->toContain($home)
         ->not->toContain('Not an error')
@@ -60,7 +60,7 @@ it('shows the log files only in the desktop app', function (): void {
     $this->post(route('diagnostics-logs.store'))->assertNotFound();
 
     config(['nativephp-internal.running' => true, 'nativephp-internal.secret' => 'secret']);
-    Shell::shouldReceive('openFile')->once()->with($this->storage.'/logs')->andReturn('');
+    Shell::shouldReceive('openFile')->once()->with(storage_path('logs'))->andReturn('');
 
     $this->withHeader('X-NativePHP-Secret', 'secret')->post(route('diagnostics-logs.store'))->assertNoContent();
 });
