@@ -79,9 +79,30 @@
 </p>
 
 ### 🧠 Learning
-- **Spaced-repetition flashcards** written right in your notes: tag a note `#flashcards` and write `Question :: Answer`, `word ::: translation` (both ways), multi-line cards around a `?` line, or `==cloze==` highlights.
-- **Scheduling:** each card comes back just before you'd forget it (SM-2, as in Anki), with decks from tags and a daily limit on new cards.
-- **Review progress is portable:** it's kept in the vault, so it travels with your notes, and your notes are never edited.
+Turn what you write into quiz cards. Kite shows each card again just before you'd forget it (spaced repetition, as in Anki).
+
+- **Writing cards:** tag a note `#flashcards`, then write cards anywhere in it:
+
+  ```markdown
+  #flashcards/french
+
+  Capital of France :: Paris
+  le chien ::: the dog
+  The ==Eiffel Tower== was finished in 1889.
+  ```
+
+  | You write | You get |
+  | --- | --- |
+  | `Question :: Answer` | one card |
+  | `word ::: translation` | two cards, one asked each way |
+  | `==highlighted==` text | a fill-in-the-blank card for each highlight |
+  | question lines, a `?` line, answer lines | a longer card, ending at a blank line |
+
+- **Decks** come from the tag: `#flashcards/french` goes in the "french" deck, and plain `#flashcards` in "General".
+- **Studying:** open **Flashcards** in the sidebar, recall the answer, then rate it **Again**, **Hard**, **Good** or **Easy**.
+  - Cards you know come back after longer and longer gaps; ones you forget come back today.
+  - Each deck brings in at most 20 new cards a day.
+- **Your notes are never edited:** review progress is saved in `.kite/flashcards.json`, so it travels with the vault.
 
 <p align="center">
     <img src=".github/screenshots/flashcards.png" alt="A flashcard study session showing a question, its answer and the Again, Hard, Good and Easy buttons." width="700">
