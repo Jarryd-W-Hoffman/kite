@@ -42,7 +42,9 @@ final class NativeAppServiceProvider implements ProvidesPhpIni
 
         resolve(AppMenu::class)->register();
 
+        // macOS uses the black public/IconTemplate.png and tints it to suit the menu bar.
         MenuBar::create()
+            ->icon(PHP_OS_FAMILY === 'Darwin' ? '' : public_path('tray.png'))
             ->onlyShowContextMenu()
             ->showDockIcon()
             ->tooltip('Kite')

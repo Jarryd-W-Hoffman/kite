@@ -45,6 +45,10 @@ it('registers the quick capture shortcut and tray menu', function (): void {
     Http::assertSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), 'global-shortcuts')
         && $request['key'] === 'CmdOrCtrl+Shift+Space'
         && $request['event'] === QuickCaptureRequested::class);
+
+    Http::assertSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), 'menu-bar/create')
+        && $request['icon'] === (PHP_OS_FAMILY === 'Darwin' ? '' : public_path('tray.png'))
+        && $request['onlyShowContextMenu'] === true);
 });
 
 it('skips the shortcut when it is disabled', function (): void {
