@@ -1,104 +1,235 @@
-- Inertia & React (this project) version: **[github.com/nunomaduro/laravel-starter-kit-inertia-react](https://github.com/nunomaduro/laravel-starter-kit-inertia-react)**
-- Blade version: **[github.com/nunomaduro/laravel-starter-kit](https://github.com/nunomaduro/laravel-starter-kit)**
-- Inertia & Vue version: **[github.com/nunomaduro/laravel-starter-kit-inertia-vue](https://github.com/nunomaduro/laravel-starter-kit-inertia-vue)**
+<h1 align="center">🪁 Kite</h1>
 
 <p align="center">
-    <a href="https://youtu.be/VhzP0XWGTC4" target="_blank">
-        <img src="https://github.com/nunomaduro/laravel-starter-kit/blob/main/art/banner.png" alt="Overview Laravel Starter Kit" style="width:70%;">
-    </a>
+    <strong>A local-first desktop app for Markdown notes and the links between them.</strong><br>
+    Your notes stay plain <code>.md</code> files in a folder you own. Kite adds search, links, a graph,<br>
+    canvases, flashcards and more, without ever locking them in.
 </p>
 
-<p>
-    <a href="https://github.com/nunomaduro/laravel-starter-kit-inertia-react/actions"><img src="https://github.com/nunomaduro/laravel-starter-kit-inertia-react/actions/workflows/tests.yml/badge.svg" alt="Build Status"></a>
-    <a href="https://packagist.org/packages/nunomaduro/laravel-starter-kit-inertia-react"><img src="https://img.shields.io/packagist/dt/nunomaduro/laravel-starter-kit-inertia-react" alt="Total Downloads"></a>
-    <a href="https://packagist.org/packages/nunomaduro/laravel-starter-kit-inertia-react"><img src="https://img.shields.io/packagist/v/nunomaduro/laravel-starter-kit-inertia-react" alt="Latest Stable Version"></a>
-    <a href="https://packagist.org/packages/nunomaduro/laravel-starter-kit-inertia-react"><img src="https://img.shields.io/packagist/l/nunomaduro/laravel-starter-kit-inertia-react" alt="License"></a>
-    <a href="https://youtube.com/@nunomaduro?sub_confirmation=1"><img alt="YouTube Channel Subscribers" src="https://img.shields.io/youtube/channel/subscribers/UCO_hYZF2gb_CyG5sA7ArlGg?style=flat&label=youtube&color=brightgreen"></a>
+<p align="center">
+    <a href="https://github.com/Jarryd-W-Hoffman/kite/actions/workflows/tests.yml"><img src="https://github.com/Jarryd-W-Hoffman/kite/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+    <img src="https://img.shields.io/badge/platforms-macOS%20·%20Windows%20·%20Linux-6366f1" alt="macOS, Windows and Linux">
+    <img src="https://img.shields.io/badge/PHP-8.5-777bb4" alt="PHP 8.5">
+    <img src="https://img.shields.io/badge/license-MIT-22c55e" alt="MIT license">
 </p>
 
-**Laravel Starter Kit (Inertia & React)** is an ultra-strict, type-safe [Laravel](https://laravel.com) skeleton engineered for developers who refuse to compromise on code quality. This opinionated starter kit enforces rigorous development standards through meticulous tooling configuration and architectural decisions that prioritize type safety, immutability, and fail-fast principles.
+<p align="center">
+    <img src=".github/screenshots/note.png" alt="A note open in Kite: the file tree on the left, the editor and its preview side by side, and a local graph, outline and backlinks on the right." width="900">
+</p>
 
-## Why This Starter Kit?
+---
 
-Modern PHP has evolved into a mature, type-safe language, yet many Laravel projects still operate with loose conventions and optional typing. This starter kit changes that paradigm by enforcing:
+## Why Kite?
 
-- **Fully Actions-Oriented Architecture**: Every operation is encapsulated in a single-action class
-- **Cruddy by Design**: Standardized CRUD operations for all controllers, actions, and Inertia & React pages
-- **100% Type Coverage**: Every method, property, and parameter is explicitly typed
-- **Zero Tolerance for Code Smells**: Rector, PHPStan, OxLint, and Oxfmt at maximum strictness catch issues before they become bugs
-- **Immutable-First Architecture**: Data structures favor immutability to prevent unexpected mutations
-- **Fail-Fast Philosophy**: Errors are caught at compile-time, not runtime
-- **Automated Code Quality**: Pre-configured tools ensure consistent, pristine code across your entire team
-- **Just Better Laravel Defaults**: Thanks to **[Essentials](https://github.com/nunomaduro/essentials)** / strict models, auto eager loading, immutable dates, and more...
-- **AI Guidelines**: Integrated AI Guidelines to assist in maintaining code quality and consistency
-- **Full Testing Suite**: More than 150 tests with 100% code coverage using Pest
-- 
-This isn't just another Laravel boilerplate—it's a statement that PHP applications can and should be built with the same rigor as strongly-typed languages like Rust or TypeScript.
+- **Your files, your folder.** A vault is just a folder of Markdown. Open it in any editor, sync it however you like, keep it in Git. Kite never moves your notes into a database it owns.
+- **Links first.** Type `[[` to link notes. Backlinks, unlinked mentions, a live graph and link-aware renames keep a web of notes easy to work with.
+- **Fast, even when big.** Full-text search, filters and the sidebar stay quick in vaults of 10,000 notes and more.
+- **Private by default.** Everything runs on your computer. Notes can be locked with a passphrase and are encrypted on disk.
 
-## Getting Started
+## Features
 
-> **Requires [PHP 8.5+](https://php.net/releases/) and a code coverage driver like [xdebug](https://xdebug.org/docs/install)**.
+### ✍️ Writing
+- **Editor:** a CodeMirror editor with **live preview**: headings, emphasis, links, checkboxes and images look like they will read, as you type.
+- **Views:** edit, split or preview, plus **focus mode**, **tabs** and a **second pane** to open notes side by side.
+- **Slash commands:** `/` for headings, lists, tables, code, math, diagrams, dates and links.
+- **Rich Markdown:**
+  - callouts (`> [!tip]`)
+  - math (KaTeX)
+  - Mermaid diagrams
+  - tables and task lists
+  - embedded notes and sections (`![[Note#Heading]]`)
+- **Attachments:** paste or drop images and files into a note.
+- **Properties:** frontmatter edited as typed properties (text, number, checkbox, date, list).
+- **Templates** with `{{title}}`, `{{date}}`, `{{date:D j M}}` and `{{time}}`.
+- **Daily notes:** a calendar, and **quick capture** from a global shortcut (desktop).
 
-Create your type-safe Laravel application using [Composer](https://getcomposer.org):
+### 🔗 Connecting
+- **Links:** wiki links (`[[Note]]`, `[[Note#Heading]]`, `[[Note|alias]]`) that are rewritten when you rename or move a note.
+- **Backlinks and unlinked mentions:** see everything that links to a note, or mentions it without linking, and link it in a click.
+- **Tags:** inline `#tags` or in frontmatter, with nested tags like `#area/work`.
+- **Refactoring:** extract a selection into a new note, or merge notes together.
+- **Colour groups:** colour notes by a query, in the graph and the file tree.
 
-```bash
-composer create-project nunomaduro/laravel-starter-kit-inertia-react --prefer-dist example-app
+### 🔎 Finding
+- **Command palette (`Mod+K`):** search every note, run any command, or create a note from what you typed.
+- **Search filters** combine with text:
+  - `tag:project`
+  - `folder:Work`
+  - `-tag:archived`
+  - any property, e.g. `status:done`
+- **Saved searches:** keep a search in the sidebar; its results stay up to date.
+- **Table and board views:** your notes as a sortable table of their properties, or a board grouped by one of them.
+- **Tasks:** every task in the vault in one place, with due dates (`📅 2026-10-30`).
+
+<p align="center">
+    <img src=".github/screenshots/search.png" alt="The command palette searching for “kite” filtered to the Projects folder." width="49%">
+    <img src=".github/screenshots/graph.png" alt="The graph view in dark mode, with notes coloured by group." width="49%">
+</p>
+
+### 🕸️ Seeing
+- **Graph view:**
+  - every note and link, coloured by folder, tag or colour group
+  - filters in the same language as search
+  - toggles for orphans and unresolved links
+- **Local graph:** each note's neighbourhood, 1 to 3 links away.
+- **Canvases:** a whiteboard of text, note, image and link cards, grouped and connected. Saved as open [JSON Canvas](https://jsoncanvas.org) files that Obsidian can open too.
+
+<p align="center">
+    <img src=".github/screenshots/canvas.png" alt="A canvas with a goal card, the Kite launch note and the Roadmap note, connected by labelled arrows inside a group." width="900">
+</p>
+
+### 🧠 Learning
+Turn what you write into quiz cards. Kite shows each card again just before you'd forget it (spaced repetition, as in Anki).
+
+- **Writing cards:** tag a note `#flashcards`, then write cards anywhere in it:
+
+  ```markdown
+  #flashcards/french
+
+  Capital of France :: Paris
+  le chien ::: the dog
+  The ==Eiffel Tower== was finished in 1889.
+  ```
+
+  | You write | You get |
+  | --- | --- |
+  | `Question :: Answer` | one card |
+  | `word ::: translation` | two cards, one asked each way |
+  | `==highlighted==` text | a fill-in-the-blank card for each highlight |
+  | question lines, a `?` line, answer lines | a longer card, ending at a blank line |
+
+- **Decks** come from the tag: `#flashcards/french` goes in the "french" deck, and plain `#flashcards` in "General".
+- **Studying:** open **Flashcards** in the sidebar, recall the answer, then rate it **Again**, **Hard**, **Good** or **Easy**.
+  - Cards you know come back after longer and longer gaps; ones you forget come back today.
+  - Each deck brings in at most 20 new cards a day.
+- **Your notes are never edited:** review progress is saved in `.kite/flashcards.json`, so it travels with the vault.
+
+<p align="center">
+    <img src=".github/screenshots/flashcards.png" alt="A flashcard study session showing a question, its answer and the Again, Hard, Good and Easy buttons." width="700">
+</p>
+
+### 🛡️ Keeping safe
+- **Locked notes:**
+  - encrypted with XChaCha20-Poly1305 under a key derived from your passphrase (Argon2id)
+  - a **recovery key** if you forget the passphrase
+  - locks itself after 15 minutes idle
+- **Version history:** browse and restore earlier versions of every note, with changes from other apps kept too.
+- **Comments:** anchored to passages of a note.
+- **Export and publish:** export to HTML or PDF, or publish a note and the notes it links to as a small static site.
+- **Notion import:** bring in a Notion "Markdown & CSV" export; databases become table views.
+
+### ♿ For everyone
+- **Light and dark themes** that meet WCAG AA contrast.
+- **Keyboard and screen readers:** keyboard navigation throughout (arrow keys in the file tree, a skip link, labelled controls), checked with axe on every page in CI.
+- **Reduced motion:** respects your system's setting.
+
+<p align="center">
+    <img src=".github/screenshots/note-dark.png" alt="The same note in Kite's dark theme." width="900">
+</p>
+
+## Your vault on disk
+
+Kite keeps everything in the vault folder. Beyond your notes, it only writes to a hidden `.kite/` folder:
+
+```text
+My notes/
+├── Projects/
+│   └── Kite launch.md          ← your notes: plain Markdown
+├── attachments/                ← pasted and dropped files
+├── Launch plan.canvas          ← canvases (JSON Canvas)
+└── .kite/
+    ├── comments/               ← comments on notes
+    ├── lock.json               ← locked-note settings (no secrets in plain text)
+    └── flashcards.json         ← flashcard review schedules
 ```
 
-### Initial Setup
+Kite also keeps a search index and other caches in its own database. These can be rebuilt from the vault at any time.
 
-Navigate to your project and complete the setup:
+## Keyboard shortcuts
 
-```bash
-cd example-app
+`Mod` is <kbd>⌘</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. Press <kbd>Mod</kbd>+<kbd>/</kbd> in the app for the full list.
 
-# Setup the project
-composer setup
+| Shortcut | Action | | Shortcut | Action |
+| --- | --- | --- | --- | --- |
+| <kbd>Mod</kbd>+<kbd>K</kbd> | Search and commands | | <kbd>Mod</kbd>+<kbd>E</kbd> | Toggle preview |
+| <kbd>Mod</kbd>+<kbd>N</kbd> | New note | | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | Focus mode |
+| <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> | New note from a template | | <kbd>Mod</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> | Comment on the selection |
+| <kbd>Mod</kbd>+<kbd>D</kbd> | Today's note | | <kbd>Mod</kbd>+<kbd>W</kbd> | Close tab |
+| <kbd>Mod</kbd>+<kbd>G</kbd> | Graph view | | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> | Toggle dark mode |
+| <kbd>Mod</kbd>+<kbd>O</kbd> | Open another vault | | <kbd>Mod</kbd>+<kbd>,</kbd> | Preferences |
 
-# Record the packages you trust with Laravel Vet
-./vendor/bin/vet --init
+## Getting started
 
-# Start the development server
-composer dev
-```
+### Requirements
 
-### Optional: Browser Testing Setup
+- **PHP 8.5** with `pdo_sqlite`, `sodium`, `mbstring`, `zip` and `sockets`. `pcntl` and `posix` are also needed on macOS and Linux to run the desktop app in development.
+- **[Composer](https://getcomposer.org)** 2
+- **[Bun](https://bun.sh)** 1.4+
+- **[Node.js](https://nodejs.org)** 24 (used by the build tools and the file watcher)
 
-If you plan to use Pest's browser testing capabilities:
-
-```bash
-bun add playwright
-bunx playwright install
-```
-
-### Verify Installation
-
-Run the test suite to ensure everything is configured correctly:
+### Install
 
 ```bash
-composer test
+git clone https://github.com/Jarryd-W-Hoffman/kite.git
+cd kite
+composer setup        # installs dependencies, creates .env, migrates, builds assets
 ```
 
-You should see 100% test coverage and all quality checks passing.
+### Run
 
-## Available Tooling
+```bash
+php artisan kite:dev  # the desktop app, with hot reloading
+composer dev          # or in your browser at http://localhost:8000
+```
 
-### Development
-- `composer dev` - Starts Laravel server, queue worker, log monitoring, and Vite+ dev server concurrently
+Open a folder of Markdown files as a vault (or an empty folder to start fresh).
 
-### Code Quality
-- `composer lint` - Runs Rector (refactoring), Pint (PHP formatting), and Oxfmt (JS/TS formatting)
-- `composer test:lint` - Dry-run mode for CI/CD pipelines
+### Build the desktop app
 
-### Testing
-- `composer test:type-coverage` - Ensures 100% type coverage with Pest
-- `composer test:types` - Runs PHPStan at level 9 (maximum strictness)
-- `composer test:unit` - Runs Pest tests with 100% code coverage requirement
-- `composer test` - Runs the complete test suite (linting, static analysis, type coverage, unit tests)
+```bash
+php artisan native:build   # choose macOS, Windows or Linux
+```
 
-### Maintenance
-- `composer update:requirements` - Updates all PHP and Bun dependencies to latest versions
+## How it's built
+
+| Layer | Technology |
+| --- | --- |
+| Desktop shell | [NativePHP](https://nativephp.com) (Electron) |
+| Backend | [Laravel 13](https://laravel.com), PHP 8.5, SQLite with FTS5 full-text search |
+| Frontend | [React 19](https://react.dev) with [Inertia 3](https://inertiajs.com), [Tailwind CSS 4](https://tailwindcss.com), [Wayfinder](https://github.com/laravel/wayfinder) typed routes |
+| Editor | [CodeMirror 6](https://codemirror.net), [league/commonmark](https://commonmark.thephpleague.com), KaTeX, Mermaid |
+| Watching | A Node file watcher that re-indexes changes made by other apps |
+
+The code follows an **actions** pattern: business logic lives in single-purpose classes in `app/Actions`, used by controllers, jobs and commands alike.
+
+## Development
+
+```bash
+composer test         # everything CI runs
+```
+
+`composer test` runs:
+- **Pint**, **Rector** and **oxlint/oxfmt** (style)
+- **PHPStan** at max level and **TypeScript** (types)
+- **100% type coverage**
+- **Pest** with **100% line coverage**, including the browser tests (Playwright)
+
+| Command | What it does |
+| --- | --- |
+| `composer lint` | Fix code style (Rector, Pint, oxfmt) |
+| `composer test:types` | PHPStan and TypeScript |
+| `php artisan test --compact --filter=…` | Run some of the tests |
+| `bunx playwright install` | Install the browser for browser tests |
+
+CI runs the full suite on Linux, and the unit and feature tests on macOS and Windows. It also audits Composer and Bun dependencies for known vulnerabilities.
+
+### Contributing
+
+Pull requests are welcome.
+- Work on a feature branch and keep commits small.
+- Sign off every commit (`git commit -s`): the repository checks the [Developer Certificate of Origin](https://developercertificate.org).
+- Each change comes with tests, and `composer test` should pass before you open a PR.
 
 ## License
 
-**Laravel Starter Kit Inertia React** was created by **[Nuno Maduro](https://x.com/enunomaduro)** under the **[MIT license](https://opensource.org/licenses/MIT)**.
+Kite is open-source software licensed under the [MIT license](https://opensource.org/licenses/MIT).
