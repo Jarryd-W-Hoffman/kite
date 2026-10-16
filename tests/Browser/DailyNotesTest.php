@@ -35,7 +35,9 @@ it("captures a thought into today's note", function (): void {
 
     $page = visitSplit(route('capture.create'));
 
-    $page->fill('@capture-text', 'Remember the string')
+    // The window keeps its own title bar; a drag region would repaint the window on every keystroke.
+    $page->assertScript("[...document.querySelectorAll('*')].some((element) => getComputedStyle(element).getPropertyValue('-webkit-app-region') === 'drag')", false)
+        ->fill('@capture-text', 'Remember the string')
         ->keys('@capture-text', 'Control+Enter')
         ->assertSee('Added to Tuesday, 13 October 2026.')
         ->assertValue('@capture-text', '')
