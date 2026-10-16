@@ -66,7 +66,8 @@ it('folds panel sections and remembers them', function (): void {
     visitSplit(route('notes.show', [$vault, Note::query()->where('path', 'A.md')->sole()]))
         ->click('@panel-section-links')
         ->assertAttribute('@panel-section-links', 'aria-expanded', 'false')
+        // Checked before reloading: straight after a reload Pest's error collector isn't ready.
+        ->assertNoJavaScriptErrors()
         ->refresh()
-        ->assertAttribute('@panel-section-links', 'aria-expanded', 'false')
-        ->assertNoJavaScriptErrors();
+        ->assertAttribute('@panel-section-links', 'aria-expanded', 'false');
 });
