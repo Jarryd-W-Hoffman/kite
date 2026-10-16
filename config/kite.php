@@ -152,6 +152,11 @@ return [
             'app' => ['php', 'artisan', 'native:run', '--no-interaction'],
             'vite' => ['bun', 'run', 'dev'],
         ],
+
+        // Ubuntu 24.04 and later block the user namespaces Chromium's sandbox uses, and the setuid
+        // helper npm installs isn't set up, so Electron aborts at start. Development only: builds
+        // keep the sandbox.
+        'env' => PHP_OS_FAMILY === 'Linux' ? ['ELECTRON_DISABLE_SANDBOX' => '1'] : [],
     ],
 
 ];

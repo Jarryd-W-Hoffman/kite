@@ -49,3 +49,18 @@ it('stops everything when interrupted', function (): void {
         ->expectsOutputToContain('Stopped app and signal.')
         ->assertExitCode(0);
 })->skipOnWindows();
+
+it('passes the dev environment to the processes it starts', function (): void {
+    config([
+        'kite.dev.commands' => ['app' => ['sh', '-c', 'echo "sandbox=$ELECTRON_DISABLE_SANDBOX"; exit 1']],
+        'kite.dev.env' => ['ELECTRON_DISABLE_SANDBOX' => '1'],
+    ]);
+
+    $this->artisan('kite:dev')
+        ->expectsOutputToContain('[app] sandbox=1')
+        ->assertExitCode(1);
+})->skipOnWindows();
+
+it('turns the Electron sandbox off for development on Linux only', function (): void {
+    expect(config('kite.dev.env'))->toBe(PHP_OS_FAMILY === 'Linux' ? ['ELECTRON_DISABLE_SANDBOX' => '1'] : []);
+});
