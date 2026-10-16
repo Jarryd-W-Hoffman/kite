@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAppearance } from '@/hooks/use-appearance';
+import { useOpenExternalLink } from '@/hooks/use-open-external-link';
 import { enhanceRichBlocks } from '@/lib/rich-blocks';
 import { cn, prefersReducedMotion } from '@/lib/utils';
 import { store } from '@/routes/notes';
@@ -36,6 +37,7 @@ export function NotePreview({
 }: Props) {
     const container = useRef<HTMLDivElement>(null);
     const { resolvedAppearance } = useAppearance();
+    const openExternalLink = useOpenExternalLink();
 
     useEffect(() => {
         if (container.current) {
@@ -114,7 +116,7 @@ export function NotePreview({
 
         if (/^https?:\/\//i.test(href)) {
             event.preventDefault();
-            window.open(href, '_blank', 'noopener,noreferrer');
+            openExternalLink(href);
         }
     };
 

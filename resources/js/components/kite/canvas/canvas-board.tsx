@@ -19,6 +19,7 @@ import {
 } from '@/components/kite/canvas/canvas-edges';
 import { CanvasToolbar } from '@/components/kite/canvas/canvas-toolbar';
 import type { useCanvasDocument } from '@/hooks/use-canvas-document';
+import { useOpenExternalLink } from '@/hooks/use-open-external-link';
 import {
     DEFAULT_SIZES,
     anchor,
@@ -92,6 +93,7 @@ export function CanvasBoard({
     initialFiles,
     initialTexts,
 }: Props) {
+    const openExternalLink = useOpenExternalLink();
     const { data, readOnly } = doc;
     const container = useRef<HTMLDivElement>(null);
     const [size, setSize] = useState({ width: 0, height: 0 });
@@ -693,7 +695,7 @@ export function CanvasBoard({
                 window.open(file.url, '_blank', 'noopener');
             }
         } else if (node.type === 'link') {
-            window.open(node.url, '_blank', 'noopener');
+            openExternalLink(node.url);
         }
     };
 
