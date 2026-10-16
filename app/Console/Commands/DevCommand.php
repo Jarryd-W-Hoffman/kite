@@ -35,10 +35,12 @@ final class DevCommand extends Command
     {
         /** @var array<string, list<string>> $commands */
         $commands = config('kite.dev.commands');
+        /** @var array<string, string> $env */
+        $env = config('kite.dev.env', []);
         $processes = [];
 
         foreach ($commands as $name => $command) {
-            $process = new Process([PHP_BINARY, '-r', self::NEW_GROUP, '--', $this->executable($command[0]), ...array_slice($command, 1)], base_path(), null, null, null);
+            $process = new Process([PHP_BINARY, '-r', self::NEW_GROUP, '--', $this->executable($command[0]), ...array_slice($command, 1)], base_path(), $env, null, null);
             $process->start(function (string $type, string $output) use ($name): void {
                 foreach (explode("\n", mb_rtrim($output, "\n")) as $line) {
                     $this->line("<fg=gray>[{$name}]</> {$line}");
