@@ -27,14 +27,16 @@ it('stops the other process group, children included, when one process ends', fu
     $child = (int) file_get_contents($marker);
     unlink($marker);
 
-    // A killed child lingers until it's reaped by whichever process inherited it, which can take a
-    // few seconds on a busy CI runner.
-    for ($waited = 0; $waited < 50 && posix_kill($child, 0); $waited++) {
+    // A killed child can linger as a zombie until whichever process inherited it reaps it; that
+    // still counts as stopped.
+    $running = fn (): bool => posix_kill($child, 0) && ! str_starts_with(mb_trim((string) shell_exec("ps -o stat= -p {$child}")), 'Z');
+
+    for ($waited = 0; $waited < 50 && $running(); $waited++) {
         Sleep::usleep(100_000);
     }
 
     expect($child)->toBeGreaterThan(0)
-        ->and(posix_kill($child, 0))->toBeFalse();
+        ->and($running())->toBeFalse();
 })->skipOnWindows();
 
 it('stops everything when interrupted', function (): void {
