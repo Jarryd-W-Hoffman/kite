@@ -28,6 +28,7 @@ final class NativeAppServiceProvider implements ProvidesPhpIni
             ->minWidth(960)
             ->minHeight(600)
             ->titleBarHiddenInset()
+            ->hideMenu()
             ->rememberState();
 
         $appearance = resolve(Settings::class)->all()['appearance'];
