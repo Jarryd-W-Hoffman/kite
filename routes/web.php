@@ -12,6 +12,7 @@ use App\Http\Controllers\ColourGroupPreviewController;
 use App\Http\Controllers\DailyNoteController;
 use App\Http\Controllers\DiagnosticsController;
 use App\Http\Controllers\DiagnosticsLogController;
+use App\Http\Controllers\ExternalLinkController;
 use App\Http\Controllers\FlashcardController;
 use App\Http\Controllers\FlashcardReviewController;
 use App\Http\Controllers\FolderController;
@@ -62,6 +63,7 @@ Route::put('preferences', [PreferencesController::class, 'update'])->name('prefe
 Route::put('appearance', [AppearanceController::class, 'update'])->name('appearance.update');
 Route::get('diagnostics', [DiagnosticsController::class, 'show'])->name('diagnostics.show');
 Route::post('diagnostics/logs', [DiagnosticsLogController::class, 'store'])->name('diagnostics-logs.store');
+Route::post('external-links', [ExternalLinkController::class, 'store'])->name('external-links.store');
 
 // Quick capture...
 Route::get('capture', [CaptureController::class, 'create'])->name('capture.create');

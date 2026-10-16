@@ -10,14 +10,14 @@ return [
      * It is used to determine if the app needs to be updated.
      * Increment this value every time you release a new version of your app.
      */
-    'version' => env('NATIVEPHP_APP_VERSION', '1.0.0'),
+    'version' => env('NATIVEPHP_APP_VERSION', '0.1.0'),
 
     /**
      * The ID of your application. This should be a unique identifier
      * usually in the form of a reverse domain name.
      * For example: com.nativephp.app
      */
-    'app_id' => env('NATIVEPHP_APP_ID', 'com.nativephp.app'),
+    'app_id' => env('NATIVEPHP_APP_ID', 'com.kite.app'),
 
     /**
      * If your application allows deep linking, you can specify the scheme
@@ -33,22 +33,22 @@ return [
     /**
      * The author of your application.
      */
-    'author' => env('NATIVEPHP_APP_AUTHOR'),
+    'author' => env('NATIVEPHP_APP_AUTHOR', 'Jarryd Hoffman'),
 
     /**
      * The copyright notice for your application.
      */
-    'copyright' => env('NATIVEPHP_APP_COPYRIGHT'),
+    'copyright' => env('NATIVEPHP_APP_COPYRIGHT', 'Copyright © 2026 Jarryd Hoffman'),
 
     /**
      * The description of your application.
      */
-    'description' => env('NATIVEPHP_APP_DESCRIPTION', 'An awesome app built with NativePHP'),
+    'description' => env('NATIVEPHP_APP_DESCRIPTION', 'Local-first markdown knowledge base and note graph'),
 
     /**
      * The Website of your application.
      */
-    'website' => env('NATIVEPHP_APP_WEBSITE', 'https://nativephp.com'),
+    'website' => env('NATIVEPHP_APP_WEBSITE', 'https://github.com/Jarryd-W-Hoffman/kite'),
 
     /**
      * The default service provider for your application. This provider
@@ -63,6 +63,9 @@ return [
      * You may use wildcards to match multiple keys.
      */
     'cleanup_env_keys' => [
+        // Development settings: without them, builds run as production with debugging off.
+        'APP_ENV',
+        'APP_DEBUG',
         'AWS_*',
         'AZURE_*',
         'GITHUB_*',
@@ -85,6 +88,8 @@ return [
      * You may use glob / wildcard patterns here.
      */
     'cleanup_exclude_files' => [
+        // Points at the Vite dev server, which doesn't exist on users' machines.
+        'public/hot',
         'build',
         'temp',
         'content',
@@ -167,7 +172,7 @@ return [
      * Define your own scripts to run before and after the build process.
      */
     'prebuild' => [
-        // 'npm run build',
+        'bun run build',
     ],
 
     'postbuild' => [
