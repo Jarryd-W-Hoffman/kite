@@ -100,6 +100,19 @@ export default function NoteShow(props: WorkspaceProps) {
         <>
             <Head title={note?.title ?? vault.name} />
 
+            {note && (
+                <a
+                    href="#note"
+                    onClick={(event) => {
+                        event.preventDefault();
+                        document.getElementById('note')?.focus();
+                    }}
+                    className="sr-only z-50 rounded-md bg-background px-3 py-2 text-sm font-medium shadow-kite-sm focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+                >
+                    Skip to note
+                </a>
+            )}
+
             <div className="flex h-svh overflow-hidden bg-background">
                 {!(focus && note) && (
                     <WorkspaceSidebar
@@ -518,7 +531,10 @@ function NoteWorkspace({
 
             {panelOpen && !(narrow && commentsOpen) && (
                 <Drawer overlay={narrow} onClose={onTogglePanel}>
-                    <aside className="h-full w-72 shrink-0 overflow-y-auto border-l border-border/70 bg-sidebar/40">
+                    <aside
+                        aria-label="Note details"
+                        className="h-full w-72 shrink-0 overflow-y-auto border-l border-border/70 bg-sidebar/40"
+                    >
                         <NotePanel
                             vault={vault}
                             note={meta}
@@ -541,9 +557,15 @@ function NoteWorkspace({
     return (
         <>
             <main
-                className="relative flex min-w-0 flex-1 flex-col"
+                id="note"
+                tabIndex={-1}
+                aria-labelledby="note-title"
+                className="relative flex min-w-0 flex-1 flex-col outline-none"
                 data-focus={focus || undefined}
             >
+                <h1 id="note-title" className="sr-only">
+                    {meta.title}
+                </h1>
                 {!focus && (
                     <TabBar
                         vault={vault}

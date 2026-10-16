@@ -13,7 +13,7 @@ import {
     Trash2,
 } from 'lucide-react';
 import { createContext, use, useMemo, useRef, useState } from 'react';
-import type { DragEvent } from 'react';
+import type { DragEvent, KeyboardEvent } from 'react';
 import { toast } from 'sonner';
 import {
     DropdownMenu,
@@ -327,10 +327,73 @@ export function FileTree({
         },
     };
 
+    /**
+     * Arrow keys move through the tree as in a file manager: up and down between rows, right to
+     * open a folder (or step into it), left to close one (or step out to its folder).
+     */
+    const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+        const items = [
+            ...event.currentTarget.querySelectorAll<HTMLElement>(
+                '[data-tree-item]',
+            ),
+        ];
+        const index = items.indexOf(document.activeElement as HTMLElement);
+
+        if (index === -1) {
+            return;
+        }
+
+        const current = items[index];
+        const folder = current.dataset.folder;
+        const focus = (item: HTMLElement | undefined) => {
+            event.preventDefault();
+            item?.focus();
+        };
+
+        switch (event.key) {
+            case 'ArrowDown':
+                focus(items[index + 1]);
+                break;
+            case 'ArrowUp':
+                focus(items[index - 1]);
+                break;
+            case 'Home':
+                focus(items[0]);
+                break;
+            case 'End':
+                focus(items.at(-1));
+                break;
+            case 'ArrowRight':
+                if (folder !== undefined && collapsed.has(folder)) {
+                    event.preventDefault();
+                    setFolderCollapsed(folder, false);
+                } else if (folder !== undefined) {
+                    const child = items[index + 1];
+
+                    focus(child?.dataset.parent === folder ? child : undefined);
+                }
+                break;
+            case 'ArrowLeft':
+                if (folder !== undefined && !collapsed.has(folder)) {
+                    event.preventDefault();
+                    setFolderCollapsed(folder, true);
+                } else {
+                    focus(
+                        items.find(
+                            (item) =>
+                                item.dataset.folder === current.dataset.parent,
+                        ),
+                    );
+                }
+                break;
+        }
+    };
+
     return (
         <TreeContext value={context}>
             <nav
                 aria-label="Notes"
+                onKeyDown={onKeyDown}
                 data-test="file-tree"
                 className={cn(
                     'min-h-16 rounded-md pb-2 text-sm',
@@ -357,7 +420,7 @@ function FolderContents({
     const indent = { paddingLeft: `${depth * INDENT + 8}px` };
 
     return (
-        <ul role="group">
+        <ul>
             {folder.folders.map((child) => (
                 <FolderItem
                     key={child.path}
@@ -388,6 +451,8 @@ function FolderContents({
                         aria-current={
                             note.id === tree.activeNoteId ? 'page' : undefined
                         }
+                        data-tree-item
+                        data-parent={folder.path}
                         data-test="tree-note"
                         data-path={note.path}
                         className={cn(
@@ -452,6 +517,12 @@ function FolderItem({
                     onDragEnd={tree.onDragEnd}
                     onClick={() => tree.onToggle(folder.path)}
                     aria-expanded={!isCollapsed}
+                    data-tree-item
+                    data-folder={folder.path}
+                    data-parent={parentOf({
+                        kind: 'folder',
+                        path: folder.path,
+                    })}
                     className={cn(
                         'flex w-full items-center gap-1.5 rounded-md py-[5px] pr-8 text-left text-[13.5px] text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                         isDropTarget &&

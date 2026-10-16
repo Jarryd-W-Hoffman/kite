@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAppearance } from '@/hooks/use-appearance';
 import { enhanceRichBlocks } from '@/lib/rich-blocks';
-import { cn } from '@/lib/utils';
+import { cn, prefersReducedMotion } from '@/lib/utils';
 import { store } from '@/routes/notes';
 import type { VaultSummary } from '@/types';
 
@@ -13,7 +13,10 @@ import type { VaultSummary } from '@/types';
 export function scrollToHeading(slug: string): boolean {
     const heading = document.getElementById(`h-${decodeURIComponent(slug)}`);
 
-    heading?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    heading?.scrollIntoView({
+        block: 'start',
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    });
 
     return heading !== null;
 }

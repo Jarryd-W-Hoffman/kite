@@ -113,7 +113,7 @@ export default function VaultIndex({ vaults, canPickFolder }: Props) {
 
                     {vaults.length > 0 && (
                         <section className="space-y-2">
-                            <h2 className="px-1 text-[11px] font-semibold tracking-wider text-muted-foreground/80 uppercase">
+                            <h2 className="px-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                                 Recent vaults
                             </h2>
                             <ul className="divide-y overflow-hidden rounded-2xl border bg-card/80 shadow-kite-sm backdrop-blur">

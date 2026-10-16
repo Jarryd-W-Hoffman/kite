@@ -183,7 +183,10 @@ export function WorkspaceSidebar({
     });
 
     return (
-        <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+        <aside
+            aria-label="Sidebar"
+            className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
+        >
             <div
                 className={cn(
                     'kite-drag flex h-12 shrink-0 items-center gap-1 px-2',
@@ -670,7 +673,7 @@ function SectionHeading({
 }) {
     return (
         <div className="group/section flex h-7 items-center gap-0.5 pr-0.5 pl-2">
-            <h2 className="flex-1 text-[11px] font-semibold tracking-wider text-muted-foreground/80 uppercase">
+            <h2 className="flex-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                 {title}
             </h2>
             {children}

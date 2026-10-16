@@ -446,8 +446,17 @@ export function GraphCanvas({
             context.globalAlpha = 1;
         };
 
+        // With reduced motion the layout settles before it's shown, instead of drifting into place.
+        const reducedMotion = window.matchMedia(
+            '(prefers-reduced-motion: reduce)',
+        ).matches;
+
         const loop = () => {
-            const moving = simulation.tick();
+            let moving = simulation.tick();
+
+            for (let i = 0; reducedMotion && moving && i < 500; i++) {
+                moving = simulation.tick();
+            }
 
             if (needsFit) {
                 fit();

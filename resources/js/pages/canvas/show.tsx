@@ -95,7 +95,7 @@ export default function CanvasShow(props: Props) {
                         {canvas.readable && (
                             <span
                                 className={cn(
-                                    'shrink-0 text-xs text-muted-foreground/80',
+                                    'shrink-0 text-xs text-muted-foreground',
                                     (doc.saveState === 'error' ||
                                         doc.saveState === 'conflict') &&
                                         'text-destructive',

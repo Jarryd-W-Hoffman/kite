@@ -36,7 +36,7 @@ import { useAppearance } from '@/hooks/use-appearance';
 import type { Appearance } from '@/hooks/use-appearance';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { requestJson } from '@/lib/kite-http';
-import { cn } from '@/lib/utils';
+import { cn, prefersReducedMotion } from '@/lib/utils';
 import { show as diagnostics } from '@/routes/diagnostics';
 import { store as showLogs } from '@/routes/diagnostics-logs';
 import { update } from '@/routes/preferences';
@@ -335,7 +335,11 @@ function PreferencesForm({
                                 setActiveSection(title);
                                 document
                                     .getElementById(sectionId(title))
-                                    ?.scrollIntoView({ behavior: 'smooth' });
+                                    ?.scrollIntoView({
+                                        behavior: prefersReducedMotion()
+                                            ? 'auto'
+                                            : 'smooth',
+                                    });
                             }}
                             aria-current={activeSection === title}
                             className={cn(
