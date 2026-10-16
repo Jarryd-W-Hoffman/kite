@@ -232,4 +232,4 @@ Pull requests are welcome.
 
 ## License
 
-Kite is open-source software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Kite is open-source software licensed under the [MIT license](LICENSE).
