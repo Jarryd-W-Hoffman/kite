@@ -12,6 +12,8 @@ use App\Http\Controllers\ColourGroupPreviewController;
 use App\Http\Controllers\DailyNoteController;
 use App\Http\Controllers\DiagnosticsController;
 use App\Http\Controllers\DiagnosticsLogController;
+use App\Http\Controllers\FlashcardController;
+use App\Http\Controllers\FlashcardReviewController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NoteCommentController;
@@ -106,6 +108,8 @@ Route::middleware('throttle:vault-passphrase')->group(function (): void {
 });
 Route::post('vaults/{vault}/imports/notion', [NotionImportController::class, 'store'])->name('notion-imports.store');
 Route::get('vaults/{vault}/tasks', [TaskController::class, 'index'])->middleware(WatchVault::class)->name('tasks.index');
+Route::get('vaults/{vault}/flashcards', [FlashcardController::class, 'index'])->middleware(WatchVault::class)->name('flashcards.index');
+Route::post('vaults/{vault}/flashcard-reviews', [FlashcardReviewController::class, 'store'])->name('flashcard-reviews.store');
 Route::get('vaults/{vault}/graph', [VaultGraphController::class, 'show'])->middleware(WatchVault::class)->name('vault-graph.show');
 Route::post('vaults/{vault}/canvases', [CanvasController::class, 'store'])->name('canvases.store');
 Route::get('vaults/{vault}/canvases/{path}', [CanvasController::class, 'show'])->where('path', '.*')->middleware(WatchVault::class)->name('canvases.show');

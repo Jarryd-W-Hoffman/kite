@@ -14,6 +14,7 @@ export type AppCommand =
     | 'toggle-theme'
     | 'shortcuts'
     | 'tasks'
+    | 'flashcards'
     | 'new-view'
     | 'new-canvas'
     | 'new-search'
