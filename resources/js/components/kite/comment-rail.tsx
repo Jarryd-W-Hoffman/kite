@@ -73,7 +73,7 @@ export function CommentRail({ notes, error, onSelect, onClose }: Props) {
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
                 {error && (
                     <p
-                        className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive"
+                        className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive-foreground"
                         role="alert"
                         data-test="comments-error"
                     >

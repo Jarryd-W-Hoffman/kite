@@ -42,7 +42,7 @@ const GRADES: { grade: Grade; label: string; className: string }[] = [
     {
         grade: 'again',
         label: 'Again',
-        className: 'border-destructive/40 text-destructive',
+        className: 'border-destructive/40 text-destructive-foreground',
     },
     { grade: 'hard', label: 'Hard', className: '' },
     {
@@ -306,21 +306,25 @@ function Session({ vault, queue: initial, today }: Props) {
 
     if (!card) {
         return (
-            <EmptyState
-                icon={PartyPopper}
-                title="All caught up"
-                description={
-                    reviewed === 0
-                        ? 'Nothing to review here today.'
-                        : `You reviewed ${reviewed} ${reviewed === 1 ? 'card' : 'cards'}. Come back tomorrow for more.`
-                }
-                className="h-full"
-            />
+            <>
+                <h1 className="sr-only">Flashcards</h1>
+                <EmptyState
+                    icon={PartyPopper}
+                    title="All caught up"
+                    description={
+                        reviewed === 0
+                            ? 'Nothing to review here today.'
+                            : `You reviewed ${reviewed} ${reviewed === 1 ? 'card' : 'cards'}. Come back tomorrow for more.`
+                    }
+                    className="h-full"
+                />
+            </>
         );
     }
 
     return (
         <div className="mx-auto flex max-w-2xl flex-col px-8 pt-10 pb-24">
+            <h1 className="sr-only">Studying {card.deck}</h1>
             <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
                 <span
                     className="rounded-full bg-muted px-2 py-0.5 tabular-nums"

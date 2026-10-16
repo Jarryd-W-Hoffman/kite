@@ -284,7 +284,7 @@ export default function GraphShow({
                         <p
                             id="graph-filter-error"
                             role="alert"
-                            className="border-b bg-destructive/10 px-4 py-1.5 text-xs text-destructive"
+                            className="border-b border-l-4 border-l-destructive bg-destructive/10 px-4 py-1.5 text-xs text-foreground"
                             data-test="graph-filter-error"
                         >
                             {filterError} Showing every note.

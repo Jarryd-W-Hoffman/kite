@@ -81,7 +81,7 @@ export function SaveStatus({ state }: { state: SaveState }) {
         <span
             className={cn(
                 'flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground',
-                state === 'error' && 'text-destructive',
+                state === 'error' && 'text-destructive-foreground',
             )}
             aria-live="polite"
         >

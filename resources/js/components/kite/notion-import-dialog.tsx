@@ -89,7 +89,7 @@ function ImportForm({
                     className="text-sm file:mr-3"
                 />
                 {form.errors.file && (
-                    <p className="text-sm text-destructive">
+                    <p className="text-sm text-destructive-foreground">
                         {form.errors.file}
                     </p>
                 )}
