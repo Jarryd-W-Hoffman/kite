@@ -31,6 +31,7 @@ it('opens the main kite window on boot', function (): void {
             'minWidth' => 960,
             'minHeight' => 600,
             'rememberState' => true,
+            'autoHideMenuBar' => true,
         ]);
 });
 
