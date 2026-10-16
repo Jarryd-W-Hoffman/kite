@@ -14,3 +14,13 @@ it('describes the app as Kite rather than with NativePHP defaults', function ():
         ->and(config('nativephp.copyright'))->toBe('Copyright © 2026 Jarryd Hoffman')
         ->and(config('nativephp.website'))->toBe('https://github.com/Jarryd-W-Hoffman/kite');
 });
+
+it('checks GitHub releases for updates', function (): void {
+    expect(config('nativephp.updater.default'))->toBe('github')
+        ->and(config('nativephp.updater.providers.github'))->toMatchArray([
+            'owner' => 'Jarryd-W-Hoffman',
+            'repo' => 'kite',
+            'vPrefixedTagName' => true,
+            'releaseType' => 'draft',
+        ]);
+});

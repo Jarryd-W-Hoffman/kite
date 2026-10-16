@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AppearanceController;
+use App\Http\Controllers\AppUpdateController;
 use App\Http\Controllers\CanvasCardController;
 use App\Http\Controllers\CanvasController;
 use App\Http\Controllers\CaptureController;
@@ -64,6 +65,7 @@ Route::put('appearance', [AppearanceController::class, 'update'])->name('appeara
 Route::get('diagnostics', [DiagnosticsController::class, 'show'])->name('diagnostics.show');
 Route::post('diagnostics/logs', [DiagnosticsLogController::class, 'store'])->name('diagnostics-logs.store');
 Route::post('external-links', [ExternalLinkController::class, 'store'])->name('external-links.store');
+Route::post('app-update', [AppUpdateController::class, 'store'])->name('app-update.store');
 
 // Quick capture...
 Route::get('capture', [CaptureController::class, 'create'])->name('capture.create');

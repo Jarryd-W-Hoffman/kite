@@ -170,7 +170,21 @@ Kite also keeps a search index and other caches in its own database. These can b
 | <kbd>Mod</kbd>+<kbd>G</kbd> | Graph view | | <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> | Toggle dark mode |
 | <kbd>Mod</kbd>+<kbd>O</kbd> | Open another vault | | <kbd>Mod</kbd>+<kbd>,</kbd> | Preferences |
 
+## Download
+
+Get the latest version from [Releases](https://github.com/Jarryd-W-Hoffman/kite/releases).
+
+| Platform | Download | Notes |
+| --- | --- | --- |
+| **Windows** | `Kite-x.y.z-setup.exe` | Windows may warn about an unrecognised app: choose **More info → Run anyway**. |
+| **macOS** | `Kite-x.y.z-arm64.dmg` (Apple Silicon) or `-x64.dmg` (Intel) | The app isn't signed yet, so macOS blocks it the first time. Open **System Settings → Privacy & Security** and choose **Open Anyway**. |
+| **Linux** | `Kite-x.y.z.AppImage` or `kite_x.y.z_amd64.deb` | The AppImage needs FUSE 2: `sudo apt install libfuse2t64` (Ubuntu 24.04 and later) or `libfuse2`. |
+
+**Updates:** Kite checks for new versions when it starts and installs them when you quit. It also offers **Restart now** once an update has downloaded. This works on Windows and with the Linux AppImage. The `.deb`, and macOS until the app is signed, need new versions downloaded by hand.
+
 ## Getting started
+
+These steps are for working on Kite itself. To use it, [download it](#download) instead.
 
 ### Requirements
 
@@ -201,6 +215,19 @@ Open a folder of Markdown files as a vault (or an empty folder to start fresh).
 ```bash
 php artisan native:build   # choose macOS, Windows or Linux
 ```
+
+Installers end up in `nativephp/electron/dist`.
+
+### Releasing
+
+Push a version tag, and GitHub Actions builds Kite for Linux, Windows and macOS. It uploads the installers to a **draft** release:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+The tag sets the version. Check the draft, edit its notes, then **publish** it. Installed copies of Kite update to it from then on.
 
 ## How it's built
 

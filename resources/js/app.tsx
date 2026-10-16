@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
+import { installUpdateNotice } from '@/lib/update-notice';
 import { installVaultKeys } from '@/lib/vault-keys';
 import '../css/app.css';
 
@@ -36,6 +37,7 @@ void createInertiaApp({
 });
 
 installVaultKeys();
+installUpdateNotice();
 
 // This will set light / dark mode on load...
 initializeTheme();
