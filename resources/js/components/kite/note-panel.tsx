@@ -1,6 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import { ArrowUpRight, ChevronRight, Hash, Link2, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { GraphCanvas } from '@/components/kite/graph-canvas';
 import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
@@ -8,8 +8,16 @@ import { PropertiesEditor } from '@/components/kite/properties-editor';
 import type { Properties } from '@/components/kite/properties-editor';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { readStored, stringListCodec, writeStored } from '@/lib/storage';
+import { requestJson } from '@/lib/kite-http';
+import {
+    oneOfCodec,
+    readStored,
+    stringListCodec,
+    useStoredState,
+    writeStored,
+} from '@/lib/storage';
 import { cn } from '@/lib/utils';
+import { show as showNoteGraph } from '@/routes/note-graphs';
 import { store as linkMention } from '@/routes/note-mentions';
 import { show, store } from '@/routes/notes';
 import { show as showTag } from '@/routes/vault-tags';
@@ -58,6 +66,15 @@ function readCollapsed(): string[] {
 /**
  * A panel section that can be folded away; which ones are folded is remembered across notes.
  */
+const depthCodec = oneOfCodec(['1', '2', '3'] as const);
+
+type LocalGraph = {
+    nodes: (GraphNode & { noteId: number | null })[];
+    edges: GraphEdge[];
+    /** Further out than this would be too many notes to read in the panel. */
+    truncated: boolean;
+};
+
 function Section({
     title,
     count,
@@ -260,7 +277,7 @@ export function NotePanel({
             ? -1
             : note.outline.findLastIndex((item) => item.line <= cursorLine);
 
-    const localGraph = useMemo(() => {
+    const nearGraph = useMemo(() => {
         const nodes = new Map<string, GraphNode & { noteId: number | null }>();
         const center = `n${note.id}`;
 
@@ -307,6 +324,63 @@ export function NotePanel({
         return { nodes: [...nodes.values()], edges };
     }, [note.id, note.title, outgoing, backlinks]);
 
+    // One link away is drawn from the links already on the page; further out asks the server.
+    const [depth, setDepth] = useStoredState(
+        'kite:local-graph-depth',
+        depthCodec,
+        '1',
+    );
+    const [deepGraph, setDeepGraph] = useState<{
+        key: string;
+        graph: LocalGraph;
+    } | null>(null);
+    const deepKey = `${note.id}:${depth}:${note.hash}`;
+
+    useEffect(() => {
+        if (depth === '1') {
+            return;
+        }
+
+        const controller = new AbortController();
+
+        requestJson<{
+            nodes: (GraphNode & { note_id: number | null })[];
+            edges: GraphEdge[];
+            truncated: boolean;
+        }>(
+            showNoteGraph(
+                { vault: vault.id, note: note.id },
+                { query: { depth: Number(depth) } },
+            ),
+            undefined,
+            controller.signal,
+        )
+            .then((response) =>
+                setDeepGraph({
+                    key: deepKey,
+                    graph: {
+                        nodes: response.nodes.map((node) => ({
+                            ...node,
+                            folder: '',
+                            noteId: node.note_id,
+                        })),
+                        edges: response.edges,
+                        truncated: response.truncated,
+                    },
+                }),
+            )
+            .catch(() => undefined);
+
+        return () => controller.abort();
+    }, [depth, deepKey, vault.id, note.id]);
+
+    const localGraph: LocalGraph =
+        depth === '1'
+            ? { ...nearGraph, truncated: false }
+            : deepGraph?.key === deepKey
+              ? deepGraph.graph
+              : { ...nearGraph, truncated: false };
+
     const readOnly = Object.entries(note.frontmatter).filter(
         ([key]) => !['title', 'tags', 'tag'].includes(key),
     );
@@ -315,9 +389,44 @@ export function NotePanel({
         <div className="space-y-6 p-4 text-sm">
             {children}
 
-            {localGraph.edges.length > 0 && (
+            {nearGraph.edges.length > 0 && (
                 <Section title="Local graph">
-                    <div className="h-48 overflow-hidden rounded-lg border bg-background">
+                    <div
+                        role="group"
+                        aria-label="How many links away to show"
+                        className="mb-2 flex items-center gap-1 text-xs text-muted-foreground"
+                    >
+                        <span className="mr-1">Links away</span>
+                        {(['1', '2', '3'] as const).map((step) => (
+                            <button
+                                key={step}
+                                type="button"
+                                aria-pressed={depth === step}
+                                onClick={() => setDepth(step)}
+                                data-test={`local-graph-depth-${step}`}
+                                className={cn(
+                                    'size-6 rounded-md border tabular-nums transition-colors hover:bg-accent',
+                                    depth === step &&
+                                        'border-primary/50 bg-kite-accent-soft font-medium text-primary',
+                                )}
+                            >
+                                {step}
+                            </button>
+                        ))}
+                        {localGraph.truncated && (
+                            <span
+                                className="ml-auto"
+                                data-test="local-graph-truncated"
+                            >
+                                Nearest {localGraph.nodes.length}
+                            </span>
+                        )}
+                    </div>
+                    <div
+                        className="h-48 overflow-hidden rounded-lg border bg-background"
+                        data-test="local-graph"
+                        data-nodes={localGraph.nodes.length}
+                    >
                         <GraphCanvas
                             compact
                             nodes={localGraph.nodes}

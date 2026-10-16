@@ -21,6 +21,7 @@ use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NoteExportController;
 use App\Http\Controllers\NoteExtractionController;
 use App\Http\Controllers\NoteFrontmatterController;
+use App\Http\Controllers\NoteGraphController;
 use App\Http\Controllers\NoteLockController;
 use App\Http\Controllers\NoteMentionController;
 use App\Http\Controllers\NoteMergeController;
@@ -128,6 +129,7 @@ Route::scopeBindings()->group(function (): void {
     Route::get('vaults/{vault}/notes/{note}', [NoteController::class, 'show'])->middleware(WatchVault::class)->name('notes.show');
     Route::put('vaults/{vault}/notes/{note}', [NoteController::class, 'update'])->name('notes.update');
     Route::get('vaults/{vault}/notes/{note}/pane', [NotePaneController::class, 'show'])->name('note-panes.show');
+    Route::get('vaults/{vault}/notes/{note}/graph', [NoteGraphController::class, 'show'])->name('note-graphs.show');
     Route::post('vaults/{vault}/notes/{note}/mentions', [NoteMentionController::class, 'store'])->name('note-mentions.store');
     Route::put('vaults/{vault}/notes/{note}/path', [NotePathController::class, 'update'])->name('note-path.update');
     Route::post('vaults/{vault}/notes/{note}/extractions', [NoteExtractionController::class, 'store'])->name('note-extractions.store');

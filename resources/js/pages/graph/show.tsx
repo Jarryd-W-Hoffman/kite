@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { EyeOff, FilePlus2, Network, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { EyeOff, FilePlus2, Filter, Network, Search } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ColourGroupEditor } from '@/components/kite/colour-group-editor';
 import {
     ColourGroupLegend,
@@ -19,10 +19,14 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useVaultSync } from '@/hooks/use-vault-sync';
+import { cn } from '@/lib/utils';
 import { show, store } from '@/routes/notes';
 import type { WorkspaceProps } from '@/types';
 
 type Props = WorkspaceProps & {
+    /** Only the notes this matches are drawn, e.g. `folder:Work -tag:archived`. */
+    filter: string;
+    filter_error: string | null;
     graph: {
         nodes: (GraphNode & { note_id: number | null; path: string | null })[];
         edges: GraphEdge[];
@@ -36,6 +40,8 @@ export default function GraphShow({
     folders,
     tags,
     graph,
+    filter: initialFilter,
+    filter_error: filterError,
     colour_groups: colourGroups,
     indexing,
     watching,
@@ -52,6 +58,25 @@ export default function GraphShow({
     const [editingGroups, setEditingGroups] = useState(false);
     const [tagFilter, setTagFilter] = useState('');
     const [paletteOpen, setPaletteOpen] = useState(false);
+    const [filter, setFilter] = useState(initialFilter);
+    const filterTimer = useRef<number | undefined>(undefined);
+
+    // The server draws only the matching notes; a pause in typing applies the filter.
+    const changeFilter = (value: string) => {
+        setFilter(value);
+        window.clearTimeout(filterTimer.current);
+        filterTimer.current = window.setTimeout(
+            () =>
+                router.reload({
+                    only: ['graph', 'filter', 'filter_error'],
+                    data: { filter: value.trim() === '' ? undefined : value },
+                    replace: true,
+                }),
+            350,
+        );
+    };
+
+    useEffect(() => () => window.clearTimeout(filterTimer.current), []);
 
     useVaultSync(
         vault,
@@ -212,6 +237,34 @@ export default function GraphShow({
                                 />
                                 <Label htmlFor="show-orphans">Orphans</Label>
                             </div>
+                            <label
+                                className={cn(
+                                    'flex h-8 items-center gap-2 rounded-md border bg-background px-2.5 shadow-kite-sm focus-within:ring-2 focus-within:ring-ring',
+                                    filterError && 'border-destructive',
+                                )}
+                                title="Filter with tag:, folder:, path:, title:, any property (status:done) and - to leave out"
+                            >
+                                <Filter
+                                    className="size-3.5 text-muted-foreground"
+                                    aria-hidden
+                                />
+                                <input
+                                    value={filter}
+                                    onChange={(event) =>
+                                        changeFilter(event.target.value)
+                                    }
+                                    placeholder="Filter: folder:Work -tag:old"
+                                    aria-label="Filter notes"
+                                    aria-invalid={filterError !== null}
+                                    aria-describedby={
+                                        filterError
+                                            ? 'graph-filter-error'
+                                            : undefined
+                                    }
+                                    data-test="graph-filter"
+                                    className="w-40 bg-transparent text-sm outline-none xl:w-52"
+                                />
+                            </label>
                             <label className="flex h-8 items-center gap-2 rounded-md border bg-background px-2.5 shadow-kite-sm focus-within:ring-2 focus-within:ring-ring">
                                 <Search className="size-3.5 text-muted-foreground" />
                                 <input
@@ -227,8 +280,35 @@ export default function GraphShow({
                         </div>
                     </header>
 
+                    {filterError && (
+                        <p
+                            id="graph-filter-error"
+                            role="alert"
+                            className="border-b bg-destructive/10 px-4 py-1.5 text-xs text-destructive"
+                            data-test="graph-filter-error"
+                        >
+                            {filterError} Showing every note.
+                        </p>
+                    )}
+
                     <div className="kite-dot-grid relative min-h-0 flex-1">
-                        {noteCount === 0 ? (
+                        {noteCount === 0 &&
+                        initialFilter !== '' &&
+                        !filterError ? (
+                            <EmptyState
+                                icon={Filter}
+                                title="No notes match this filter"
+                                description="Try fewer terms, or clear the filter to see every note."
+                                className="h-full"
+                            >
+                                <Button
+                                    variant="outline"
+                                    onClick={() => changeFilter('')}
+                                >
+                                    Clear filter
+                                </Button>
+                            </EmptyState>
+                        ) : noteCount === 0 ? (
                             <EmptyState
                                 icon={Network}
                                 title="No notes to graph yet"
