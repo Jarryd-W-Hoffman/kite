@@ -72,7 +72,7 @@ it('reports debounced markdown and attachment changes, ignoring hidden and unrel
     $paths = array_unique(array_merge(...array_column(array_slice($lines, 1), 'paths')));
 
     expect($seen($paths))->toBeTrue()
-        ->not->toContain('notes.txt', '.git/HEAD.md', 'Archive/Old.md');
+        ->and($paths)->not->toContain('notes.txt', '.git/HEAD.md', 'Archive/Old.md');
 })->skip(fn (): bool => new Process(['node', '--version'])->run() !== 0, 'Node is not installed.');
 
 it('exits with a usage error without a vault path', function (): void {
