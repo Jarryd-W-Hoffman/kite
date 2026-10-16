@@ -62,7 +62,8 @@ it('reports debounced markdown and attachment changes, ignoring hidden and unrel
     mkdir($vault->path.'/Archive');
     file_put_contents($vault->path.'/Archive/Old.md', 'ignored');
 
-    $lines = watcherLines($process, fn (array $lines): bool => count(array_merge(...array_column($lines, 'paths'))) >= 2);
+    // Folders are reported too, and events can arrive in any order, so wait for the files themselves.
+    $lines = watcherLines($process, fn (array $lines): bool => array_diff(['Sub/New.md', 'pic.png'], array_merge(...array_column($lines, 'paths'))) === []);
 
     $process->stop(1);
 
