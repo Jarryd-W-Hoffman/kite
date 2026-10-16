@@ -113,6 +113,9 @@ export default function SavedSearchShow(props: Props) {
 
                     <div className="min-h-0 flex-1 overflow-y-auto">
                         <div className="mx-auto max-w-3xl px-8 pt-12 pb-24">
+                            <h1 className="sr-only">
+                                {name.trim() === '' ? 'Saved search' : name}
+                            </h1>
                             <label
                                 htmlFor="saved-search-name"
                                 className="sr-only"

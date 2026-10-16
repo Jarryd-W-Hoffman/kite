@@ -98,7 +98,7 @@ export default function CanvasShow(props: Props) {
                                     'shrink-0 text-xs text-muted-foreground',
                                     (doc.saveState === 'error' ||
                                         doc.saveState === 'conflict') &&
-                                        'text-destructive',
+                                        'text-destructive-foreground',
                                 )}
                                 aria-live="polite"
                                 data-test="canvas-save-state"

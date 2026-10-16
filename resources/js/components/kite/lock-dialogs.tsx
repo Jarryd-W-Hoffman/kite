@@ -123,7 +123,7 @@ export function UnlockForm({
                 </Button>
             </div>
             {error && (
-                <p className="text-sm text-destructive" role="alert">
+                <p className="text-sm text-destructive-foreground" role="alert">
                     {error}
                 </p>
             )}
@@ -387,7 +387,7 @@ function isNewPassphrase(passphrase: string, confirmation: string): boolean {
 function FormError({ error }: { error: string | null }) {
     return (
         error && (
-            <p className="text-sm text-destructive" role="alert">
+            <p className="text-sm text-destructive-foreground" role="alert">
                 {error}
             </p>
         )
@@ -441,7 +441,7 @@ function NewPassphraseFields({
                     }
                 />
                 {confirmation !== '' && confirmation !== passphrase && (
-                    <p className="text-sm text-destructive">
+                    <p className="text-sm text-destructive-foreground">
                         The passphrases don’t match.
                     </p>
                 )}

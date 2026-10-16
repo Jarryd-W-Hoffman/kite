@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\IndexVault;
 use App\Models\Note;
+use App\Models\SavedSearch;
 use App\Models\TableView;
 use App\Services\Canvases;
 use Illuminate\Support\Facades\Vite;
@@ -19,6 +20,7 @@ beforeEach(function (): void {
         'Ideas.md' => "---\nstatus: active\n---\n# Ideas\n\nBack to [[Home]]",
         'Folder/Inner.md' => '# Inner',
         'Folder/Deeper/Deep.md' => '# Deep',
+        'Folder/Spanish.md' => "# Spanish #flashcards/spanish\n\nperro :: dog\n\nThe ==sun== rises",
     ]);
     resolve(IndexVault::class)->handle($this->vault);
     $this->home = Note::query()->where('path', 'Home.md')->sole();
@@ -39,6 +41,12 @@ it('has no accessibility issues on any page, in light or dark', function (bool $
     $visit(route('vault-tags.show', [$this->vault, 'project']))->assertSee('project')->assertNoAccessibilityIssues(3);
     $visit(route('canvases.show', [$this->vault, 'Board.canvas']))->assertSee('Board')->assertNoAccessibilityIssues(3);
     $visit(route('vaults.index'))->assertNoAccessibilityIssues(3);
+
+    $search = SavedSearch::factory()->for($this->vault)->create(['name' => 'Projects', 'query' => 'tag:project']);
+    $visit(route('saved-searches.show', [$this->vault, $search]))->assertSee('Projects')->assertNoAccessibilityIssues(3);
+    $visit(route('vault-graph.show', [$this->vault, 'filter' => 'tag:']))->assertSee('needs a value')->assertNoAccessibilityIssues(3);
+    $visit(route('flashcards.index', $this->vault))->assertSee('spanish')->assertNoAccessibilityIssues(3);
+    $visit(route('flashcards.index', [$this->vault, 'study' => 1]))->click('@show-answer')->assertVisible('@grade-good')->assertNoAccessibilityIssues(3);
 })->with(['light' => [false], 'dark' => [true]]);
 
 it('moves through the file tree with the arrow keys', function (): void {
