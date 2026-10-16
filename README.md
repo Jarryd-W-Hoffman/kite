@@ -232,6 +232,6 @@ Pull requests are welcome.
 
 ## License
 
-Kite is open-source software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Kite is open-source software licensed under the [MIT license](LICENSE).
 
-The app icon uses the kite emoji from [Noto Emoji](https://github.com/googlefonts/noto-emoji), licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+**The app icon uses the kite emoji from [Noto Emoji](https://github.com/googlefonts/noto-emoji), licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).**
