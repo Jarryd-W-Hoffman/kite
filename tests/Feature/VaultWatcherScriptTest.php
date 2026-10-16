@@ -53,6 +53,16 @@ it('reports debounced markdown and attachment changes, ignoring hidden and unrel
 
     expect($ready[0] ?? null)->toBe(['root' => $vault->path, 'ready' => true]);
 
+    // macOS starts delivering file events a moment after the watcher reports ready, and drops
+    // changes made before then, so touch a probe until it comes through.
+    $reported = fn (array $lines): array => array_merge(...array_column($lines, 'paths'));
+
+    for ($attempt = 0; $attempt < 25 && ! in_array('Probe.md', $reported(watcherLines($process, fn (array $lines): bool => in_array('Probe.md', $reported($lines), true), 0.4)), true); $attempt++) {
+        file_put_contents($vault->path.'/Probe.md', (string) $attempt);
+    }
+
+    expect($reported(watcherLines($process, fn (array $lines): bool => true)))->toContain('Probe.md');
+
     mkdir($vault->path.'/Sub');
     mkdir($vault->path.'/.git');
     file_put_contents($vault->path.'/Sub/New.md', '# New');
@@ -65,13 +75,13 @@ it('reports debounced markdown and attachment changes, ignoring hidden and unrel
     // On macOS a file made in a brand-new folder may be reported only as that folder; either
     // way the app re-indexes the vault, so the folder counts. Events can arrive in any order.
     $seen = fn (array $paths): bool => in_array('pic.png', $paths, true) && array_intersect(['Sub/New.md', 'Sub'], $paths) !== [];
-    $lines = watcherLines($process, fn (array $lines): bool => $seen(array_merge(...array_column($lines, 'paths'))));
+    $lines = watcherLines($process, fn (array $lines): bool => $seen($reported($lines)));
 
     $process->stop(1);
 
-    $paths = array_unique(array_merge(...array_column(array_slice($lines, 1), 'paths')));
+    $paths = array_values(array_unique($reported($lines)));
 
-    expect($seen($paths))->toBeTrue()
+    expect($seen($paths))->toBeTrue('Reported: '.implode(', ', $paths))
         ->and($paths)->not->toContain('notes.txt', '.git/HEAD.md', 'Archive/Old.md');
 })->skip(fn (): bool => new Process(['node', '--version'])->run() !== 0, 'Node is not installed.');
 
