@@ -41,7 +41,19 @@
 - **Attachments:** paste or drop images and files into a note.
 - **Properties:** frontmatter edited as typed properties (text, number, checkbox, date, list).
 - **Templates** with `{{title}}`, `{{date}}`, `{{date:D j M}}` and `{{time}}`.
-- **Daily notes:** a calendar, and **quick capture** from a global shortcut (desktop).
+- **Daily notes:** a calendar of your daily notes, one click to today's, and [quick capture](#-quick-capture) from anywhere.
+
+### ⚡ Quick capture
+
+Jot down a thought without switching to Kite. A small window pops up over whatever you're doing, and what you type is added to today's note as a timestamped line.
+
+- **From anywhere:** press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> (<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> on macOS), even when Kite is in the background. You can change the shortcut, or turn it off, in **Preferences → Quick capture**.
+- **From the tray icon:** Kite puts a kite icon in the system tray (the menu bar on macOS). Click it and choose **Quick capture…**.
+- **Saving:** press <kbd>Mod</kbd>+<kbd>Enter</kbd> to add it, or <kbd>Esc</kbd> to close the window. Captures go to the vault you opened most recently.
+
+<p align="center">
+    <img src=".github/screenshots/quick-capture.png" alt="The quick capture window open on the desktop, with Kite's tray menu showing Quick capture and Quit Kite." width="900">
+</p>
 
 ### 🔗 Connecting
 - **Links:** wiki links (`[[Note]]`, `[[Note#Heading]]`, `[[Note|alias]]`) that are rewritten when you rename or move a note.
