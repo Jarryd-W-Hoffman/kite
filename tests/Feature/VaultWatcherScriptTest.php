@@ -62,15 +62,17 @@ it('reports debounced markdown and attachment changes, ignoring hidden and unrel
     mkdir($vault->path.'/Archive');
     file_put_contents($vault->path.'/Archive/Old.md', 'ignored');
 
-    // Folders are reported too, and events can arrive in any order, so wait for the files themselves.
-    $lines = watcherLines($process, fn (array $lines): bool => array_diff(['Sub/New.md', 'pic.png'], array_merge(...array_column($lines, 'paths'))) === []);
+    // On macOS a file made in a brand-new folder may be reported only as that folder; either
+    // way the app re-indexes the vault, so the folder counts. Events can arrive in any order.
+    $seen = fn (array $paths): bool => in_array('pic.png', $paths, true) && array_intersect(['Sub/New.md', 'Sub'], $paths) !== [];
+    $lines = watcherLines($process, fn (array $lines): bool => $seen(array_merge(...array_column($lines, 'paths'))));
 
     $process->stop(1);
 
     $paths = array_unique(array_merge(...array_column(array_slice($lines, 1), 'paths')));
 
-    expect($paths)->toContain('Sub/New.md', 'pic.png')
-        ->not->toContain('notes.txt', '.git/HEAD.md', 'Archive/Old.md');
+    expect($seen($paths))->toBeTrue()
+        ->and($paths)->not->toContain('notes.txt', '.git/HEAD.md', 'Archive/Old.md');
 })->skip(fn (): bool => new Process(['node', '--version'])->run() !== 0, 'Node is not installed.');
 
 it('exits with a usage error without a vault path', function (): void {
