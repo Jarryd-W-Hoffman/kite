@@ -1,0 +1,100 @@
+name: release
+
+# Push a version tag (e.g. `git tag v0.2.0 && git push origin v0.2.0`) to build Kite for every
+# platform and upload the installers to a draft GitHub release. Publishing the draft makes it
+# available to installed copies of Kite through auto-update.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Created up front so the parallel builds all upload to the same release.
+      - name: Create Draft Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --draft --title "Kite ${GITHUB_REF_NAME#v}" --generate-notes
+
+  build:
+    needs: draft
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            os: linux
+            arch: x64
+          - runner: windows-latest
+            os: win
+            arch: x64
+          # Both Mac architectures in one run, so a single update feed lists them both.
+          - runner: macos-latest
+            os: mac
+            arch: all
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          tools: composer:v2
+          coverage: none
+          extensions: fileinfo, gd, mbstring, pdo_sqlite, sockets, sodium, sqlite3, zip
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.21.1
+        with:
+          node-version: 24
+
+      - name: Install Dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-progress --no-scripts
+          composer run-script post-autoload-dump
+          bun install
+
+      # The tag decides the version, so the release, the installers and auto-update agree.
+      - name: Prepare Application
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          sed -i.bak "s/^NATIVEPHP_APP_VERSION=.*/NATIVEPHP_APP_VERSION=${GITHUB_REF_NAME#v}/" .env
+          rm .env.bak
+          grep '^NATIVEPHP_APP_VERSION=' .env
+
+      - name: Build and Publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NATIVEPHP_UPDATER_ENABLED: 'true'
+          # Unsigned until Apple signing details are added as secrets.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: php artisan native:publish ${{ matrix.os }} ${{ matrix.arch }} --no-interaction
