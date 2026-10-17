@@ -3,12 +3,20 @@
 declare(strict_types=1);
 
 use App\Models\Vault;
+use App\Services\CrashReports;
+use App\Services\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Sleep;
 use Illuminate\Support\Str;
+use Sentry\ClientBuilder;
+use Sentry\Event;
+use Sentry\SentrySdk;
+use Sentry\Transport\Result;
+use Sentry\Transport\ResultStatus;
+use Sentry\Transport\TransportInterface;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)
@@ -99,4 +107,50 @@ function visitSplit(string $url): mixed
     $page->script("localStorage.setItem('kite:view-mode', 'split'); document.querySelector('[aria-label=Split]:not([data-state=on])')?.click()");
 
     return $page;
+}
+
+/**
+ * Point Sentry at a transport that keeps events instead of sending them, with Kite's own options.
+ *
+ * @return ArrayObject<int, Event>
+ */
+function fakeSentry(): ArrayObject
+{
+    $sent = new ArrayObject();
+
+    $transport = new readonly class($sent) implements TransportInterface
+    {
+        /**
+         * @param  ArrayObject<int, Event>  $sent
+         */
+        public function __construct(private ArrayObject $sent) {}
+
+        public function send(Event $event): Result
+        {
+            $this->sent->append($event);
+
+            return new Result(ResultStatus::success(), $event);
+        }
+
+        public function close(?int $timeout = null): Result
+        {
+            return new Result(ResultStatus::success());
+        }
+    };
+
+    SentrySdk::getCurrentHub()->bindClient(
+        ClientBuilder::create([
+            'dsn' => 'https://public@sentry.example/1',
+            'before_send' => [CrashReports::class, 'beforeSend'],
+        ])->setTransport($transport)->getClient(),
+    );
+
+    return $sent;
+}
+
+function turnOnCrashReports(): void
+{
+    app()->detectEnvironment(fn (): string => 'production');
+    config(['sentry.dsn' => 'https://public@sentry.example/1']);
+    resolve(Settings::class)->update(['crash_reports' => true]);
 }

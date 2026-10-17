@@ -25,6 +25,7 @@ function validPreferences(array $overrides = []): array
         'tree_group_colours' => false,
         'welcome_on_startup' => false,
         'whats_new_after_update' => true,
+        'crash_reports' => false,
         ...$overrides,
     ];
 }
