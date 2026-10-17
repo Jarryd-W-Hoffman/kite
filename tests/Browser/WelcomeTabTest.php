@@ -41,3 +41,23 @@ it('shows the version and release notes link when not just updated', function ()
         ->assertMissing('@whats-new')
         ->assertNoJavaScriptErrors();
 });
+
+it("shows this version's changelog entry", function (): void {
+    $path = storage_path('framework/testing/changelog-browser.md');
+    file_put_contents($path, "## [0.2.0]\n\n### Added\n\n- **A Welcome tab** beside your notes\n");
+    config(['nativephp.version' => '0.2.0', 'kite.changelog' => $path]);
+    $vault = vaultWithFiles();
+
+    visitSplit(route('welcome.show', [$vault, 'updated' => 1]))
+        ->assertSeeIn('@whats-new', 'Kite has been updated to 0.2.0')
+        ->assertSeeIn('@changelog-entry', 'A Welcome tab beside your notes')
+        ->assertNoJavaScriptErrors();
+
+    visitSplit(route('welcome.show', $vault))
+        ->assertMissing('@whats-new')
+        ->click('[data-test=whats-new-details] summary')
+        ->assertSeeIn('@changelog-entry', 'A Welcome tab beside your notes')
+        ->assertNoJavaScriptErrors();
+
+    unlink($path);
+});
