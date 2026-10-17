@@ -23,6 +23,8 @@ function validPreferences(array $overrides = []): array
         'daily_template' => 'Templates/Day.md',
         'capture_shortcut' => 'CmdOrCtrl+Shift+Space',
         'tree_group_colours' => false,
+        'welcome_on_startup' => false,
+        'whats_new_after_update' => true,
         ...$overrides,
     ];
 }
@@ -72,6 +74,8 @@ it('validates preferences', function (array $overrides, string $error): void {
     'date format' => [['daily_format' => '<script>'], 'daily_format'],
     'shortcut' => [['capture_shortcut' => 'Ctrl;rm'], 'capture_shortcut'],
     'tree group colours' => [['tree_group_colours' => 'sometimes'], 'tree_group_colours'],
+    'welcome on startup' => [['welcome_on_startup' => 'often'], 'welcome_on_startup'],
+    'whats new' => [['whats_new_after_update' => null], 'whats_new_after_update'],
 ]);
 
 it('re-registers the capture shortcut in the desktop app', function (): void {

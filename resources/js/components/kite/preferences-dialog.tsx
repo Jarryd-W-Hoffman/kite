@@ -11,6 +11,7 @@ import {
     Palette,
     Sun,
     Type,
+    Sparkles,
     Zap,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -83,6 +84,7 @@ const SECTIONS = [
     { title: 'Publishing', icon: Globe },
     { title: 'File tree', icon: ListTree },
     { title: 'Quick capture', icon: Zap },
+    { title: 'Welcome', icon: Sparkles },
     { title: 'Diagnostics', icon: LifeBuoy },
 ] as const;
 
@@ -663,6 +665,52 @@ function PreferencesForm({
                                 }
                             />
                         </Field>
+                    </Section>
+
+                    <Section title="Welcome">
+                        <div className="flex items-start gap-2 sm:col-span-2">
+                            <Checkbox
+                                id="welcome_on_startup"
+                                checked={data.welcome_on_startup}
+                                onCheckedChange={(value) =>
+                                    setData(
+                                        'welcome_on_startup',
+                                        value === true,
+                                    )
+                                }
+                            />
+                            <div className="grid gap-1">
+                                <Label htmlFor="welcome_on_startup">
+                                    Show the Welcome tab when Kite starts
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Quick actions, your recent notes and tips,
+                                    next to your notes.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-2 sm:col-span-2">
+                            <Checkbox
+                                id="whats_new_after_update"
+                                checked={data.whats_new_after_update}
+                                onCheckedChange={(value) =>
+                                    setData(
+                                        'whats_new_after_update',
+                                        value === true,
+                                    )
+                                }
+                            />
+                            <div className="grid gap-1">
+                                <Label htmlFor="whats_new_after_update">
+                                    Show what&apos;s new after an update
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Opens the Welcome tab with the new
+                                    version&apos;s changes, even when it&apos;s
+                                    off at startup.
+                                </p>
+                            </div>
+                        </div>
                     </Section>
 
                     <Section title="Diagnostics">
