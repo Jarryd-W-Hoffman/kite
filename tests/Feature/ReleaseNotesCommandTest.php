@@ -19,7 +19,7 @@ afterEach(function (): void {
 
 it("prints a version's entry, blank lines included", function (): void {
     expect(Artisan::call('kite:release-notes', ['version' => 'v0.2.0']))->toBe(0)
-        ->and(Artisan::output())->toBe("### Added\n\n- A Welcome tab\n");
+        ->and(Artisan::output())->toBe("### Added\n\n- A Welcome tab".PHP_EOL);
 });
 
 it('fails for a version without an entry, so it cannot be released', function (): void {
