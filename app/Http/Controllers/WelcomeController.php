@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Actions\LoadWorkspace;
 use App\Http\Requests\UpdateWelcomeRequest;
 use App\Models\Vault;
+use App\Services\Changelog;
 use App\Services\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ final readonly class WelcomeController
     /**
      * The Welcome tab: what's new in this version, quick actions, recent notes and tips.
      */
-    public function show(Request $request, Vault $vault, LoadWorkspace $workspace, Settings $settings): Response
+    public function show(Request $request, Vault $vault, LoadWorkspace $workspace, Settings $settings, Changelog $changelog): Response
     {
         $vault->update(['opened_at' => now()]);
 
@@ -28,6 +29,7 @@ final readonly class WelcomeController
             ...$workspace->handle($vault),
             'version' => $version,
             'updated' => $request->boolean('updated'),
+            'whats_new' => $changelog->html($version),
             'release_notes_url' => mb_rtrim(config()->string('nativephp.website'), '/')."/releases/tag/v{$version}",
             'welcome_on_startup' => $settings->all()['welcome_on_startup'] === true,
         ]);

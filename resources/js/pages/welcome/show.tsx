@@ -34,6 +34,8 @@ type Props = WorkspaceProps & {
     version: string;
     /** Kite has just been updated to this version. */
     updated: boolean;
+    /** This version's changelog entry, as HTML. */
+    whats_new: string | null;
     release_notes_url: string;
     welcome_on_startup: boolean;
     recent_notes?: NoteLinkSummary[];
@@ -58,6 +60,7 @@ export default function WelcomeShow({
     watching,
     version,
     updated,
+    whats_new: whatsNew,
     release_notes_url: releaseNotesUrl,
     welcome_on_startup: welcomeOnStartup,
     recent_notes: recentNotes = [],
@@ -140,35 +143,62 @@ export default function WelcomeShow({
                                         <Sparkles className="size-4 text-primary" />
                                         Kite has been updated to {version}
                                     </h2>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        See what&apos;s changed in this version.
-                                    </p>
+                                    {whatsNew === null ? (
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            See what&apos;s changed in this
+                                            version.
+                                        </p>
+                                    ) : (
+                                        <ChangelogEntry
+                                            html={whatsNew}
+                                            onOpenLink={openExternalLink}
+                                        />
+                                    )}
                                     <Button
                                         size="sm"
-                                        className="mt-3"
+                                        variant="outline"
+                                        className="mt-4"
                                         onClick={() =>
                                             openExternalLink(releaseNotesUrl)
                                         }
                                     >
-                                        What&apos;s new in {version}
+                                        All release notes
                                     </Button>
                                 </section>
                             ) : (
-                                <p
-                                    className="text-sm text-muted-foreground"
-                                    data-test="version"
-                                >
-                                    Kite {version} ·{' '}
-                                    <button
-                                        type="button"
-                                        className="text-primary hover:underline"
-                                        onClick={() =>
-                                            openExternalLink(releaseNotesUrl)
-                                        }
+                                <div className="grid gap-2">
+                                    <p
+                                        className="text-sm text-muted-foreground"
+                                        data-test="version"
                                     >
-                                        Release notes
-                                    </button>
-                                </p>
+                                        Kite {version} ·{' '}
+                                        <button
+                                            type="button"
+                                            className="text-primary hover:underline"
+                                            onClick={() =>
+                                                openExternalLink(
+                                                    releaseNotesUrl,
+                                                )
+                                            }
+                                        >
+                                            Release notes
+                                        </button>
+                                    </p>
+                                    {whatsNew !== null && (
+                                        <details
+                                            className="group rounded-lg border px-4 py-2"
+                                            data-test="whats-new-details"
+                                        >
+                                            <summary className="cursor-pointer text-sm font-medium">
+                                                What&apos;s new in {version}
+                                            </summary>
+                                            <ChangelogEntry
+                                                html={whatsNew}
+                                                onOpenLink={openExternalLink}
+                                            />
+                                        </details>
+                                    )}
+                                </div>
                             )}
 
                             <Section title="Start">
@@ -325,5 +355,35 @@ function Action({
             <span className="flex-1">{label}</span>
             {shortcut && <Kbd shortcut={shortcut} />}
         </button>
+    );
+}
+
+/**
+ * A changelog entry, rendered by the server with its HTML escaped. Links in it open in the system
+ * browser rather than the app window.
+ */
+function ChangelogEntry({
+    html,
+    onOpenLink,
+}: {
+    html: string;
+    onOpenLink: (url: string) => void;
+}) {
+    return (
+        <div
+            className="kite-prose mt-3"
+            style={{ fontSize: 14, lineHeight: 1.6 }}
+            data-test="changelog-entry"
+            onClick={(event) => {
+                const anchor = (event.target as HTMLElement).closest('a');
+                const href = anchor?.getAttribute('href') ?? '';
+
+                if (/^https?:\/\//i.test(href)) {
+                    event.preventDefault();
+                    onOpenLink(href);
+                }
+            }}
+            dangerouslySetInnerHTML={{ __html: html }}
+        />
     );
 }
