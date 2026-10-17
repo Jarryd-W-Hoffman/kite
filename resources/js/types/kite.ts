@@ -155,4 +155,6 @@ export type Preferences = EditorPreferences & {
     publish_folder: string | null;
     capture_shortcut: string | null;
     tree_group_colours: boolean;
+    welcome_on_startup: boolean;
+    whats_new_after_update: boolean;
 };

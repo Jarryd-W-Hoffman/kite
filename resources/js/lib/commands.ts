@@ -16,6 +16,7 @@ import {
     Network,
     PanelRight,
     Settings2,
+    Sparkles,
     Presentation,
     SearchCheck,
     Star,
@@ -117,6 +118,12 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         icon: Keyboard,
         shortcut: 'Mod+/',
         keywords: 'keys help',
+    },
+    {
+        id: 'welcome',
+        label: 'Open the Welcome tab',
+        icon: Sparkles,
+        keywords: "start what's new release notes changelog tips",
     },
     {
         id: 'open-vault',

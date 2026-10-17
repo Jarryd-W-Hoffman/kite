@@ -220,12 +220,13 @@ Installers end up in `nativephp/electron/dist`.
 
 ### Releasing
 
-Push a version tag, and GitHub Actions builds Kite for Linux, Windows and macOS. It uploads the installers to a **draft** release:
+1. In [`CHANGELOG.md`](CHANGELOG.md), rename **Unreleased** to the new version and date, e.g. `## [0.2.0] - 2026-10-20`. The Welcome tab shows this entry after the update, and the release uses it as its notes. A release without an entry stops before building.
+2. Push a version tag, and GitHub Actions builds Kite for Linux, Windows and macOS. It uploads the installers to a **draft** release:
 
-```bash
-git tag v0.2.0
-git push origin v0.2.0
-```
+   ```bash
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
 
 The tag sets the version. Check the draft, edit its notes, then **publish** it. Installed copies of Kite update to it from then on.
 

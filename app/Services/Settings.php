@@ -37,6 +37,8 @@ final readonly class Settings
             'publish_folder' => ['config' => 'kite.publish.folder', 'default' => null, 'rules' => ['nullable', 'string', 'max:1024', 'regex:#^(/|[A-Za-z]:[\\\\/])#', 'not_regex:#(^|[\\\\/])\.\.([\\\\/]|$)#']],
             'tree_group_colours' => ['config' => null, 'default' => true, 'rules' => ['required', 'boolean']],
             'capture_shortcut' => ['config' => 'kite.capture.shortcut', 'default' => 'CmdOrCtrl+Shift+Space', 'rules' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9+ ]*$/']],
+            'welcome_on_startup' => ['config' => null, 'default' => true, 'rules' => ['required', 'boolean']],
+            'whats_new_after_update' => ['config' => null, 'default' => true, 'rules' => ['required', 'boolean']],
         ];
     }
 
@@ -93,6 +95,20 @@ final readonly class Settings
         }
 
         $this->applyToConfig();
+    }
+
+    /**
+     * Something Kite keeps track of for itself, stored beside the preferences, e.g. the version it
+     * last ran.
+     */
+    public function state(string $key): mixed
+    {
+        return $this->stored()["state.{$key}"] ?? null;
+    }
+
+    public function rememberState(string $key, mixed $value): void
+    {
+        DB::table('settings')->upsert(['key' => "state.{$key}", 'value' => json_encode($value)], ['key'], ['value']);
     }
 
     /**
