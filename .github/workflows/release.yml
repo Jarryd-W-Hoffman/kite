@@ -1,7 +1,8 @@
 name: release
 
 # Push a version tag (e.g. `git tag v0.2.0 && git push origin v0.2.0`) to build Kite for every
-# platform and upload the installers to a draft GitHub release. Publishing the draft makes it
+# platform and upload the installers to a draft GitHub release, with the version's CHANGELOG.md
+# entry as its notes (the release stops if there isn't one). Publishing the draft makes it
 # available to installed copies of Kite through auto-update.
 
 on:
@@ -18,11 +19,32 @@ concurrency:
 jobs:
   draft:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          tools: composer:v2
+          coverage: none
+
+      - name: Install Dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress --no-scripts
+          composer run-script post-autoload-dump
+          cp .env.example .env
+          php artisan key:generate
+
+      # Fails, and so stops the release, when CHANGELOG.md has no entry for this version.
+      - name: Release Notes
+        run: |
+          php artisan kite:release-notes "$GITHUB_REF_NAME" > notes.md
+          printf '\n\n---\n\nWhich file to download, and how updating works: see [Download](https://github.com/%s#download).\n' "$GITHUB_REPOSITORY" >> notes.md
+          cat notes.md
 
       # Created up front so the parallel builds all upload to the same release.
       - name: Create Draft Release
@@ -30,7 +52,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 || \
-            gh release create "$GITHUB_REF_NAME" --draft --title "Kite ${GITHUB_REF_NAME#v}" --generate-notes
+            gh release create "$GITHUB_REF_NAME" --draft --title "Kite ${GITHUB_REF_NAME#v}" --notes-file notes.md
 
   build:
     needs: draft
