@@ -45,5 +45,7 @@ it('shows notes further away in the local graph, and remembers how far', functio
     $page->navigate(route('notes.show', [$this->vault, Note::query()->where('title', 'D')->sole()]))
         ->assertAttribute('@local-graph-depth-2', 'aria-pressed', 'true')
         ->assertAttribute('@local-graph', 'data-nodes', '3')
+        // Pest's error check crashes, rather than retrying, if its collector isn't on the new page yet.
+        ->assertScript('typeof window.__pestBrowser?.jsErrors', 'object')
         ->assertNoJavaScriptErrors();
 });
