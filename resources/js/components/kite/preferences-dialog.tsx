@@ -307,6 +307,8 @@ function PreferencesForm({
     const { data, setData, errors, processing } = form;
     const [activeSection, setActiveSection] = useState<SectionId>('Appearance');
     const sectionsRef = useRef<HTMLDivElement>(null);
+    /** The section a click is scrolling to; scrolling past others on the way shouldn't highlight them. */
+    const jumpingTo = useRef<SectionId | null>(null);
 
     // Scroll only the section list: scrollIntoView() would also scroll the dialog around it,
     // moving its header out of view.
@@ -320,14 +322,55 @@ function PreferencesForm({
             return;
         }
 
-        list.scrollTo({
-            top:
-                list.scrollTop +
+        const top = Math.min(
+            list.scrollTop +
                 section.getBoundingClientRect().top -
                 list.getBoundingClientRect().top -
                 parseFloat(getComputedStyle(list).paddingTop),
+            list.scrollHeight - list.clientHeight,
+        );
+
+        // Already there, nothing will scroll (or finish scrolling), so there's nothing to wait for.
+        if (Math.abs(top - list.scrollTop) < 1) {
+            return;
+        }
+
+        jumpingTo.current = title;
+        list.scrollTo({
+            top,
             behavior: prefersReducedMotion() ? 'auto' : 'smooth',
         });
+    };
+
+    /**
+     * Highlight the section at the top of the list, or the last one once scrolled to the end, as
+     * sections near the end can't reach the top.
+     */
+    const followScroll = (list: HTMLDivElement) => {
+        if (jumpingTo.current !== null) {
+            return;
+        }
+
+        if (list.scrollTop + list.clientHeight >= list.scrollHeight - 1) {
+            setActiveSection(SECTIONS[SECTIONS.length - 1].title);
+
+            return;
+        }
+
+        const reached =
+            list.getBoundingClientRect().top +
+            parseFloat(getComputedStyle(list).paddingTop) +
+            8;
+        const current = [...SECTIONS]
+            .reverse()
+            .find(
+                ({ title }) =>
+                    (document
+                        .getElementById(sectionId(title))
+                        ?.getBoundingClientRect().top ?? Infinity) <= reached,
+            );
+
+        setActiveSection(current?.title ?? SECTIONS[0].title);
     };
     const folderErrors = Object.entries(errors)
         .filter(([key]) => key.startsWith('ignored_folders'))
@@ -373,21 +416,9 @@ function PreferencesForm({
                     ref={sectionsRef}
                     className="min-h-0 flex-1 space-y-8 overflow-y-auto px-6 py-6"
                     data-test="preference-sections"
-                    onScroll={(event) => {
-                        const top = event.currentTarget.scrollTop;
-                        const current = [...SECTIONS]
-                            .reverse()
-                            .find(
-                                ({ title }) =>
-                                    (document.getElementById(sectionId(title))
-                                        ?.offsetTop ?? 0) -
-                                        48 <=
-                                    top,
-                            );
-
-                        if (current) {
-                            setActiveSection(current.title);
-                        }
+                    onScroll={(event) => followScroll(event.currentTarget)}
+                    onScrollEnd={() => {
+                        jumpingTo.current = null;
                     }}
                 >
                     <Section title="Appearance">
