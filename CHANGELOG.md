@@ -6,6 +6,8 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-17
+
 ### Added
 
 - **A Welcome tab.** It opens beside your notes with quick actions, your recent notes and a few tips. After an update it shows what's new, like this. You can switch it off in **Preferences → Welcome**, or with the checkbox on the tab itself.
