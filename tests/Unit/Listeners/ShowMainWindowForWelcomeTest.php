@@ -27,7 +27,7 @@ it('runs when a menu command is chosen', function (): void {
     Http::fake();
     $windows = Window::fake();
 
-    MenuCommandSelected::dispatch(['id' => 'welcome']);
+    event(new MenuCommandSelected(['id' => 'welcome']));
 
     $windows->assertShown('main');
 });
