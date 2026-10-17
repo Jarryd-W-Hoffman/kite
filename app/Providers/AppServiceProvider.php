@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Events\MenuCommandSelected;
 use App\Events\QuickCaptureRequested;
 use App\Listeners\OpenQuickCapture;
+use App\Listeners\ShowMainWindowForWelcome;
 use App\Models\ColourGroup;
 use App\Models\Note;
 use App\Models\Vault;
@@ -42,6 +44,7 @@ final class AppServiceProvider extends ServiceProvider
 
         // Registered explicitly: the listener ignores its payload, so discovery can't infer the event.
         Event::listen(QuickCaptureRequested::class, OpenQuickCapture::class);
+        Event::listen(MenuCommandSelected::class, ShowMainWindowForWelcome::class);
 
         // Changes the workspace sidebar shows move the vault to a new tree revision.
         Note::updated(function (Note $note): void {
