@@ -14,7 +14,7 @@ import {
     Sparkles,
     Zap,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import InputError from '@/components/input-error';
@@ -306,6 +306,29 @@ function PreferencesForm({
 
     const { data, setData, errors, processing } = form;
     const [activeSection, setActiveSection] = useState<SectionId>('Appearance');
+    const sectionsRef = useRef<HTMLDivElement>(null);
+
+    // Scroll only the section list: scrollIntoView() would also scroll the dialog around it,
+    // moving its header out of view.
+    const showSection = (title: SectionId) => {
+        const list = sectionsRef.current;
+        const section = document.getElementById(sectionId(title));
+
+        setActiveSection(title);
+
+        if (list === null || section === null) {
+            return;
+        }
+
+        list.scrollTo({
+            top:
+                list.scrollTop +
+                section.getBoundingClientRect().top -
+                list.getBoundingClientRect().top -
+                parseFloat(getComputedStyle(list).paddingTop),
+            behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+        });
+    };
     const folderErrors = Object.entries(errors)
         .filter(([key]) => key.startsWith('ignored_folders'))
         .map(([, message]) => message)
@@ -333,16 +356,7 @@ function PreferencesForm({
                         <button
                             key={title}
                             type="button"
-                            onClick={() => {
-                                setActiveSection(title);
-                                document
-                                    .getElementById(sectionId(title))
-                                    ?.scrollIntoView({
-                                        behavior: prefersReducedMotion()
-                                            ? 'auto'
-                                            : 'smooth',
-                                    });
-                            }}
+                            onClick={() => showSection(title)}
                             aria-current={activeSection === title}
                             className={cn(
                                 'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground',
@@ -356,7 +370,9 @@ function PreferencesForm({
                     ))}
                 </nav>
                 <div
+                    ref={sectionsRef}
                     className="min-h-0 flex-1 space-y-8 overflow-y-auto px-6 py-6"
+                    data-test="preference-sections"
                     onScroll={(event) => {
                         const top = event.currentTarget.scrollTop;
                         const current = [...SECTIONS]
