@@ -85,3 +85,21 @@ it('keeps pinned tabs when opening other notes', function (): void {
         ->assertPresent('[aria-label="Close Beta"]')
         ->assertNoJavaScriptErrors();
 });
+
+it('keeps tabs saved before tabs could hold pages', function (): void {
+    $vault = tabsVault();
+    $alpha = noteId('Alpha.md');
+    $beta = noteId('Beta.md');
+
+    $page = visitSplit(route('notes.show', [$vault, $alpha]))->assertSeeIn('@note-preview', 'Alpha');
+
+    $page->script("localStorage.setItem('kite:tabs:{$vault->id}', JSON.stringify({ tabs: [{ id: {$beta}, title: 'Beta', pinned: true }, { id: {$alpha}, title: 'Alpha' }], active: {$alpha} }))");
+
+    $page->refresh()
+        ->assertSeeIn('@tab-bar', 'Alpha')
+        ->assertSeeIn('@tab-bar', 'Beta')
+        ->assertPresent('[aria-label="Unpin Beta"]')
+        ->assertAttribute('[role=tab][aria-selected=true] a', 'title', 'Alpha')
+        ->assertScript("JSON.parse(localStorage.getItem('kite:tabs:{$vault->id}')).active", "note:{$alpha}")
+        ->assertNoJavaScriptErrors();
+});

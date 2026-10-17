@@ -569,7 +569,11 @@ function NoteWorkspace({
                 {!focus && (
                     <TabBar
                         vault={vault}
-                        note={{ id: note.id, title: meta.title }}
+                        current={{
+                            kind: 'note',
+                            id: note.id,
+                            title: meta.title,
+                        }}
                     />
                 )}
                 <header

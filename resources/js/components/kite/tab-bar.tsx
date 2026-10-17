@@ -2,39 +2,41 @@ import { Link, router } from '@inertiajs/react';
 import { Pin, PinOff, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAppCommands } from '@/hooks/use-app-commands';
-import { closeTab, togglePin, visitTab } from '@/lib/tabs';
-import type { TabState } from '@/lib/tabs';
+import { closeTab, tabHref, tabKey, togglePin, visitTab } from '@/lib/tabs';
+import type { Tab, TabState } from '@/lib/tabs';
 import { cn } from '@/lib/utils';
-import { show } from '@/routes/notes';
 import { show as showVault } from '@/routes/vaults';
 import type { VaultSummary } from '@/types';
 
 type Props = {
     vault: VaultSummary;
-    note: { id: number; title: string };
+    /** What this page shows, as a tab. */
+    current: Tab;
 };
 
-export function TabBar({ vault, note }: Props) {
-    // The parent keys this component by note, so each visit records the tab exactly once.
+export function TabBar({ vault, current }: Props) {
+    const currentKey = tabKey(current);
+
+    // The parent keys this component by page, so each visit records the tab exactly once.
     const [state, setState] = useState<TabState>(() =>
-        visitTab(vault.id, note),
+        visitTab(vault.id, current),
     );
 
-    const close = (id: number) => {
-        const { state: next, next: target } = closeTab(vault.id, id);
+    const close = (closing: string) => {
+        const { state: next, next: target } = closeTab(vault.id, closing);
 
         setState(next);
 
-        if (id === note.id) {
+        if (closing === currentKey) {
             router.visit(
                 target === null
                     ? showVault(vault.id)
-                    : show({ vault: vault.id, note: target }),
+                    : tabHref(vault.id, target),
             );
         }
     };
 
-    useAppCommands({ 'close-tab': () => close(note.id) });
+    useAppCommands({ 'close-tab': () => close(currentKey) });
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -48,20 +50,22 @@ export function TabBar({ vault, note }: Props) {
 
             event.preventDefault();
 
-            const index = state.tabs.findIndex((tab) => tab.id === note.id);
+            const index = state.tabs.findIndex(
+                (tab) => tabKey(tab) === currentKey,
+            );
             const step = event.shiftKey ? -1 : 1;
             const next =
                 state.tabs[
                     (index + step + state.tabs.length) % state.tabs.length
                 ];
 
-            router.visit(show({ vault: vault.id, note: next.id }));
+            router.visit(tabHref(vault.id, next));
         };
 
         window.addEventListener('keydown', onKeyDown);
 
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [state, note.id, vault.id]);
+    }, [state, currentKey, vault.id]);
 
     if (state.tabs.length < 2) {
         return null;
@@ -76,13 +80,13 @@ export function TabBar({ vault, note }: Props) {
         >
             {state.tabs.map((tab) => (
                 <div
-                    key={tab.id}
+                    key={tabKey(tab)}
                     role="tab"
-                    aria-selected={tab.id === note.id}
+                    aria-selected={tabKey(tab) === currentKey}
                     className={cn(
                         'kite-no-drag group relative -mb-px flex h-8 max-w-52 min-w-28 items-center gap-1 rounded-t-lg border border-b-0 px-3 text-[12.5px] transition-colors',
                         tab.pinned && 'max-w-40 min-w-0',
-                        tab.id === note.id
+                        tabKey(tab) === currentKey
                             ? 'border-border bg-background font-medium text-foreground'
                             : 'border-transparent text-muted-foreground hover:bg-background/50 hover:text-foreground',
                     )}
@@ -91,7 +95,7 @@ export function TabBar({ vault, note }: Props) {
                         <Pin className="size-3 shrink-0 fill-current text-primary" />
                     )}
                     <Link
-                        href={show({ vault: vault.id, note: tab.id })}
+                        href={tabHref(vault.id, tab)}
                         className="min-w-0 flex-1 truncate py-1"
                         title={tab.title}
                     >
@@ -99,7 +103,9 @@ export function TabBar({ vault, note }: Props) {
                     </Link>
                     <button
                         type="button"
-                        onClick={() => setState(togglePin(vault.id, tab.id))}
+                        onClick={() =>
+                            setState(togglePin(vault.id, tabKey(tab)))
+                        }
                         aria-label={
                             tab.pinned
                                 ? `Unpin ${tab.title}`
@@ -117,7 +123,7 @@ export function TabBar({ vault, note }: Props) {
                     {!tab.pinned && (
                         <button
                             type="button"
-                            onClick={() => close(tab.id)}
+                            onClick={() => close(tabKey(tab))}
                             aria-label={`Close ${tab.title}`}
                             className="rounded p-0.5 opacity-60 group-hover:opacity-100 hover:bg-accent"
                         >
