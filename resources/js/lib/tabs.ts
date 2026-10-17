@@ -1,6 +1,7 @@
 import { booleanCodec, readStored, writeStored } from '@/lib/storage';
 import type { Codec } from '@/lib/storage';
 import { show as showNote } from '@/routes/notes';
+import { show as showWelcome } from '@/routes/welcome';
 
 /**
  * A note open in a tab. Pinned tabs stay at the front, aren't replaced by other notes and
@@ -14,9 +15,19 @@ export type NoteTab = {
 };
 
 /**
+ * A built-in page open in a tab, such as Welcome.
+ */
+export type PageTab = {
+    kind: 'page';
+    page: 'welcome';
+    title: string;
+    pinned?: boolean;
+};
+
+/**
  * Anything that can be open in a tab.
  */
-export type Tab = NoteTab;
+export type Tab = NoteTab | PageTab;
 
 export type TabState = {
     tabs: Tab[];
@@ -34,14 +45,16 @@ function key(vaultId: number): string {
  * A tab's identity within a vault, e.g. `note:12`.
  */
 export function tabKey(tab: Tab): string {
-    return `${tab.kind}:${tab.id}`;
+    return tab.kind === 'note' ? `note:${tab.id}` : `page:${tab.page}`;
 }
 
 /**
  * Where a tab leads.
  */
 export function tabHref(vaultId: number, tab: Tab): string {
-    return showNote({ vault: vaultId, note: tab.id }).url;
+    return tab.kind === 'note'
+        ? showNote({ vault: vaultId, note: tab.id }).url
+        : showWelcome(vaultId).url;
 }
 
 function isPinned(value: unknown): boolean {
@@ -49,7 +62,7 @@ function isPinned(value: unknown): boolean {
 }
 
 /**
- * A stored tab, in either the current form or the original note-only one (`{ id, title }`).
+ * A stored tab, in the current form or the original note-only one (`{ id, title }`).
  */
 function readTab(value: unknown): Tab | null {
     const tab = value as Record<string, unknown> | null;
@@ -57,20 +70,27 @@ function readTab(value: unknown): Tab | null {
     if (
         typeof tab !== 'object' ||
         tab === null ||
-        typeof tab.id !== 'number' ||
         typeof tab.title !== 'string' ||
-        !isPinned(tab.pinned) ||
-        (tab.kind !== undefined && tab.kind !== 'note')
+        !isPinned(tab.pinned)
     ) {
         return null;
     }
 
-    return {
-        kind: 'note',
-        id: tab.id,
-        title: tab.title,
-        ...(tab.pinned === undefined ? {} : { pinned: tab.pinned as boolean }),
-    };
+    const pinned =
+        tab.pinned === undefined ? {} : { pinned: tab.pinned as boolean };
+
+    if (tab.kind === 'page' && tab.page === 'welcome') {
+        return { kind: 'page', page: 'welcome', title: tab.title, ...pinned };
+    }
+
+    if (
+        (tab.kind === undefined || tab.kind === 'note') &&
+        typeof tab.id === 'number'
+    ) {
+        return { kind: 'note', id: tab.id, title: tab.title, ...pinned };
+    }
+
+    return null;
 }
 
 const tabStateCodec: Codec<TabState> = {

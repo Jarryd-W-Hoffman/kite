@@ -59,6 +59,7 @@ import type { ColourGroup } from '@/lib/colour-groups';
 import { flashcardsUrl } from '@/lib/flashcards';
 import { formatShortcut } from '@/lib/shortcuts';
 import { booleanCodec, useStoredState } from '@/lib/storage';
+import { requestNewTab } from '@/lib/tabs';
 import { cn } from '@/lib/utils';
 import { show as showCanvas, store as storeCanvas } from '@/routes/canvases';
 import { store as openDaily } from '@/routes/daily-notes';
@@ -73,6 +74,7 @@ import { index as tasksIndex } from '@/routes/tasks';
 import { show as showGraph } from '@/routes/vault-graph';
 import { show as showTag } from '@/routes/vault-tags';
 import { index as vaultsIndex, show as showVault } from '@/routes/vaults';
+import { show as showWelcome } from '@/routes/welcome';
 import type {
     IndexingProgress,
     NoteLinkSummary,
@@ -183,6 +185,10 @@ export function WorkspaceSidebar({
         'new-search': () => router.post(storeSearch(vault.id).url),
         search: onSearch,
         graph: () => router.visit(showGraph(vault.id)),
+        welcome: () => {
+            requestNewTab();
+            router.visit(showWelcome(vault.id));
+        },
         'toggle-theme': () =>
             updateAppearance(resolvedAppearance === 'dark' ? 'light' : 'dark'),
     });

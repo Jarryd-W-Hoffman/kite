@@ -13,6 +13,7 @@ export type AppCommand =
     | 'toggle-preview'
     | 'toggle-theme'
     | 'shortcuts'
+    | 'welcome'
     | 'tasks'
     | 'flashcards'
     | 'new-view'
