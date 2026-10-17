@@ -111,7 +111,10 @@ export function LockedWorkspace({
 }: WorkspaceProps & { note: NoteDetail }) {
     return (
         <main className="flex min-w-0 flex-1 flex-col">
-            <TabBar vault={vault} note={{ id: note.id, title: note.title }} />
+            <TabBar
+                vault={vault}
+                current={{ kind: 'note', id: note.id, title: note.title }}
+            />
             <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-3 text-sm">
                 <LockKeyhole className="size-3.5 text-muted-foreground" />
                 <h1 className="truncate font-medium">{note.title}</h1>

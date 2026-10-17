@@ -1,20 +1,27 @@
-import {
-    booleanCodec,
-    jsonCodec,
-    readStored,
-    writeStored,
-} from '@/lib/storage';
+import { booleanCodec, readStored, writeStored } from '@/lib/storage';
+import type { Codec } from '@/lib/storage';
+import { show as showNote } from '@/routes/notes';
 
-export type Tab = {
+/**
+ * A note open in a tab. Pinned tabs stay at the front, aren't replaced by other notes and
+ * aren't closed by Mod+W.
+ */
+export type NoteTab = {
+    kind: 'note';
     id: number;
     title: string;
-    /** Pinned tabs stay at the front, aren't replaced by other notes and aren't closed by Mod+W. */
     pinned?: boolean;
 };
 
+/**
+ * Anything that can be open in a tab.
+ */
+export type Tab = NoteTab;
+
 export type TabState = {
     tabs: Tab[];
-    active: number | null;
+    /** The key of the active tab. */
+    active: string | null;
 };
 
 const NEW_TAB_FLAG = 'kite:new-tab';
@@ -23,29 +30,83 @@ function key(vaultId: number): string {
     return `kite:tabs:${vaultId}`;
 }
 
-function isTab(value: unknown): value is Tab {
-    const tab = value as Partial<Tab> | null;
-
-    return (
-        typeof tab === 'object' &&
-        tab !== null &&
-        typeof tab.id === 'number' &&
-        typeof tab.title === 'string' &&
-        (tab.pinned === undefined || typeof tab.pinned === 'boolean')
-    );
+/**
+ * A tab's identity within a vault, e.g. `note:12`.
+ */
+export function tabKey(tab: Tab): string {
+    return `${tab.kind}:${tab.id}`;
 }
 
-const tabStateCodec = jsonCodec((value): value is TabState => {
-    const state = value as Partial<TabState> | null;
+/**
+ * Where a tab leads.
+ */
+export function tabHref(vaultId: number, tab: Tab): string {
+    return showNote({ vault: vaultId, note: tab.id }).url;
+}
 
-    return (
-        typeof state === 'object' &&
-        state !== null &&
-        Array.isArray(state.tabs) &&
-        state.tabs.every(isTab) &&
-        (state.active === null || typeof state.active === 'number')
-    );
-});
+function isPinned(value: unknown): boolean {
+    return value === undefined || typeof value === 'boolean';
+}
+
+/**
+ * A stored tab, in either the current form or the original note-only one (`{ id, title }`).
+ */
+function readTab(value: unknown): Tab | null {
+    const tab = value as Record<string, unknown> | null;
+
+    if (
+        typeof tab !== 'object' ||
+        tab === null ||
+        typeof tab.id !== 'number' ||
+        typeof tab.title !== 'string' ||
+        !isPinned(tab.pinned) ||
+        (tab.kind !== undefined && tab.kind !== 'note')
+    ) {
+        return null;
+    }
+
+    return {
+        kind: 'note',
+        id: tab.id,
+        title: tab.title,
+        ...(tab.pinned === undefined ? {} : { pinned: tab.pinned as boolean }),
+    };
+}
+
+const tabStateCodec: Codec<TabState> = {
+    parse: (raw) => {
+        try {
+            const value = JSON.parse(raw) as Record<string, unknown> | null;
+
+            if (
+                typeof value !== 'object' ||
+                value === null ||
+                !Array.isArray(value.tabs)
+            ) {
+                return undefined;
+            }
+
+            const tabs = value.tabs.map(readTab);
+
+            if (tabs.some((tab) => tab === null)) {
+                return undefined;
+            }
+
+            // The original form stored the active note's id.
+            const active =
+                typeof value.active === 'number'
+                    ? `note:${value.active}`
+                    : value.active;
+
+            return active === null || typeof active === 'string'
+                ? { tabs: tabs as Tab[], active }
+                : undefined;
+        } catch {
+            return undefined;
+        }
+    },
+    serialize: (value) => JSON.stringify(value),
+};
 
 const flagCodec = booleanCodec;
 
@@ -67,35 +128,38 @@ export function requestNewTab(): void {
 }
 
 /**
- * Record a visit to a note: focus its tab, open it in a new tab when requested, or replace the active tab.
+ * Record a visit to a tab: focus it, open it in a new tab when requested, or replace the active tab.
  */
-export function visitTab(vaultId: number, note: Tab): TabState {
+export function visitTab(vaultId: number, visited: Tab): TabState {
     const state = readTabs(vaultId);
     const wantsNewTab = readStored(NEW_TAB_FLAG, flagCodec, false, 'session');
     writeStored(NEW_TAB_FLAG, flagCodec, null, 'session');
 
-    const existing = state.tabs.findIndex((tab) => tab.id === note.id);
+    const visitedKey = tabKey(visited);
+    const existing = state.tabs.findIndex((tab) => tabKey(tab) === visitedKey);
     let tabs = [...state.tabs];
 
     if (existing !== -1) {
-        tabs[existing] = { ...note, pinned: tabs[existing].pinned };
+        tabs[existing] = { ...visited, pinned: tabs[existing].pinned };
     } else {
-        const activeIndex = tabs.findIndex((tab) => tab.id === state.active);
+        const activeIndex = tabs.findIndex(
+            (tab) => tabKey(tab) === state.active,
+        );
 
         // A pinned tab keeps its note; the new one opens beside it instead.
         if (wantsNewTab || activeIndex === -1 || tabs[activeIndex].pinned) {
-            tabs.splice(activeIndex + 1 || tabs.length, 0, note);
+            tabs.splice(activeIndex + 1 || tabs.length, 0, visited);
         } else {
-            tabs[activeIndex] = note;
+            tabs[activeIndex] = visited;
         }
     }
 
     tabs = tabs.filter(
         (tab, index) =>
-            tabs.findIndex((other) => other.id === tab.id) === index,
+            tabs.findIndex((other) => tabKey(other) === tabKey(tab)) === index,
     );
 
-    return writeTabs(vaultId, { tabs, active: note.id });
+    return writeTabs(vaultId, { tabs, active: visitedKey });
 }
 
 /**
@@ -103,33 +167,39 @@ export function visitTab(vaultId: number, note: Tab): TabState {
  */
 export function closeTab(
     vaultId: number,
-    id: number,
-): { state: TabState; next: number | null } {
+    closing: string,
+): { state: TabState; next: Tab | null } {
     const state = readTabs(vaultId);
-    const index = state.tabs.findIndex((tab) => tab.id === id);
+    const index = state.tabs.findIndex((tab) => tabKey(tab) === closing);
 
     if (state.tabs[index]?.pinned) {
         return { state, next: null };
     }
 
-    const tabs = state.tabs.filter((tab) => tab.id !== id);
+    const tabs = state.tabs.filter((tab) => tabKey(tab) !== closing);
 
-    if (state.active !== id) {
+    if (state.active !== closing) {
         return { state: writeTabs(vaultId, { ...state, tabs }), next: null };
     }
 
-    const next = tabs[Math.min(index, tabs.length - 1)]?.id ?? null;
+    const next = tabs[Math.min(index, tabs.length - 1)] ?? null;
 
-    return { state: writeTabs(vaultId, { tabs, active: next }), next };
+    return {
+        state: writeTabs(vaultId, {
+            tabs,
+            active: next === null ? null : tabKey(next),
+        }),
+        next,
+    };
 }
 
 /**
  * Pin or unpin a tab. Pinned tabs move to the front, in the order they were pinned.
  */
-export function togglePin(vaultId: number, id: number): TabState {
+export function togglePin(vaultId: number, pinning: string): TabState {
     const state = readTabs(vaultId);
     const tabs = state.tabs.map((tab) =>
-        tab.id === id ? { ...tab, pinned: !tab.pinned } : tab,
+        tabKey(tab) === pinning ? { ...tab, pinned: !tab.pinned } : tab,
     );
 
     return writeTabs(vaultId, {
