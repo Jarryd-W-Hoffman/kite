@@ -84,3 +84,21 @@ it('collects a diagnostics report to copy from preferences', function (): void {
         ->assertDontSee('Show log files')
         ->assertNoJavaScriptErrors();
 });
+
+it('jumps to a section without moving the dialog', function (): void {
+    $vault = vaultWithFiles(['Note.md' => '# Note']);
+    resolve(IndexVault::class)->handle($vault);
+
+    visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
+        ->click('@preferences-link')
+        ->assertVisible('@preferences-dialog')
+        ->assertValue('editor_font', 'sans')
+        ->click('nav[aria-label="Preference sections"] button:nth-child(9)')
+        ->assertAttribute('nav[aria-label="Preference sections"] button:nth-child(9)', 'aria-current', 'true')
+        ->wait(0.8)
+        ->assertScript("document.querySelector('[data-test=preferences-dialog]').scrollTop", 0)
+        ->assertScript("document.querySelector('[data-test=preference-sections]').scrollTop > 0", true)
+        // Near the end the list can't scroll Welcome to the top, but it must be in view.
+        ->assertScript("(() => { const list = document.querySelector('[data-test=preference-sections]').getBoundingClientRect(); const section = document.getElementById('preferences-welcome').getBoundingClientRect(); return section.top >= list.top && section.top < list.bottom - 40; })()", true)
+        ->assertNoJavaScriptErrors();
+});

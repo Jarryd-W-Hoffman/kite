@@ -6,6 +6,10 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ## [Unreleased]
 
+### Fixed
+
+- **Preferences:** choosing a section on the left no longer scrolls the whole window up and hides its title.
+
 ## [0.2.0] - 2026-10-17
 
 ### Added
