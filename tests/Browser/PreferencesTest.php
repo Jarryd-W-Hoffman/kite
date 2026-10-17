@@ -121,6 +121,10 @@ it('highlights the section that was chosen or scrolled to', function (): void {
             ->assertSeeIn('nav[aria-label="Preference sections"] [aria-current=true]', $title);
     }
 
+    // Let the last chosen section's smooth scroll finish first; until it does, the highlight
+    // stays on the chosen section by design.
+    $page->script("new Promise((resolve) => { const list = document.querySelector('[data-test=preference-sections]'); let last = -1; const timer = setInterval(() => { if (list.scrollTop === last) { clearInterval(timer); resolve(true); } last = list.scrollTop; }, 150); })");
+
     // Scrolling by hand: the section at the top, then the last one at the very end.
     $page->script("const list = document.querySelector('[data-test=preference-sections]'); list.scrollTop += document.getElementById('preferences-vault-files').getBoundingClientRect().top - list.getBoundingClientRect().top - 24;");
     $page->wait(0.3)
