@@ -9,6 +9,11 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 ### Added
 
 - **A Welcome tab.** It opens beside your notes with quick actions, your recent notes and a few tips. After an update it shows what's new, like this. You can switch it off in **Preferences → Welcome**, or with the checkbox on the tab itself.
+- **Update progress.** While a new version downloads, Kite shows how far along it is, so you know to keep it open.
+
+### Fixed
+
+- **"Could not install the update"** could flash up when you chose **Restart now**, even though the update installed fine.
 
 ## [0.1.1] - 2026-10-17
 
