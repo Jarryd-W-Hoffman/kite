@@ -101,6 +101,18 @@ return [
         'folder' => env('KITE_PUBLISH_FOLDER'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Changelog
+    |--------------------------------------------------------------------------
+    |
+    | What changed in each version. The Welcome tab shows the running version's
+    | entry, and releases use it as their notes.
+    |
+    */
+
+    'changelog' => base_path('CHANGELOG.md'),
+
     'capture' => [
         'shortcut' => env('KITE_CAPTURE_SHORTCUT', 'CmdOrCtrl+Shift+Space'),
     ],
