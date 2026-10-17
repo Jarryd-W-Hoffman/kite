@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Events\MenuCommandSelected;
 use App\Events\QuickCaptureRequested;
 use App\Providers\NativeAppServiceProvider;
 use App\Services\Settings;
@@ -48,7 +49,10 @@ it('registers the quick capture shortcut and tray menu', function (): void {
 
     Http::assertSent(fn (ClientRequest $request): bool => str_ends_with($request->url(), 'menu-bar/create')
         && $request['icon'] === (PHP_OS_FAMILY === 'Darwin' ? '' : public_path('tray.png'))
-        && $request['onlyShowContextMenu'] === true);
+        && $request['onlyShowContextMenu'] === true
+        && collect($request['contextMenu'])->contains(fn (array $item): bool => ($item['label'] ?? null) === 'Welcome'
+            && ($item['id'] ?? null) === 'welcome'
+            && ($item['event'] ?? null) === MenuCommandSelected::class));
 });
 
 it('skips the shortcut when it is disabled', function (): void {
