@@ -8,7 +8,7 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ### Fixed
 
-- **Preferences:** choosing a section on the left no longer scrolls the whole window up and hides its title.
+- **Preferences:** choosing a section on the left no longer scrolls the whole window up and hides its title, and the section you chose (or scrolled to) is the one highlighted.
 
 ## [0.2.0] - 2026-10-17
 

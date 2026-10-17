@@ -102,3 +102,32 @@ it('jumps to a section without moving the dialog', function (): void {
         ->assertScript("(() => { const list = document.querySelector('[data-test=preference-sections]').getBoundingClientRect(); const section = document.getElementById('preferences-welcome').getBoundingClientRect(); return section.top >= list.top && section.top < list.bottom - 40; })()", true)
         ->assertNoJavaScriptErrors();
 });
+
+it('highlights the section that was chosen or scrolled to', function (): void {
+    $vault = vaultWithFiles(['Note.md' => '# Note']);
+    resolve(IndexVault::class)->handle($vault);
+
+    $page = visitSplit(route('notes.show', [$vault, Note::query()->sole()]))
+        ->click('@preferences-link')
+        ->assertValue('editor_font', 'sans');
+
+    $sections = ['Appearance', 'Editor', 'Vault files', 'Daily notes', 'Templates', 'Publishing', 'File tree', 'Quick capture', 'Welcome', 'Diagnostics'];
+
+    foreach ([...$sections, 'Editor', 'File tree'] as $title) {
+        $index = array_search($title, $sections, true) + 1;
+
+        $page->click("nav[aria-label=\"Preference sections\"] button:nth-child({$index})")
+            ->wait(0.9)
+            ->assertSeeIn('nav[aria-label="Preference sections"] [aria-current=true]', $title);
+    }
+
+    // Scrolling by hand: the section at the top, then the last one at the very end.
+    $page->script("const list = document.querySelector('[data-test=preference-sections]'); list.scrollTop += document.getElementById('preferences-vault-files').getBoundingClientRect().top - list.getBoundingClientRect().top - 24;");
+    $page->wait(0.3)
+        ->assertSeeIn('nav[aria-label="Preference sections"] [aria-current=true]', 'Vault files');
+
+    $page->script("const list = document.querySelector('[data-test=preference-sections]'); list.scrollTop = list.scrollHeight;");
+    $page->wait(0.3)
+        ->assertSeeIn('nav[aria-label="Preference sections"] [aria-current=true]', 'Diagnostics')
+        ->assertNoJavaScriptErrors();
+});
