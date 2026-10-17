@@ -54,6 +54,7 @@ use App\Http\Controllers\VaultSearchController;
 use App\Http\Controllers\VaultStatusController;
 use App\Http\Controllers\VaultSyncController;
 use App\Http\Controllers\VaultTagController;
+use App\Http\Controllers\WelcomeController;
 use App\Http\Middleware\WatchVault;
 use Illuminate\Support\Facades\Route;
 
@@ -77,6 +78,8 @@ Route::post('vaults', [VaultController::class, 'store'])->name('vaults.store');
 Route::post('vaults/folder', [VaultFolderController::class, 'store'])->name('vault-folder.store');
 Route::get('vaults/{vault}', [VaultController::class, 'show'])->middleware(WatchVault::class)->name('vaults.show');
 Route::delete('vaults/{vault}', [VaultController::class, 'destroy'])->name('vaults.destroy');
+Route::get('vaults/{vault}/welcome', [WelcomeController::class, 'show'])->middleware(WatchVault::class)->name('welcome.show');
+Route::put('welcome', [WelcomeController::class, 'update'])->name('welcome.update');
 Route::get('vaults/{vault}/tags/{tag}', [VaultTagController::class, 'show'])->where('tag', '.*')->middleware(WatchVault::class)->name('vault-tags.show');
 Route::post('vaults/{vault}/daily', [DailyNoteController::class, 'store'])->name('daily-notes.store');
 Route::get('vaults/{vault}/status', [VaultStatusController::class, 'show'])->name('vault-status.show');
