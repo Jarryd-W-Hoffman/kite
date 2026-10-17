@@ -47,6 +47,7 @@ it('has no accessibility issues on any page, in light or dark', function (bool $
     $visit(route('vault-graph.show', [$this->vault, 'filter' => 'tag:']))->assertSee('needs a value')->assertNoAccessibilityIssues(3);
     $visit(route('flashcards.index', $this->vault))->assertSee('spanish')->assertNoAccessibilityIssues(3);
     $visit(route('flashcards.index', [$this->vault, 'study' => 1]))->click('@show-answer')->assertVisible('@grade-good')->assertNoAccessibilityIssues(3);
+    $visit(route('welcome.show', [$this->vault, 'updated' => 1]))->assertSee('Recent notes')->assertNoAccessibilityIssues(3);
 })->with(['light' => [false], 'dark' => [true]]);
 
 it('moves through the file tree with the arrow keys', function (): void {
