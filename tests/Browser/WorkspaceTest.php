@@ -54,6 +54,8 @@ it('follows wiki links and creates notes from unresolved ones', function (): voi
         ->click('a.wiki-link[data-wiki-target="Brand New"]')
         ->assertDontSeeIn('@note-preview', 'Go to')
         ->assertSeeIn('@note-preview', 'Brand New')
+        // Pest's error check crashes, rather than retrying, if its collector isn't on the new page yet.
+        ->assertScript('typeof window.__pestBrowser?.jsErrors', 'object')
         ->assertNoJavaScriptErrors();
 
     expect(file_exists($vault->path.'/Brand New.md'))->toBeTrue();
