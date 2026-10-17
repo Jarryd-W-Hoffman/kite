@@ -157,4 +157,5 @@ export type Preferences = EditorPreferences & {
     tree_group_colours: boolean;
     welcome_on_startup: boolean;
     whats_new_after_update: boolean;
+    crash_reports: boolean;
 };

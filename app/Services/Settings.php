@@ -39,6 +39,7 @@ final readonly class Settings
             'capture_shortcut' => ['config' => 'kite.capture.shortcut', 'default' => 'CmdOrCtrl+Shift+Space', 'rules' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9+ ]*$/']],
             'welcome_on_startup' => ['config' => null, 'default' => true, 'rules' => ['required', 'boolean']],
             'whats_new_after_update' => ['config' => null, 'default' => true, 'rules' => ['required', 'boolean']],
+            'crash_reports' => ['config' => null, 'default' => false, 'rules' => ['required', 'boolean']],
         ];
     }
 

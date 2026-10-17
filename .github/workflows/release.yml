@@ -113,6 +113,19 @@ jobs:
           rm .env.bak
           grep '^NATIVEPHP_APP_VERSION=' .env
 
+      # Where opt-in crash reports go. Kept as a secret rather than in .env.example.
+      - name: Crash Reports
+        env:
+          SENTRY_LARAVEL_DSN: ${{ secrets.SENTRY_LARAVEL_DSN }}
+        run: |
+          if [ -z "$SENTRY_LARAVEL_DSN" ]; then
+            echo "::warning::No SENTRY_LARAVEL_DSN secret: this build can't send crash reports."
+            exit 0
+          fi
+          sed -i.bak "s#^SENTRY_LARAVEL_DSN=.*#SENTRY_LARAVEL_DSN=${SENTRY_LARAVEL_DSN}#" .env
+          rm .env.bak
+          grep -c '^SENTRY_LARAVEL_DSN=https' .env
+
       - name: Build and Publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
