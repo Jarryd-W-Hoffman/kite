@@ -184,3 +184,26 @@ it('pairs moved notes with the same text by file name, and leaves other changes 
         ->and(Note::query()->where('path', 'C/Same.md')->value('id'))->toBe($same)
         ->and(Note::query()->pluck('path')->sort()->values()->all())->toBe(['C/Same.md', 'D/Other.md', 'Fresh.md']);
 });
+
+it('moves the vault to a new tree revision once per batch, and not for plain text edits', function (): void {
+    config(['kite.indexing.batch_size' => 2]);
+
+    $vault = vaultWithFiles(['A.md' => 'a', 'B.md' => 'b', 'C.md' => 'c', 'D.md' => 'd', 'E.md' => 'e']);
+    $before = $vault->currentTreeRevision();
+
+    resolve(IndexVault::class)->handle($vault);
+
+    expect($vault->currentTreeRevision())->toBe($before + 3);
+
+    writeVaultFile($vault, 'C.md', 'c, edited');
+    $before = $vault->currentTreeRevision();
+
+    expect(resolve(IndexVault::class)->handle($vault)['updated'])->toBe(1)
+        ->and($vault->currentTreeRevision())->toBe($before);
+
+    writeVaultFile($vault, 'C.md', '# A new title');
+
+    resolve(IndexVault::class)->handle($vault);
+
+    expect($vault->currentTreeRevision())->toBe($before + 1);
+});

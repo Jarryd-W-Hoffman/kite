@@ -11,6 +11,10 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 - **Optional crash reports.** If you turn them on (Preferences → Privacy, or when the Welcome tab asks), Kite sends a report when something goes wrong so it can be fixed. Reports never include your notes, and folder paths are removed. They're off unless you choose otherwise.
 - **Welcome in the tray menu:** open the Welcome tab from Kite's tray icon (the menu bar on macOS).
 
+### Changed
+
+- **Opening a big vault for the first time is faster:** Kite reads a vault of 10,000 notes about a fifth sooner.
+
 ### Fixed
 
 - **Notes renamed or moved outside Kite** (in your file manager, Git or a sync app) keep their version history, star and comments, instead of starting again as new notes.
