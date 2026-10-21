@@ -3,6 +3,7 @@ import { Eye, Maximize2, PencilLine, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NoteEditor } from '@/components/kite/note-editor';
 import { NotePreview } from '@/components/kite/note-preview';
+import { SaveConflictBanner } from '@/components/kite/save-conflict';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNoteDocument } from '@/hooks/use-note-document';
@@ -80,11 +81,16 @@ function SplitPaneDocument({
 }: Omit<Props, 'noteId'> & { note: NoteDetail }) {
     const { editor } = usePage().props.kite;
     const [previewing, setPreviewing] = useState(false);
-    const { contents, setContents, meta, saveState, save } = useNoteDocument(
-        vault,
-        note,
-        { autosaveMs: editor.autosave_ms },
-    );
+    const {
+        contents,
+        setContents,
+        meta,
+        saveState,
+        save,
+        conflict,
+        keepMine,
+        takeDisk,
+    } = useNoteDocument(vault, note, { autosaveMs: editor.autosave_ms });
 
     return (
         <>
@@ -93,7 +99,11 @@ function SplitPaneDocument({
                     {meta.title}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                    {saveState === 'saved' ? 'Saved' : 'Edited'}
+                    {saveState === 'saved'
+                        ? 'Saved'
+                        : saveState === 'conflict'
+                          ? 'Changed on disk'
+                          : 'Edited'}
                 </span>
                 <Button
                     variant="ghost"
@@ -126,6 +136,15 @@ function SplitPaneDocument({
                     <X />
                 </Button>
             </header>
+            {conflict && (
+                <SaveConflictBanner
+                    disk={conflict.contents}
+                    mine={contents}
+                    onKeepMine={keepMine}
+                    onTakeDisk={takeDisk}
+                    compact
+                />
+            )}
             <div className="min-h-0 flex-1 overflow-y-auto">
                 {previewing ? (
                     <NotePreview

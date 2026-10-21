@@ -85,17 +85,26 @@ final readonly class NoteController
         ]);
     }
 
-    public function update(UpdateNoteRequest $request, Vault $vault, Note $note, SaveNote $action, RenderMarkdown $renderMarkdown, DailyNotes $daily, NoteLocks $locks): JsonResponse
+    public function update(UpdateNoteRequest $request, Vault $vault, Note $note, SaveNote $action, RenderMarkdown $renderMarkdown, DailyNotes $daily, NoteLocks $locks, VaultFilesystem $files, LoadWorkspace $workspace): JsonResponse
     {
         $contents = $request->string('contents')->toString();
+        $key = $locks->keyFrom($vault, $request->header(NoteLocks::HEADER));
+
+        throw_if($note->locked && $key === null, ValidationException::withMessages([
+            'passphrase' => __('The vault locked again. Unlock it to save this note.'),
+        ]));
+
+        // Changed on disk since the edit began (in another app, a sync or another pane): send
+        // back what's there now rather than overwrite it.
+        if ($request->filled('base_hash') && $files->exists($vault, $note->path)
+            && hash('xxh128', $files->read($vault, $note->path)) !== $request->string('base_hash')->toString()) {
+            return response()->json([
+                'message' => __('This note changed on disk while you were editing it.'),
+                'note' => $workspace->noteDetail($note, $key),
+            ], 409);
+        }
 
         if ($note->locked) {
-            $key = $locks->keyFrom($vault, $request->header(NoteLocks::HEADER));
-
-            throw_if($key === null, ValidationException::withMessages([
-                'passphrase' => __('The vault locked again. Unlock it to save this note.'),
-            ]));
-
             $note = $action->handle($note, $locks->lock($contents, $key));
         } else {
             $note = $action->handle($note, $contents);

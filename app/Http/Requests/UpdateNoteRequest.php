@@ -16,6 +16,8 @@ final class UpdateNoteRequest extends FormRequest
     {
         return [
             'contents' => ['present', 'nullable', 'string', 'max:10000000'],
+            // The hash of the file the edit started from; the save is refused if it changed since.
+            'base_hash' => ['nullable', 'string', 'max:64'],
         ];
     }
 }

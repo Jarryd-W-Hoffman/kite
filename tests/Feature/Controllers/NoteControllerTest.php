@@ -132,3 +132,40 @@ it('saves note text exactly, including surrounding whitespace', function (): voi
 
     expect(file_get_contents($vault->path.'/A.md'))->toBe("  indented\n\ntrailing\n");
 });
+
+it('refuses a save when the note changed on disk since the edit began, sending what is there', function (): void {
+    $vault = indexedVault(['A.md' => "# A\n\nFirst"]);
+    $note = Note::query()->sole();
+    $opened = hash('xxh128', "# A\n\nFirst");
+
+    file_put_contents($vault->path.'/A.md', "# A\n\nFrom another app");
+
+    $this->putJson(route('notes.update', [$vault, $note]), ['contents' => "# A\n\nMine", 'base_hash' => $opened])
+        ->assertConflict()
+        ->assertJsonPath('message', 'This note changed on disk while you were editing it.')
+        ->assertJsonPath('note.id', $note->id)
+        ->assertJsonPath('note.contents', "# A\n\nFrom another app")
+        ->assertJsonPath('note.hash', hash('xxh128', "# A\n\nFrom another app"));
+
+    expect(file_get_contents($vault->path.'/A.md'))->toBe("# A\n\nFrom another app");
+
+    // Keeping this version means saving over the one on disk, knowingly.
+    $this->putJson(route('notes.update', [$vault, $note]), ['contents' => "# A\n\nMine", 'base_hash' => hash('xxh128', "# A\n\nFrom another app")])
+        ->assertOk()
+        ->assertJsonPath('hash', hash('xxh128', "# A\n\nMine"));
+
+    expect(file_get_contents($vault->path.'/A.md'))->toBe("# A\n\nMine");
+});
+
+it('opens a note with the hash of its file, even before the index catches up', function (): void {
+    $vault = indexedVault(['A.md' => 'Indexed']);
+    $note = Note::query()->sole();
+
+    file_put_contents($vault->path.'/A.md', 'Changed since');
+
+    $hash = $this->getJson(route('note-panes.show', [$vault, $note]))->json('note.hash');
+
+    expect($hash)->toBe(hash('xxh128', 'Changed since'));
+
+    $this->putJson(route('notes.update', [$vault, $note]), ['contents' => 'Edited', 'base_hash' => $hash])->assertOk();
+});
