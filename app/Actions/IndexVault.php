@@ -143,11 +143,18 @@ final readonly class IndexVault
 
         foreach (array_chunk($changed, $this->batchSize(), preserve_keys: true) as $batch) {
             DB::transaction(function () use ($vault, $indexed, $movedTo, $batch, &$summary, &$pending, &$addedKeys, &$done, $report): void {
+                // Readers only see the batch once it commits, so one new tree revision covers it.
+                $treeChanged = false;
+                $onTreeChange = function () use (&$treeChanged): void {
+                    $treeChanged = true;
+                };
+
                 foreach ($batch as $path => $stat) {
                     $path = (string) $path;
                     $contents = $this->files->read($vault, $path);
                     $parsed = $this->parser->parse($contents, $path);
-                    $note = $this->writer->write($vault, $path, $contents, $stat, $parsed);
+                    $isNew = ! isset($indexed[$path]) && ! isset($movedTo[$path]);
+                    $note = $this->writer->write($vault, $path, $contents, $stat, $parsed, $isNew, $onTreeChange);
 
                     $pending[] = [$note->id, $parsed->links];
 
@@ -163,6 +170,10 @@ final readonly class IndexVault
                     if ($done % self::PROGRESS_EVERY === 0) {
                         $report($done);
                     }
+                }
+
+                if ($treeChanged) {
+                    Vault::markTreeChanged($vault->id);
                 }
             });
         }

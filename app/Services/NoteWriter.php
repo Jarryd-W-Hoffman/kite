@@ -8,6 +8,8 @@ use App\Models\Note;
 use App\Models\Vault;
 use App\Services\Markdown\ParsedNote;
 use App\Services\Markdown\WikiLink;
+use Closure;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -20,10 +22,15 @@ final readonly class NoteWriter
     /**
      * Upsert a note's row, search text and tags, clearing any links it previously had.
      *
+     * Bulk indexing can say the note is new, sparing a lookup, and take over moving the vault to a
+     * new tree revision with `$onTreeChange`, to do it once per batch rather than once per note.
+     *
      * @param  array{size: int, modified_at: int}  $stat
+     * @param  (Closure(): void)|null  $onTreeChange
      */
-    public function write(Vault $vault, string $path, string $contents, array $stat, ParsedNote $parsed): Note
+    public function write(Vault $vault, string $path, string $contents, array $stat, ParsedNote $parsed, bool $isNew = false, ?Closure $onTreeChange = null): Note
     {
+        $onTreeChange ??= fn () => Vault::markTreeChanged($vault->id);
         $now = now()->toDateTimeString();
         $attributes = [
             'path_key' => WikiLink::keyFor($path),
@@ -38,19 +45,25 @@ final readonly class NoteWriter
             'updated_at' => $now,
         ];
 
-        $existing = DB::table('notes')->where('vault_id', $vault->id)->where('path', $path)->first(['id', 'created_at', 'title', 'frontmatter', 'locked']);
+        $existing = $isNew ? null : DB::table('notes')->where('vault_id', $vault->id)->where('path', $path)->first(['id', 'created_at', 'title', 'frontmatter', 'locked']);
 
         if ($existing === null) {
-            $id = DB::table('notes')->insertGetId([...$attributes, 'vault_id' => $vault->id, 'path' => $path, 'created_at' => $now]);
+            try {
+                $id = DB::table('notes')->insertGetId([...$attributes, 'vault_id' => $vault->id, 'path' => $path, 'created_at' => $now]);
+            } catch (UniqueConstraintViolationException) {
+                // Not new after all: added meanwhile, e.g. created in Kite while the vault was indexed.
+                return $this->write($vault, $path, $contents, $stat, $parsed, onTreeChange: $onTreeChange);
+            }
+
             $createdAt = $now;
 
-            Vault::markTreeChanged($vault->id);
+            $onTreeChange();
         } else {
             $id = Row::int($existing, 'id');
             $createdAt = Row::string($existing, 'created_at');
 
             if ($this->changesTree($existing, $attributes, $parsed->tags)) {
-                Vault::markTreeChanged($vault->id);
+                $onTreeChange();
             }
 
             DB::table('notes')->where('id', $id)->update($attributes);
