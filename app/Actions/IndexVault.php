@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Note;
 use App\Models\Vault;
+use App\Services\CommentStore;
 use App\Services\IndexingProgress;
 use App\Services\LinkResolver;
 use App\Services\Markdown\MarkdownParser;
@@ -27,6 +28,7 @@ final readonly class IndexVault
         private NoteWriter $writer,
         private ResolveLinks $resolveLinks,
         private IndexingProgress $progress,
+        private CommentStore $comments,
     ) {
         //
     }
@@ -35,14 +37,15 @@ final readonly class IndexVault
      * Incrementally sync the index with the vault folder, only re-parsing files that changed on disk.
      *
      * Only one index run per vault happens at a time; a concurrent call returns without changes.
-     * Work is committed in batches so other requests are never blocked for long.
+     * Work is committed in batches so other requests are never blocked for long. A note moved or
+     * renamed outside Kite keeps its row, and so its history, star and comments.
      *
      * @param  (Closure(int, int): void)|null  $onProgress  Called with (notes done, notes to index).
-     * @return array{added: int, updated: int, removed: int}
+     * @return array{added: int, updated: int, removed: int, moved: int}
      */
     public function handle(Vault $vault, ?Closure $onProgress = null): array
     {
-        $summary = ['added' => 0, 'updated' => 0, 'removed' => 0];
+        $summary = ['added' => 0, 'updated' => 0, 'removed' => 0, 'moved' => 0];
 
         $lock = $this->progress->lock($vault);
 
@@ -59,8 +62,11 @@ final readonly class IndexVault
                 || $indexed[$path]['size'] !== $stat['size']
                 || $indexed[$path]['modified_at'] !== $stat['modified_at'], ARRAY_FILTER_USE_BOTH);
 
+            $moves = $this->moves($vault, $removed, array_diff_key($changed, $indexed));
+            $removed = array_diff_key($removed, $moves);
+
             if ($removed !== [] || $changed !== []) {
-                $this->index($vault, $indexed, $removed, $changed, $summary, $onProgress);
+                $this->index($vault, $indexed, $removed, $changed, $moves, $summary, $onProgress);
             }
         } finally {
             $lock->release();
@@ -91,10 +97,11 @@ final readonly class IndexVault
      * @param  array<string, array{id: int, size: int, modified_at: int}>  $indexed
      * @param  array<string, array{id: int, size: int, modified_at: int}>  $removed
      * @param  array<string, array{size: int, modified_at: int}>  $changed
-     * @param  array{added: int, updated: int, removed: int}  $summary
+     * @param  array<string, string>  $moves  Old path => new path.
+     * @param  array{added: int, updated: int, removed: int, moved: int}  $summary
      * @param  (Closure(int, int): void)|null  $onProgress
      */
-    private function index(Vault $vault, array $indexed, array $removed, array $changed, array &$summary, ?Closure $onProgress): void
+    private function index(Vault $vault, array $indexed, array $removed, array $changed, array $moves, array &$summary, ?Closure $onProgress): void
     {
         $total = count($changed);
         $report = function (int $done) use ($onProgress, $total): void {
@@ -109,16 +116,33 @@ final readonly class IndexVault
             $summary['removed'] += Note::query()->whereKey($ids)->toBase()->delete();
         }
 
-        if ($summary['removed'] > 0) {
+        /** @var list<string> $addedKeys */
+        $addedKeys = [];
+
+        // A moved note's row follows its file, so re-indexing it below updates it in place. Links
+        // to its old name and to its new one are resolved again.
+        foreach ($moves as $from => $to) {
+            $from = (string) $from;
+
+            DB::table('notes')->where('vault_id', $vault->id)->where('path', $from)->update(['path' => $to, 'path_key' => WikiLink::keyFor($to), 'slug' => WikiLink::keyFor(basename($to))]);
+            $this->comments->move($vault, $from, $to);
+
+            array_push($addedKeys, ...$this->resolver->keysFor(WikiLink::keyFor($from)), ...$this->resolver->keysFor(WikiLink::keyFor($to)));
+            $summary['moved']++;
+        }
+
+        if ($summary['removed'] > 0 || $summary['moved'] > 0) {
             Vault::markTreeChanged($vault->id);
         }
 
+        $movedTo = array_flip($moves);
+
         /** @var list<array{0: int, 1: list<WikiLink>}> $pending */
         $pending = [];
-        $addedKeys = [];
+        $done = 0;
 
         foreach (array_chunk($changed, $this->batchSize(), preserve_keys: true) as $batch) {
-            DB::transaction(function () use ($vault, $indexed, $batch, &$summary, &$pending, &$addedKeys, $report): void {
+            DB::transaction(function () use ($vault, $indexed, $movedTo, $batch, &$summary, &$pending, &$addedKeys, &$done, $report): void {
                 foreach ($batch as $path => $stat) {
                     $path = (string) $path;
                     $contents = $this->files->read($vault, $path);
@@ -129,12 +153,12 @@ final readonly class IndexVault
 
                     if (isset($indexed[$path])) {
                         $summary['updated']++;
-                    } else {
+                    } elseif (! isset($movedTo[$path])) {
                         $summary['added']++;
                         array_push($addedKeys, ...$this->resolver->keysFor($note->path_key));
                     }
 
-                    $done = $summary['added'] + $summary['updated'];
+                    $done++;
 
                     if ($done % self::PROGRESS_EVERY === 0) {
                         $report($done);
@@ -155,13 +179,60 @@ final readonly class IndexVault
             DB::transaction(fn () => $this->writer->insertLinks($rows));
         }
 
-        if ($summary['added'] > 0 || $summary['removed'] > 0) {
+        if ($summary['added'] > 0 || $summary['removed'] > 0 || $summary['moved'] > 0) {
             $this->resolveLinks->handle($vault, $addedKeys);
         }
 
         $vault->update(['indexed_at' => now()]);
 
         $report($total);
+    }
+
+    /**
+     * Notes moved or renamed outside Kite: a removed note whose exact text turns up at a new path.
+     * Only new files the size of a removed note are read. When several removed notes have the same
+     * text, one with the same file name is preferred.
+     *
+     * @param  array<string, array{id: int, size: int, modified_at: int}>  $removed
+     * @param  array<string, array{size: int, modified_at: int}>  $added
+     * @return array<string, string> Old path => new path.
+     */
+    private function moves(Vault $vault, array $removed, array $added): array
+    {
+        $sizes = array_flip(array_column($removed, 'size'));
+        $added = array_filter($added, fn (array $stat): bool => isset($sizes[$stat['size']]));
+
+        if ($added === []) {
+            return [];
+        }
+
+        /** @var array<string, list<string>> $byHash */
+        $byHash = [];
+
+        foreach (array_chunk(array_column($removed, 'id'), 500) as $ids) {
+            foreach (DB::table('notes')->whereIn('id', $ids)->get(['path', 'hash']) as $row) {
+                $byHash[Row::string($row, 'hash')][] = Row::string($row, 'path');
+            }
+        }
+
+        $moves = [];
+
+        foreach (array_keys($added) as $path) {
+            $path = (string) $path;
+            $hash = hash('xxh128', $this->files->read($vault, $path));
+            $candidates = $byHash[$hash] ?? [];
+
+            if ($candidates === []) {
+                continue;
+            }
+
+            $from = array_find($candidates, fn (string $candidate): bool => basename($candidate) === basename($path)) ?? $candidates[0];
+
+            $moves[$from] = $path;
+            $byHash[$hash] = array_values(array_diff($candidates, [$from]));
+        }
+
+        return $moves;
     }
 
     /**

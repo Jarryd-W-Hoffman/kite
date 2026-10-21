@@ -13,6 +13,7 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ### Fixed
 
+- **Notes renamed or moved outside Kite** (in your file manager, Git or a sync app) keep their version history, star and comments, instead of starting again as new notes.
 - **Preferences:** choosing a section on the left no longer scrolls the whole window up and hides its title, and the section you chose (or scrolled to) is the one highlighted.
 
 ## [0.2.0] - 2026-10-17

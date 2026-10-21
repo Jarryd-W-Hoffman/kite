@@ -9,10 +9,10 @@ it('syncs the vault index with the folder', function (): void {
 
     $this->postJson(route('vault-sync.store', $vault))
         ->assertOk()
-        ->assertExactJson(['added' => 1, 'updated' => 0, 'removed' => 0, 'attachments' => 0, 'changed' => true, 'indexing' => null]);
+        ->assertExactJson(['added' => 1, 'updated' => 0, 'removed' => 0, 'moved' => 0, 'attachments' => 0, 'changed' => true, 'indexing' => null]);
 
     $this->postJson(route('vault-sync.store', $vault))
-        ->assertExactJson(['added' => 0, 'updated' => 0, 'removed' => 0, 'attachments' => 0, 'changed' => false, 'indexing' => null]);
+        ->assertExactJson(['added' => 0, 'updated' => 0, 'removed' => 0, 'moved' => 0, 'attachments' => 0, 'changed' => false, 'indexing' => null]);
 });
 
 it('reports attachment changes', function (): void {
@@ -23,7 +23,7 @@ it('reports attachment changes', function (): void {
     file_put_contents($vault->path.'/photo.png', 'png');
 
     $this->postJson(route('vault-sync.store', $vault))
-        ->assertExactJson(['added' => 0, 'updated' => 0, 'removed' => 0, 'attachments' => 1, 'changed' => true, 'indexing' => null]);
+        ->assertExactJson(['added' => 0, 'updated' => 0, 'removed' => 0, 'moved' => 0, 'attachments' => 1, 'changed' => true, 'indexing' => null]);
 });
 
 it('does not sync while a background index is running', function (): void {
@@ -33,7 +33,7 @@ it('does not sync while a background index is running', function (): void {
 
     $this->postJson(route('vault-sync.store', $vault))
         ->assertExactJson([
-            'added' => 0, 'updated' => 0, 'removed' => 0, 'attachments' => 0, 'changed' => false,
+            'added' => 0, 'updated' => 0, 'removed' => 0, 'moved' => 0, 'attachments' => 0, 'changed' => false,
             'indexing' => ['done' => 10, 'total' => 40],
         ]);
 

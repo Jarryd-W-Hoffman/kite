@@ -21,6 +21,7 @@ final readonly class VaultSyncController
                 'added' => 0,
                 'updated' => 0,
                 'removed' => 0,
+                'moved' => 0,
                 'attachments' => 0,
                 'changed' => false,
                 'indexing' => $indexing,
