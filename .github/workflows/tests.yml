@@ -119,6 +119,43 @@ jobs:
           name: browser-screenshots
           path: tests/Browser/Screenshots
 
+  # The README promises Kite stays quick with 10,000 notes: time it on a generated vault that size.
+  # The timings are in the job summary.
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v6
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-progress --no-scripts
+          composer run-script post-autoload-dump
+
+      - name: Prepare Application
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Benchmark
+        run: php artisan test --testsuite=Benchmark
+
   # Kite ships for macOS and Windows: run the unit and feature tests there too, where paths use
   # backslashes, file systems ignore case and symlinks behave differently. Browser tests and
   # coverage stay on the Linux job above.
