@@ -13,6 +13,7 @@ use App\Services\Canvases;
 use App\Services\ColourGroups;
 use App\Services\DailyNotes;
 use App\Services\IndexingProgress;
+use App\Services\Markdown\BlockId;
 use App\Services\NoteLocks;
 use App\Services\Row;
 use App\Services\Templates;
@@ -119,6 +120,7 @@ final readonly class LoadWorkspace
             'outline' => $rendered->outline,
             'locked' => $locked,
             'unlocked' => $locked && $contents !== null,
+            'heading_links' => $this->headingLinks($note),
         ];
     }
 
@@ -210,7 +212,27 @@ final readonly class LoadWorkspace
     }
 
     /**
-     * @return list<array{id: int, title: string, path: string, line: int, context: string}>
+     * How many links from other notes point at each of this note's headings and blocks, by their
+     * fragment (`my-heading` or `^my-id`).
+     *
+     * @return array<string, int>
+     */
+    private function headingLinks(Note $note): array
+    {
+        $counts = [];
+
+        foreach (NoteLink::query()->where('target_note_id', $note->id)->where('source_note_id', '!=', $note->id)->whereNotNull('heading')->pluck('heading') as $heading) {
+            if (is_string($heading) && $heading !== '') {
+                $fragment = BlockId::fragment($heading);
+                $counts[$fragment] = ($counts[$fragment] ?? 0) + 1;
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @return list<array{id: int, title: string, path: string, line: int, context: string, heading: string|null}>
      */
     private function backlinks(Note $note): array
     {
@@ -239,6 +261,7 @@ final readonly class LoadWorkspace
                 'path' => $source->path,
                 'line' => $link->line,
                 'context' => mb_trim($lines[$source->id][$link->line - 1] ?? ''),
+                'heading' => $link->heading,
             ];
         }
 

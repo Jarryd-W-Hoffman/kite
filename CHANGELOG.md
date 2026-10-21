@@ -10,6 +10,7 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 - **Optional crash reports.** If you turn them on (Preferences → Privacy, or when the Welcome tab asks), Kite sends a report when something goes wrong so it can be fixed. Reports never include your notes, and folder paths are removed. They're off unless you choose otherwise.
 - **Welcome in the tray menu:** open the Welcome tab from Kite's tray icon (the menu bar on macOS).
+- **Links to blocks.** End a paragraph or list item with `^an-id`, or choose **Copy link to this block** in the command palette, and link to it with `[[Note#^an-id]]` or embed just that block with `![[Note#^an-id]]`. Backlinks show which heading or block they point at, and the outline shows how many links each heading has.
 
 ### Changed
 

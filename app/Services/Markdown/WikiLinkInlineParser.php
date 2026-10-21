@@ -63,7 +63,7 @@ final readonly class WikiLinkInlineParser implements InlineParserInterface
 
     private function headingLink(string $heading, string $alias): Link
     {
-        $link = new Link('#'.HeadingSlugger::slug($heading));
+        $link = new Link('#'.BlockId::fragment($heading));
         $link->appendChild(new Text($alias !== '' ? $alias : $heading));
         $link->data->set('attributes/class', 'wiki-link heading-link');
 
@@ -75,7 +75,7 @@ final readonly class WikiLinkInlineParser implements InlineParserInterface
         $url = ($this->urlForKey)(WikiLink::keyFor($target));
 
         if ($url !== null && $heading !== '') {
-            $url .= '#'.HeadingSlugger::slug($heading);
+            $url .= '#'.BlockId::fragment($heading);
         }
 
         $label = $alias !== '' ? $alias : ($heading !== '' ? "{$target} › {$heading}" : $target);

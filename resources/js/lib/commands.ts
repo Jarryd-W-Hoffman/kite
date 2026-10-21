@@ -11,6 +11,7 @@ import {
     KeyRound,
     Keyboard,
     LayoutTemplate,
+    Link2,
     MessageSquare,
     Moon,
     Network,
@@ -175,6 +176,13 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         icon: History,
         note: true,
         keywords: 'revisions restore diff',
+    },
+    {
+        id: 'copy-block-link',
+        label: 'Copy link to this block',
+        icon: Link2,
+        note: true,
+        keywords: 'block reference id anchor paragraph',
     },
     {
         id: 'extract-selection',

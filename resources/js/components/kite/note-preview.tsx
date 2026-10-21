@@ -12,7 +12,11 @@ import type { VaultSummary } from '@/types';
  * Scroll the rendered preview to a heading anchor (ids are prefixed with "h-").
  */
 export function scrollToHeading(slug: string): boolean {
-    const heading = document.getElementById(`h-${decodeURIComponent(slug)}`);
+    const fragment = decodeURIComponent(slug);
+    // `^my-id` is a block; anything else a heading's slug.
+    const heading = document.getElementById(
+        fragment.startsWith('^') ? `b-${fragment.slice(1)}` : `h-${fragment}`,
+    );
 
     heading?.scrollIntoView({
         block: 'start',

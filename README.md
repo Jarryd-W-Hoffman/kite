@@ -57,7 +57,8 @@ Jot down a thought without switching to Kite. A small window pops up over whatev
 
 ### 🔗 Connecting
 - **Links:** wiki links (`[[Note]]`, `[[Note#Heading]]`, `[[Note|alias]]`) that are rewritten when you rename or move a note.
-- **Backlinks and unlinked mentions:** see everything that links to a note, or mentions it without linking, and link it in a click.
+- **Block links:** end a paragraph or list item with `^an-id` (or use **Copy link to this block**) to link to it with `[[Note#^an-id]]`, or embed just that block with `![[Note#^an-id]]`.
+- **Backlinks and unlinked mentions:** see everything that links to a note, and which heading or block each link points at, or mentions it without linking, and link it in a click.
 - **Tags:** inline `#tags` or in frontmatter, with nested tags like `#area/work`.
 - **Refactoring:** extract a selection into a new note, or merge notes together.
 - **Colour groups:** colour notes by a query, in the graph and the file tree.

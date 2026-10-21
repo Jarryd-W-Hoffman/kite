@@ -40,6 +40,7 @@ import {
 } from '@/components/kite/workspace-states';
 import { Button } from '@/components/ui/button';
 import { useAppCommands } from '@/hooks/use-app-commands';
+import { useClipboard } from '@/hooks/use-clipboard';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useNoteComments } from '@/hooks/use-note-comments';
 import { useNoteDocument } from '@/hooks/use-note-document';
@@ -50,6 +51,7 @@ import { useNoteStar } from '@/hooks/use-note-star';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { requestJson } from '@/lib/kite-http';
 import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
+import { noteName } from '@/lib/note-tree';
 import { BASE_COMMANDS } from '@/lib/slash-commands';
 import type { SlashCommand } from '@/lib/slash-commands';
 import {
@@ -200,6 +202,7 @@ function NoteWorkspace({
         readStored(splitKey(vault.id), idCodec, null),
     );
     const editorRef = useRef<NoteEditorHandle>(null);
+    const [, copy] = useClipboard();
     const {
         contents,
         setContents,
@@ -366,9 +369,17 @@ function NoteWorkspace({
             return;
         }
 
-        const line = note.outline.find(
-            (item) => item.slug === decodeURIComponent(slug),
-        )?.line;
+        const fragment = decodeURIComponent(slug);
+
+        if (fragment.startsWith('^')) {
+            if (!scrollToHeading(slug)) {
+                editorRef.current?.jumpToBlock(fragment.slice(1));
+            }
+
+            return;
+        }
+
+        const line = note.outline.find((item) => item.slug === fragment)?.line;
 
         if (slug !== '' && !scrollToHeading(slug) && line !== undefined) {
             editorRef.current?.jumpToLine(line);
@@ -418,6 +429,7 @@ function NoteWorkspace({
                 : toast.info('Lock a note first to choose a vault passphrase.'),
         'toggle-panel': onTogglePanel,
         'version-history': () => setHistoryOpen(true),
+        'copy-block-link': () => void copyBlockLink(),
         'extract-selection': () => {
             const selection = editorRef.current?.selection() ?? null;
 
@@ -433,6 +445,25 @@ function NoteWorkspace({
         'export-pdf': locked ? undefined : () => void exportNote('pdf'),
         publish: locked ? undefined : publish,
     });
+
+    /** Copy a link to the block the cursor is in, giving it an id first if it has none. */
+    const copyBlockLink = async () => {
+        const id = editorRef.current?.ensureBlockId() ?? null;
+
+        if (id === null) {
+            toast.info('Put the cursor in a paragraph or list item first.');
+
+            return;
+        }
+
+        const copied = await copy(`[[${noteName(note.path)}#^${id}]]`);
+
+        if (copied) {
+            toast.success('Copied a link to this block.');
+        } else {
+            toast.error('Could not copy the link.');
+        }
+    };
 
     const submitRename = (path: string) => {
         setRenaming(false);
@@ -553,6 +584,7 @@ function NoteWorkspace({
                             outgoing={outgoing}
                             mentions={mentions}
                             onSelectHeading={selectHeading}
+                            headingLinks={note.heading_links}
                             cursorLine={
                                 shownMode === 'preview' ? null : cursorLine
                             }
