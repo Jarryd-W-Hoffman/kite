@@ -3,6 +3,7 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
+         defaultTestSuite="Browser,Unit,Feature"
 >
     <testsuites>
         <testsuite name="Browser">
@@ -13,6 +14,9 @@
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
+        </testsuite>
+        <testsuite name="Benchmark">
+            <directory>tests/Benchmark</directory>
         </testsuite>
     </testsuites>
     <source>

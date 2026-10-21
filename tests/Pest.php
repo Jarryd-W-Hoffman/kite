@@ -39,6 +39,9 @@ pest()->extend(TestCase::class)
     })
     ->in('Browser', 'Feature', 'Unit');
 
+// Benchmarks set up their own database file, to time work as the app does it.
+pest()->extend(TestCase::class)->in('Benchmark');
+
 expect()->extend('toBeOne', fn () => $this->toBe(1));
 
 final class TemporaryVaults
