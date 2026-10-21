@@ -310,6 +310,28 @@
     margin-top: 0.5em;
 }
 
+/* A note shown in a link's hover preview: the same styles, at the size of a small card. */
+.kite-prose.kite-peek {
+    font-size: 13.5px;
+    line-height: 1.6;
+}
+
+.kite-peek :where(h1, h2, h3, h4, h5, h6) {
+    margin-top: 1.2em;
+}
+
+.kite-peek h1 {
+    font-size: 1.45em;
+}
+
+.kite-peek h2 {
+    font-size: 1.25em;
+}
+
+.kite-peek h3 {
+    font-size: 1.1em;
+}
+
 .kite-prose strong {
     font-weight: 650;
 }

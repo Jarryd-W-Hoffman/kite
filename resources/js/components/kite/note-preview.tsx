@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { LinkPeek } from '@/components/kite/link-peek';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useOpenExternalLink } from '@/hooks/use-open-external-link';
 import { enhanceRichBlocks } from '@/lib/rich-blocks';
@@ -121,12 +122,33 @@ export function NotePreview({
     };
 
     return (
-        <div
-            ref={container}
-            className={cn('kite-prose px-12 pt-14 pb-24', className)}
-            onClick={onClick}
-            data-test={testId}
-            dangerouslySetInnerHTML={{ __html: html }}
-        />
+        <>
+            <div
+                ref={container}
+                className={cn('kite-prose px-12 pt-14 pb-24', className)}
+                onClick={onClick}
+                data-test={testId}
+                dangerouslySetInnerHTML={{ __html: html }}
+            />
+            <LinkPeek
+                vault={vault}
+                containerRef={container}
+                resolve={(element) => {
+                    const link = element.closest<HTMLAnchorElement>(
+                        'a.wiki-link:not(.is-unresolved):not(.heading-link)',
+                    );
+                    const match = /\/notes\/(\d+)(?:#(.+))?$/.exec(
+                        link?.getAttribute('href') ?? '',
+                    );
+
+                    return match
+                        ? {
+                              noteId: Number(match[1]),
+                              section: decodeURIComponent(match[2] ?? ''),
+                          }
+                        : null;
+                }}
+            />
+        </>
     );
 }

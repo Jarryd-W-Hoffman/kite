@@ -10,6 +10,7 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 - **Optional crash reports.** If you turn them on (Preferences → Privacy, or when the Welcome tab asks), Kite sends a report when something goes wrong so it can be fixed. Reports never include your notes, and folder paths are removed. They're off unless you choose otherwise.
 - **Welcome in the tray menu:** open the Welcome tab from Kite's tray icon (the menu bar on macOS).
+- **Link previews.** Rest the pointer on a link in a note's preview to read the note it goes to, or just the heading or block it points at, without leaving where you are. In the editor, hold Ctrl (⌘ on macOS) over a link.
 
 ### Changed
 

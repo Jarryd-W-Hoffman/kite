@@ -57,6 +57,7 @@ Jot down a thought without switching to Kite. A small window pops up over whatev
 
 ### 🔗 Connecting
 - **Links:** wiki links (`[[Note]]`, `[[Note#Heading]]`, `[[Note|alias]]`) that are rewritten when you rename or move a note.
+- **Link previews:** rest the pointer on a link in the preview, or hold <kbd>Ctrl</kbd> (<kbd>⌘</kbd> on macOS) over one in the editor, to read the note (or just the heading) it goes to.
 - **Backlinks and unlinked mentions:** see everything that links to a note, or mentions it without linking, and link it in a click.
 - **Tags:** inline `#tags` or in frontmatter, with nested tags like `#area/work`.
 - **Refactoring:** extract a selection into a new note, or merge notes together.

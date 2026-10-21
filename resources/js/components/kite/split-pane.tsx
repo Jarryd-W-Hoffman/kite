@@ -154,6 +154,7 @@ function SplitPaneDocument({
                     />
                 ) : (
                     <NoteEditor
+                        vault={vault}
                         value={contents}
                         onChange={setContents}
                         onSave={() => void save()}

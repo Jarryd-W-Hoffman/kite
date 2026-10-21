@@ -15,7 +15,7 @@ import { tags } from '@lezer/highlight';
  * frontmatter parses, Markdown highlighting, the editor theme and wiki link marks.
  */
 
-export const WIKI_LINK = /!?\[\[([^[\]\n|#]*)[^[\]\n]*\]\]/g;
+export const WIKI_LINK = /!?\[\[([^[\]\n|#]*)(?:#([^[\]\n|]*))?[^[\]\n]*\]\]/g;
 
 const FENCE = /^---\s*$/;
 
@@ -208,7 +208,10 @@ const wikiLinkDecorator = new MatchDecorator({
     decoration: (match) =>
         Decoration.mark({
             class: 'cm-wikilink',
-            attributes: { 'data-wiki-target': match[1].trim() },
+            attributes: {
+                'data-wiki-target': match[1].trim(),
+                ...(match[2] ? { 'data-wiki-heading': match[2].trim() } : {}),
+            },
         }),
 });
 
