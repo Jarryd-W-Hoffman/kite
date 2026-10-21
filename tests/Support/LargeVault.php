@@ -65,7 +65,7 @@ final class LargeVault
         'status/active', 'status/waiting', 'status/done', 'project/kite', 'project/garden', 'project/website',
     ];
 
-    private Randomizer $random;
+    private readonly Randomizer $random;
 
     /** @var list<string> Titles written so far, in order: links point back at them. */
     private array $titles = [];
