@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { CommandPalette } from '@/components/kite/command-palette';
 import { CommentRail } from '@/components/kite/comment-rail';
+import { ConflictCopies } from '@/components/kite/conflict-copies';
 import { DeleteNoteDialog } from '@/components/kite/delete-note-dialog';
 import { countWords, FocusBar } from '@/components/kite/focus-bar';
 import { NoteLockDialogs } from '@/components/kite/lock-dialogs';
@@ -208,8 +209,11 @@ function NoteWorkspace({
         save,
         isDirty,
         adopt,
+        savedText,
+        saveText,
         conflict,
         keepMine,
+        keepMerged,
         takeDisk,
     } = useNoteDocument(vault, note, {
         autosaveMs: editor.autosave_ms,
@@ -701,8 +705,19 @@ function NoteWorkspace({
                     <SaveConflictBanner
                         disk={conflict.contents}
                         mine={contents}
+                        base={savedText}
                         onKeepMine={keepMine}
                         onTakeDisk={takeDisk}
+                        onMerge={keepMerged}
+                    />
+                )}
+
+                {!conflict && (
+                    <ConflictCopies
+                        vault={vault}
+                        note={note}
+                        mine={contents}
+                        onMerged={saveText}
                     />
                 )}
 

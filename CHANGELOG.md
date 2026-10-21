@@ -10,6 +10,8 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 - **Optional crash reports.** If you turn them on (Preferences → Privacy, or when the Welcome tab asks), Kite sends a report when something goes wrong so it can be fixed. Reports never include your notes, and folder paths are removed. They're off unless you choose otherwise.
 - **Welcome in the tray menu:** open the Welcome tab from Kite's tray icon (the menu bar on macOS).
+- **Merge changes.** When a note changes on disk while you're editing it, choose **Merge…** to combine the two: changes made on only one side are kept, and where both changed the same lines you pick yours, theirs or both.
+- **Conflicting copies from sync apps.** When Dropbox, Nextcloud, Obsidian Sync or Syncthing leaves a conflicting copy of a note, the note says so and offers to merge the copy back in and delete it.
 
 ### Changed
 

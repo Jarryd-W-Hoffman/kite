@@ -21,6 +21,7 @@ use App\Http\Controllers\FlashcardReviewController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\NoteCommentController;
+use App\Http\Controllers\NoteConflictCopyController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NoteExportController;
 use App\Http\Controllers\NoteExtractionController;
@@ -118,6 +119,9 @@ Route::get('vaults/{vault}/canvases/{path}', [CanvasController::class, 'show'])-
 Route::put('vaults/{vault}/canvases/{path}', [CanvasController::class, 'update'])->where('path', '.*')->name('canvases.update');
 Route::delete('vaults/{vault}/canvases/{path}', [CanvasController::class, 'destroy'])->where('path', '.*')->name('canvases.destroy');
 Route::get('vaults/{vault}/canvas-cards', [CanvasCardController::class, 'index'])->name('canvas-cards.index');
+
+// Both notes are checked against the vault, as the copy isn't bound through the note.
+Route::delete('vaults/{vault}/notes/{note}/conflict-copies/{copy}', [NoteConflictCopyController::class, 'destroy'])->whereNumber(['note', 'copy'])->name('note-conflict-copies.destroy');
 
 // Notes...
 Route::scopeBindings()->group(function (): void {
