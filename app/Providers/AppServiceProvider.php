@@ -12,9 +12,11 @@ use App\Models\ColourGroup;
 use App\Models\Note;
 use App\Models\Vault;
 use App\Services\Settings;
+use Closure;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Events\ConnectionEstablished;
+use Illuminate\Database\SQLiteConnection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -36,6 +38,13 @@ final class AppServiceProvider extends ServiceProvider
         // added just before a connection's first query, so configuring one never opens it (the
         // database may not exist yet, e.g. while packages are discovered).
         Event::listen(ConnectionEstablished::class, fn (ConnectionEstablished $event) => $this->registerSqlFunctionsOnUse($event->connection));
+
+        // A failed query's error quotes its values, which can be a note's text, and errors reach
+        // the logs, diagnostics and crash reports. A resolver also covers the connection NativePHP
+        // configures for itself.
+        Connection::resolverFor('sqlite', fn (PDO|Closure $pdo, string $database, string $prefix, array $config): SQLiteConnection => new SQLiteConnection(
+            $pdo, $database, $prefix, [...$config, 'mask_bindings_in_exception_messages' => true],
+        ));
     }
 
     public function boot(): void
