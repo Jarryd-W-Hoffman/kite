@@ -132,6 +132,7 @@ export type SyncSummary = {
     added: number;
     updated: number;
     removed: number;
+    moved: number;
     attachments: number;
     changed: boolean;
     indexing: IndexingProgress | null;
