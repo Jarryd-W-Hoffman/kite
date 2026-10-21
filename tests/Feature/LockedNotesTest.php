@@ -251,3 +251,15 @@ it('refuses captures into a locked daily note', function (): void {
     $this->post(route('capture.store'), ['text' => 'Buy string'])
         ->assertSessionHasErrors(['text' => 'Today’s note is locked, so captures can’t be added to it.']);
 });
+
+it('refuses a stale save of a locked note, sending the text on disk unlocked', function (): void {
+    lockSecret();
+    $opened = hash('xxh128', (string) file_get_contents($this->vault->path.'/Secret.md'));
+
+    file_put_contents($this->vault->path.'/Secret.md', $this->locks->lock('# Secret from elsewhere', $this->key));
+
+    ($this->withKey)()->putJson(route('notes.update', [$this->vault, $this->secret]), ['contents' => '# Mine', 'base_hash' => $opened])
+        ->assertConflict()
+        ->assertJsonPath('note.contents', '# Secret from elsewhere')
+        ->assertJsonPath('note.unlocked', true);
+});

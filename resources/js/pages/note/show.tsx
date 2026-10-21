@@ -26,6 +26,7 @@ import {
     ExtractNoteDialog,
     MergeNoteDialog,
 } from '@/components/kite/refactor-dialogs';
+import { SaveConflictBanner } from '@/components/kite/save-conflict';
 import { SplitPane } from '@/components/kite/split-pane';
 import { TabBar } from '@/components/kite/tab-bar';
 import { VersionHistoryDialog } from '@/components/kite/version-history-dialog';
@@ -199,18 +200,28 @@ function NoteWorkspace({
         readStored(splitKey(vault.id), idCodec, null),
     );
     const editorRef = useRef<NoteEditorHandle>(null);
-    const { contents, setContents, meta, saveState, save, isDirty, adopt } =
-        useNoteDocument(vault, note, {
-            autosaveMs: editor.autosave_ms,
-            // The tree only comes back when the save changed it (a title, tag or property).
-            onSaved: (saved) =>
-                router.reload({
-                    only:
-                        saved.tree_revision === treeRevision
-                            ? ['outgoing']
-                            : ['tree', 'tags', 'tree_revision', 'outgoing'],
-                }),
-        });
+    const {
+        contents,
+        setContents,
+        meta,
+        saveState,
+        save,
+        isDirty,
+        adopt,
+        conflict,
+        keepMine,
+        takeDisk,
+    } = useNoteDocument(vault, note, {
+        autosaveMs: editor.autosave_ms,
+        // The tree only comes back when the save changed it (a title, tag or property).
+        onSaved: (saved) =>
+            router.reload({
+                only:
+                    saved.tree_revision === treeRevision
+                        ? ['outgoing']
+                        : ['tree', 'tags', 'tree_revision', 'outgoing'],
+            }),
+    });
 
     const [commentsOpen, setCommentsOpen] = useStoredState(
         'kite:comments-open',
@@ -685,6 +696,15 @@ function NoteWorkspace({
                         />
                     </div>
                 </header>
+
+                {conflict && (
+                    <SaveConflictBanner
+                        disk={conflict.contents}
+                        mine={contents}
+                        onKeepMine={keepMine}
+                        onTakeDisk={takeDisk}
+                    />
+                )}
 
                 <div className="relative flex min-h-0 flex-1">
                     {narrow && !focus && sidePanels}

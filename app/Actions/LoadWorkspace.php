@@ -97,6 +97,8 @@ final readonly class LoadWorkspace
     public function noteDetail(Note $note, #[SensitiveParameter] ?string $key = null): array
     {
         $contents = $this->files->read($note->vault, $note->path);
+        // The hash of the file as read, which saves send back: the index may not have caught up.
+        $hash = hash('xxh128', $contents);
         $locked = $this->locks->isLocked($contents);
 
         if ($locked) {
@@ -107,7 +109,8 @@ final readonly class LoadWorkspace
         $rendered = $this->renderMarkdown->render($note->vault, $contents ?? '', $note->path);
 
         return [
-            ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'hash', 'modified_at']),
+            ...$note->only(['id', 'path', 'title', 'frontmatter', 'word_count', 'modified_at']),
+            'hash' => $hash,
             'contents' => $contents ?? '',
             'tags' => $note->tags()->orderBy('name')->pluck('name')->all(),
             'starred' => $note->starred_at !== null,

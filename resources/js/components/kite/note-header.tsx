@@ -71,6 +71,7 @@ const SAVE_LABELS: Record<SaveState, string> = {
     unsaved: 'Edited',
     saving: 'Saving…',
     error: 'Not saved',
+    conflict: 'Changed on disk',
 };
 
 /**
@@ -81,7 +82,8 @@ export function SaveStatus({ state }: { state: SaveState }) {
         <span
             className={cn(
                 'flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground',
-                state === 'error' && 'text-destructive-foreground',
+                (state === 'error' || state === 'conflict') &&
+                    'text-destructive-foreground',
             )}
             aria-live="polite"
         >
@@ -91,7 +93,8 @@ export function SaveStatus({ state }: { state: SaveState }) {
                     'size-1.5 rounded-full bg-emerald-500/70 transition-colors',
                     state === 'unsaved' && 'bg-amber-500/80',
                     state === 'saving' && 'animate-pulse bg-primary/70',
-                    state === 'error' && 'bg-destructive',
+                    (state === 'error' || state === 'conflict') &&
+                        'bg-destructive',
                 )}
             />
             {SAVE_LABELS[state]}

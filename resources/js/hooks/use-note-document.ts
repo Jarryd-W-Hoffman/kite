@@ -4,7 +4,7 @@ import { requestJson } from '@/lib/kite-http';
 import { update } from '@/routes/notes';
 import type { NoteDetail, NoteMeta, VaultSummary } from '@/types';
 
-export type SaveState = 'saved' | 'unsaved' | 'saving' | 'error';
+export type SaveState = 'saved' | 'unsaved' | 'saving' | 'error' | 'conflict';
 
 type Options = {
     autosaveMs: number;
@@ -13,6 +13,11 @@ type Options = {
 
 /**
  * The editable state of one note: contents, autosave, save status and changes arriving from disk.
+ *
+ * Saves carry the hash of the file this copy was loaded or last saved as, and one runs at a
+ * time. If the note changed on disk while this copy has unsaved edits (in another app, a sync
+ * or the other pane), nothing is overwritten: autosave pauses and `conflict` holds the note as
+ * it is on disk, until `keepMine()` or `takeDisk()` settles it.
  */
 export function useNoteDocument(
     vault: VaultSummary,
@@ -24,23 +29,41 @@ export function useNoteDocument(
     const [saveState, setSaveState] = useState<SaveState>('saved');
     const [savedText, setSavedText] = useState(note.contents);
     const [serverHash, setServerHash] = useState(note.hash);
+    const [baseHash, setBaseHash] = useState(note.hash);
+    const [sending, setSending] = useState<string | null>(null);
+    const [conflict, setConflict] = useState<NoteDetail | null>(null);
     const savedContents = useRef(note.contents);
     const latestContents = useRef(contents);
+    const base = useRef(note.hash);
+    const conflicted = useRef(false);
+    const saving = useRef<Promise<void> | null>(null);
     const onSavedRef = useRef(onSaved);
 
     if (note.hash !== serverHash) {
         setServerHash(note.hash);
 
-        if (contents === savedText) {
+        // Ignore a reload that only shows this copy's own save (or the same text).
+        const ours =
+            note.hash === baseHash ||
+            note.contents === sending ||
+            note.contents === contents;
+
+        if (!ours && contents === savedText) {
             setContentsState(note.contents);
             setSavedText(note.contents);
+            setBaseHash(note.hash);
             setMeta(note);
+        } else if (!ours) {
+            setConflict(note);
+            setSaveState('conflict');
         }
     }
 
     useEffect(() => {
         latestContents.current = contents;
         savedContents.current = savedText;
+        base.current = baseHash;
+        conflicted.current = conflict !== null;
         onSavedRef.current = onSaved;
     });
 
@@ -50,53 +73,88 @@ export function useNoteDocument(
     );
 
     const save = useCallback(async () => {
+        while (saving.current) {
+            await saving.current;
+        }
+
         const pending = latestContents.current;
 
-        if (pending === savedContents.current) {
+        if (pending === savedContents.current || conflicted.current) {
             return;
         }
 
         setSaveState('saving');
+        setSending(pending);
 
-        try {
-            const saved = await requestJson<NoteMeta>(
-                update({ vault: vault.id, note: note.id }),
-                { contents: pending },
-            );
+        saving.current = requestJson<NoteMeta>(
+            update({ vault: vault.id, note: note.id }),
+            { contents: pending, base_hash: base.current },
+        )
+            .then((saved) => {
+                savedContents.current = pending;
+                base.current = saved.hash;
+                setSavedText(pending);
+                setBaseHash(saved.hash);
+                setMeta(saved);
+                setSaveState(
+                    latestContents.current === pending ? 'saved' : 'unsaved',
+                );
+                onSavedRef.current?.(saved);
+            })
+            .catch((error: unknown) => {
+                const response = (
+                    error as { response?: { status?: number; data?: unknown } }
+                ).response;
 
-            savedContents.current = pending;
-            setSavedText(pending);
-            setMeta(saved);
-            setSaveState(
-                latestContents.current === pending ? 'saved' : 'unsaved',
-            );
-            onSavedRef.current?.(saved);
-        } catch {
-            setSaveState('error');
-            toast.error('Could not save the note.');
-        }
+                if (response?.status === 409) {
+                    const body = (
+                        typeof response.data === 'string'
+                            ? JSON.parse(response.data)
+                            : response.data
+                    ) as { note: NoteDetail };
+
+                    conflicted.current = true;
+                    setConflict(body.note);
+                    setSaveState('conflict');
+
+                    return;
+                }
+
+                setSaveState('error');
+                toast.error('Could not save the note.');
+            })
+            .finally(() => {
+                saving.current = null;
+                setSending(null);
+            });
+
+        await saving.current;
     }, [vault.id, note.id]);
 
     useEffect(() => {
-        if (contents === savedText) {
+        if (contents === savedText || conflict) {
             return;
         }
 
         const timeout = window.setTimeout(() => void save(), autosaveMs);
 
         return () => window.clearTimeout(timeout);
-    }, [contents, savedText, save, autosaveMs]);
+    }, [contents, savedText, conflict, save, autosaveMs]);
 
     useEffect(() => () => void save(), [save]);
 
     const setContents = useCallback((value: string) => {
         setContentsState(value);
-        setSaveState('unsaved');
+        setSaveState((state) => (state === 'conflict' ? state : 'unsaved'));
     }, []);
 
     /** Take the server's copy outright, e.g. after restoring an old version. */
     const adopt = useCallback((fresh: NoteDetail) => {
         setServerHash(fresh.hash);
+        setBaseHash(fresh.hash);
+        base.current = fresh.hash;
+        setConflict(null);
+        conflicted.current = false;
         setContentsState(fresh.contents);
         setSavedText(fresh.contents);
         savedContents.current = fresh.contents;
@@ -105,5 +163,37 @@ export function useNoteDocument(
         setSaveState('saved');
     }, []);
 
-    return { contents, setContents, meta, saveState, save, isDirty, adopt };
+    /** Settle a conflict by saving this copy over the version on disk. */
+    const keepMine = useCallback(() => {
+        if (!conflict) {
+            return;
+        }
+
+        base.current = conflict.hash;
+        conflicted.current = false;
+        setBaseHash(conflict.hash);
+        setConflict(null);
+        setSaveState('unsaved');
+        void save();
+    }, [conflict, save]);
+
+    /** Settle a conflict by dropping this copy's unsaved edits for the version on disk. */
+    const takeDisk = useCallback(() => {
+        if (conflict) {
+            adopt(conflict);
+        }
+    }, [conflict, adopt]);
+
+    return {
+        contents,
+        setContents,
+        meta,
+        saveState,
+        save,
+        isDirty,
+        adopt,
+        conflict,
+        keepMine,
+        takeDisk,
+    };
 }
