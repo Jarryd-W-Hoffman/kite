@@ -32,6 +32,8 @@ final readonly class WelcomeController
             'whats_new' => $changelog->html($version),
             'release_notes_url' => mb_rtrim(config()->string('nativephp.website'), '/')."/releases/tag/v{$version}",
             'welcome_on_startup' => $settings->all()['welcome_on_startup'] === true,
+            // Asked once, and only when there's somewhere to send reports.
+            'ask_crash_reports' => $settings->state('crash_reports_asked') !== true && filled(config('sentry.dsn')),
         ]);
     }
 

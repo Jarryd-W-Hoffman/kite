@@ -20,6 +20,7 @@ final class ReleaseNotesCommand extends Command
 {
     public function handle(Changelog $changelog): int
     {
+        /** @var string $version */
         $version = $this->argument('version');
         $notes = $changelog->notes($version);
 

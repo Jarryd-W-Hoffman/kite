@@ -8,6 +8,7 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ### Added
 
+- **Optional crash reports.** If you turn them on (Preferences → Privacy, or when the Welcome tab asks), Kite sends a report when something goes wrong so it can be fixed. Reports never include your notes, and folder paths are removed. They're off unless you choose otherwise.
 - **Welcome in the tray menu:** open the Welcome tab from Kite's tray icon (the menu bar on macOS).
 
 ### Fixed

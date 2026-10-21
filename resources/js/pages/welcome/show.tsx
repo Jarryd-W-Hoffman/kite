@@ -4,6 +4,7 @@ import {
     CheckSquare,
     FilePlus2,
     FileText,
+    LifeBuoy,
     Keyboard,
     Network,
     Search,
@@ -24,6 +25,7 @@ import type { AppCommand } from '@/hooks/use-app-commands';
 import { useOpenExternalLink } from '@/hooks/use-open-external-link';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { requestNewTab } from '@/lib/tabs';
+import { update as updateCrashReportConsent } from '@/routes/crash-report-consent';
 import { show as showNote } from '@/routes/notes';
 import { index as tasksIndex } from '@/routes/tasks';
 import { show as showGraph } from '@/routes/vault-graph';
@@ -38,6 +40,8 @@ type Props = WorkspaceProps & {
     whats_new: string | null;
     release_notes_url: string;
     welcome_on_startup: boolean;
+    /** Whether to ask, once, about sending crash reports. */
+    ask_crash_reports: boolean;
     recent_notes?: NoteLinkSummary[];
 };
 
@@ -63,6 +67,7 @@ export default function WelcomeShow({
     whats_new: whatsNew,
     release_notes_url: releaseNotesUrl,
     welcome_on_startup: welcomeOnStartup,
+    ask_crash_reports: askCrashReports,
     recent_notes: recentNotes = [],
 }: Props) {
     const [paletteOpen, setPaletteOpen] = useState(false);
@@ -80,6 +85,13 @@ export default function WelcomeShow({
         requestNewTab();
         runAppCommand(command);
     };
+
+    const answerCrashReports = (send: boolean) =>
+        router.put(
+            updateCrashReportConsent().url,
+            { crash_reports: send },
+            { preserveScroll: true, only: ['ask_crash_reports'] },
+        );
 
     const toggleOnStartup = (value: boolean) => {
         setOnStartup(value);
@@ -199,6 +211,49 @@ export default function WelcomeShow({
                                         </details>
                                     )}
                                 </div>
+                            )}
+
+                            {askCrashReports && (
+                                <section
+                                    aria-labelledby="crash-reports"
+                                    className="rounded-xl border p-5"
+                                    data-test="crash-reports-ask"
+                                >
+                                    <h2
+                                        id="crash-reports"
+                                        className="flex items-center gap-2 text-base font-semibold"
+                                    >
+                                        <LifeBuoy className="size-4 text-primary" />
+                                        Help make Kite better
+                                    </h2>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Send a report when something goes wrong,
+                                        so it can be fixed. Reports include the
+                                        error and where in Kite&apos;s code it
+                                        happened. Your notes are never included,
+                                        and folder paths are removed. You can
+                                        change this any time in Preferences.
+                                    </p>
+                                    <div className="mt-3 flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            onClick={() =>
+                                                answerCrashReports(true)
+                                            }
+                                        >
+                                            Send crash reports
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                answerCrashReports(false)
+                                            }
+                                        >
+                                            No thanks
+                                        </Button>
+                                    </div>
+                                </section>
                             )}
 
                             <Section title="Start">

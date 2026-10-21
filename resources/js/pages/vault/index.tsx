@@ -62,7 +62,8 @@ export default function VaultIndex({ vaults, canPickFolder }: Props) {
                         </h1>
                         <p className="max-w-sm text-[15px] leading-relaxed text-muted-foreground">
                             Kite works directly on a folder of markdown files on
-                            your computer. Nothing leaves your machine.
+                            your computer. Nothing leaves your machine unless
+                            you turn on crash reports.
                         </p>
                     </div>
 
