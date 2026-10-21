@@ -72,16 +72,23 @@ export function useNoteDocument(
         [],
     );
 
-    const save = useCallback(async () => {
+    /** Save what's in the editor. Resolves to whether it is saved now. */
+    const save = useCallback(async (): Promise<boolean> => {
         while (saving.current) {
             await saving.current;
         }
 
         const pending = latestContents.current;
 
-        if (pending === savedContents.current || conflicted.current) {
-            return;
+        if (conflicted.current) {
+            return false;
         }
+
+        if (pending === savedContents.current) {
+            return true;
+        }
+
+        let saved = false;
 
         setSaveState('saving');
         setSending(pending);
@@ -90,16 +97,17 @@ export function useNoteDocument(
             update({ vault: vault.id, note: note.id }),
             { contents: pending, base_hash: base.current },
         )
-            .then((saved) => {
+            .then((response) => {
+                saved = true;
                 savedContents.current = pending;
-                base.current = saved.hash;
+                base.current = response.hash;
                 setSavedText(pending);
-                setBaseHash(saved.hash);
-                setMeta(saved);
+                setBaseHash(response.hash);
+                setMeta(response);
                 setSaveState(
                     latestContents.current === pending ? 'saved' : 'unsaved',
                 );
-                onSavedRef.current?.(saved);
+                onSavedRef.current?.(response);
             })
             .catch((error: unknown) => {
                 const response = (
@@ -129,6 +137,8 @@ export function useNoteDocument(
             });
 
         await saving.current;
+
+        return saved;
     }, [vault.id, note.id]);
 
     useEffect(() => {
@@ -177,6 +187,34 @@ export function useNoteDocument(
         void save();
     }, [conflict, save]);
 
+    /** Replace the text and save it straight away, such as the result of a merge. */
+    const saveText = useCallback(
+        (text: string): Promise<boolean> => {
+            latestContents.current = text;
+            setContentsState(text);
+            setSaveState('unsaved');
+
+            return save();
+        },
+        [save],
+    );
+
+    /** Settle a conflict by saving a merge of this copy and the version on disk over the latter. */
+    const keepMerged = useCallback(
+        (text: string) => {
+            if (!conflict) {
+                return;
+            }
+
+            base.current = conflict.hash;
+            conflicted.current = false;
+            setBaseHash(conflict.hash);
+            setConflict(null);
+            void saveText(text);
+        },
+        [conflict, saveText],
+    );
+
     /** Settle a conflict by dropping this copy's unsaved edits for the version on disk. */
     const takeDisk = useCallback(() => {
         if (conflict) {
@@ -192,8 +230,12 @@ export function useNoteDocument(
         save,
         isDirty,
         adopt,
+        /** The text as last loaded or saved: where this copy and the one on disk parted. */
+        savedText,
+        saveText,
         conflict,
         keepMine,
+        keepMerged,
         takeDisk,
     };
 }
