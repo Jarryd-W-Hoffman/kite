@@ -24,7 +24,7 @@
 - **Your files, your folder.** A vault is just a folder of Markdown. Open it in any editor, sync it however you like, keep it in Git. Kite never moves your notes into a database it owns.
 - **Links first.** Type `[[` to link notes. Backlinks, unlinked mentions, a live graph and link-aware renames keep a web of notes easy to work with.
 - **Fast, even when big.** Full-text search, filters and the sidebar stay quick in vaults of 10,000 notes and more.
-- **Private by default.** Everything runs on your computer. Notes can be locked with a passphrase and are encrypted on disk.
+- **Private by default.** Everything runs on your computer. Notes can be locked with a passphrase and are encrypted on disk. Crash reports are off unless you turn them on, and never include your notes.
 
 ## Features
 

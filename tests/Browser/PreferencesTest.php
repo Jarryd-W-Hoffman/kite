@@ -111,7 +111,7 @@ it('highlights the section that was chosen or scrolled to', function (): void {
         ->click('@preferences-link')
         ->assertValue('editor_font', 'sans');
 
-    $sections = ['Appearance', 'Editor', 'Vault files', 'Daily notes', 'Templates', 'Publishing', 'File tree', 'Quick capture', 'Welcome', 'Diagnostics'];
+    $sections = ['Appearance', 'Editor', 'Vault files', 'Daily notes', 'Templates', 'Publishing', 'File tree', 'Quick capture', 'Welcome', 'Privacy', 'Diagnostics'];
 
     foreach ([...$sections, 'Editor', 'File tree'] as $title) {
         $index = array_search($title, $sections, true) + 1;
