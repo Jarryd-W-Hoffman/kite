@@ -23,6 +23,7 @@ export type AppCommand =
     | 'toggle-comments'
     | 'toggle-panel'
     | 'version-history'
+    | 'recently-deleted'
     | 'extract-selection'
     | 'merge-note'
     | 'focus-mode'
