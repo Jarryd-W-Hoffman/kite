@@ -10,6 +10,8 @@ use App\Http\Controllers\CaptureController;
 use App\Http\Controllers\ColourGroupController;
 use App\Http\Controllers\ColourGroupOrderController;
 use App\Http\Controllers\ColourGroupPreviewController;
+use App\Http\Controllers\CrashReportConsentController;
+use App\Http\Controllers\CrashReportController;
 use App\Http\Controllers\DailyNoteController;
 use App\Http\Controllers\DiagnosticsController;
 use App\Http\Controllers\DiagnosticsLogController;
@@ -66,6 +68,8 @@ Route::put('appearance', [AppearanceController::class, 'update'])->name('appeara
 Route::get('diagnostics', [DiagnosticsController::class, 'show'])->name('diagnostics.show');
 Route::post('diagnostics/logs', [DiagnosticsLogController::class, 'store'])->name('diagnostics-logs.store');
 Route::post('external-links', [ExternalLinkController::class, 'store'])->name('external-links.store');
+Route::post('crash-reports', [CrashReportController::class, 'store'])->middleware('throttle:20,1')->name('crash-reports.store');
+Route::put('crash-reports/consent', [CrashReportConsentController::class, 'update'])->name('crash-report-consent.update');
 Route::post('app-update', [AppUpdateController::class, 'store'])->name('app-update.store');
 
 // Quick capture...

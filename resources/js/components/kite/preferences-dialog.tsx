@@ -11,6 +11,7 @@ import {
     Palette,
     Sun,
     Type,
+    ShieldCheck,
     Sparkles,
     Zap,
 } from 'lucide-react';
@@ -85,6 +86,7 @@ const SECTIONS = [
     { title: 'File tree', icon: ListTree },
     { title: 'Quick capture', icon: Zap },
     { title: 'Welcome', icon: Sparkles },
+    { title: 'Privacy', icon: ShieldCheck },
     { title: 'Diagnostics', icon: LifeBuoy },
 ] as const;
 
@@ -755,6 +757,31 @@ function PreferencesForm({
                                     Opens the Welcome tab with the new
                                     version&apos;s changes, even when it&apos;s
                                     off at startup.
+                                </p>
+                            </div>
+                        </div>
+                    </Section>
+
+                    <Section title="Privacy">
+                        <div className="flex items-start gap-2 sm:col-span-2">
+                            <Checkbox
+                                id="crash_reports"
+                                checked={data.crash_reports}
+                                onCheckedChange={(value) =>
+                                    setData('crash_reports', value === true)
+                                }
+                            />
+                            <div className="grid gap-1">
+                                <Label htmlFor="crash_reports">
+                                    Send crash reports
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    When something goes wrong, Kite sends the
+                                    error and where in its code it happened to
+                                    Sentry, so it can be fixed. Your notes are
+                                    never sent, and your home folder and vault
+                                    paths are replaced in reports. Off unless
+                                    you turn it on.
                                 </p>
                             </div>
                         </div>

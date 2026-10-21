@@ -61,3 +61,20 @@ it("shows this version's changelog entry", function (): void {
 
     unlink($path);
 });
+
+it('asks once about crash reports, and remembers the answer', function (): void {
+    config(['sentry.dsn' => 'https://public@sentry.example/1']);
+    $vault = vaultWithFiles();
+
+    visitSplit(route('welcome.show', $vault))
+        ->assertSeeIn('@crash-reports-ask', 'Help make Kite better')
+        ->click('Send crash reports')
+        ->assertMissing('@crash-reports-ask')
+        ->assertNoJavaScriptErrors();
+
+    expect(resolve(Settings::class)->all()['crash_reports'])->toBeTrue();
+
+    visitSplit(route('welcome.show', $vault))
+        ->assertSee('Recent notes')
+        ->assertMissing('@crash-reports-ask');
+});
