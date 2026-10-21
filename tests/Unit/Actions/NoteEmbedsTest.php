@@ -121,11 +121,12 @@ it('links to blocks, anchors them and embeds just the block', function (): void 
 });
 
 it('anchors a block id on a line of its own to the block before it', function (): void {
-    $vault = embedVault(['Table.md' => "| a |\n| - |\n| 1 |\n\n^grid\n\nText with a ^caret in the middle."]);
+    $vault = embedVault(['Table.md' => "| a |\n| - |\n| 1 |\n\n^grid\n\nText with a ^caret in the middle.\n\nRight above\n^under"]);
 
     $html = renderNote($vault, 'Table.md');
 
     expect($html)->toContain('<table id="b-grid">')
+        ->toContain('<p id="b-under">Right above</p>')
         ->not->toContain('^grid')
         ->toContain('Text with a ^caret in the middle.');
 });
