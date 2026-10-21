@@ -58,9 +58,13 @@ it('removes anything that could identify the user or their notes', function (): 
         new Frame('save', '/home/someone/Notes/Private/x.php', 12, null, '/home/someone/Downloads/kite/app.php', ['secret' => 'value']),
     ]))]);
     $event->getExceptions()[0]->setValue('Could not read /home/someone/Notes/Private/Plans.md or /home/someone/other.md');
+    $event->setStacktrace(new Stacktrace([
+        new Frame('report', '/home/someone/Notes/Private/y.php', 7, null, null, ['secret' => 'value']),
+    ]));
 
     $prepared = CrashReports::beforeSend($event);
     $frame = $prepared?->getExceptions()[0]->getStacktrace()?->getFrames()[0];
+    $eventFrame = $prepared?->getStacktrace()?->getFrames()[0];
 
     expect($prepared?->getRequest())->toBe([])
         ->and($prepared?->getUser())->toBeNull()
@@ -71,7 +75,10 @@ it('removes anything that could identify the user or their notes', function (): 
         ->and($frame?->getFile())->toBe('<vault>/x.php')
         ->and($frame?->getAbsoluteFilePath())->toBe('~/Downloads/kite/app.php')
         ->and($frame?->getVars())->toBe([])
-        ->and($frame?->getLine())->toBe(12);
+        ->and($frame?->getLine())->toBe(12)
+        ->and($eventFrame?->getFile())->toBe('<vault>/y.php')
+        ->and($eventFrame?->getAbsoluteFilePath())->toBeNull()
+        ->and($eventFrame?->getVars())->toBe([]);
 });
 
 it('replaces Windows-style paths too', function (): void {
