@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Actions\ApplyAppearance;
+use App\Events\MenuCommandSelected;
 use App\Events\QuickCaptureRequested;
 use App\Services\AppMenu;
 use App\Services\Settings;
@@ -50,6 +51,7 @@ final class NativeAppServiceProvider implements ProvidesPhpIni
             ->tooltip('Kite')
             ->withContextMenu(Menu::make(
                 Menu::label('Quick capture…')->event(QuickCaptureRequested::class),
+                Menu::label('Welcome')->id('welcome')->event(MenuCommandSelected::class),
                 Menu::separator(),
                 Menu::quit('Quit Kite'),
             ));
