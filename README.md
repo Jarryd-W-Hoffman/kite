@@ -23,7 +23,7 @@
 
 - **Your files, your folder.** A vault is just a folder of Markdown. Open it in any editor, sync it however you like, keep it in Git. Kite never moves your notes into a database it owns.
 - **Links first.** Type `[[` to link notes. Backlinks, unlinked mentions, a live graph and link-aware renames keep a web of notes easy to work with.
-- **Fast, even when big.** Full-text search, filters and the sidebar stay quick in vaults of 10,000 notes and more.
+- **Fast, even when big.** Full-text search, filters and the sidebar stay quick in vaults of 10,000 notes and more, and CI [checks it](#development) on every change.
 - **Private by default.** Everything runs on your computer. Notes can be locked with a passphrase and are encrypted on disk. Crash reports are off unless you turn them on, and never include your notes.
 
 ## Features
@@ -84,6 +84,11 @@ Jot down a thought without switching to Kite. A small window pops up over whatev
   - filters in the same language as search
   - toggles for orphans and unresolved links
 - **Local graph:** each note's neighbourhood, 1 to 3 links away.
+
+<p align="center">
+    <img src=".github/screenshots/graph-large.png" alt="The graph view of a 10,000-note vault in dark mode, its notes coloured by topic into ten clusters, with the busiest notes labelled." width="900">
+</p>
+
 - **Canvases:** a whiteboard of text, note, image and link cards, grouped and connected. Saved as open [JSON Canvas](https://jsoncanvas.org) files that Obsidian can open too.
 
 <p align="center">
@@ -260,8 +265,9 @@ composer test         # everything CI runs
 | `composer test:types` | PHPStan and TypeScript |
 | `php artisan test --compact --filter=…` | Run some of the tests |
 | `bunx playwright install` | Install the browser for browser tests |
+| `php artisan test --testsuite=Benchmark` | Time indexing, search and opening pages in a generated vault of 10,000 notes |
 
-CI runs the full suite on Linux, and the unit and feature tests on macOS and Windows. It also audits Composer and Bun dependencies for known vulnerabilities.
+CI runs the full suite on Linux, and the unit and feature tests on macOS and Windows. A separate job runs the benchmark, which fails if anything goes over its time budget, and lists the timings in the job summary. CI also audits Composer and Bun dependencies for known vulnerabilities.
 
 ### Contributing
 
