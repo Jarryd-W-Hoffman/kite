@@ -54,6 +54,8 @@ export type NoteDetail = NoteMeta & {
     conflict_copies?: NoteLinkSummary[];
     /** The note this one is a sync app's conflicting copy of. */
     conflict_of?: NoteLinkSummary | null;
+    /** Links from other notes to each heading (by slug) or block (`^my-id`). */
+    heading_links?: Record<string, number>;
 };
 
 export type NoteLinkSummary = { id: number; title: string; path: string };
@@ -64,6 +66,8 @@ export type Backlink = {
     path: string;
     line: number;
     context: string;
+    /** The heading or block (`^my-id`) the link points to, if any. */
+    heading: string | null;
 };
 
 export type OutgoingLink = {

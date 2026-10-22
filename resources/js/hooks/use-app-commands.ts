@@ -24,6 +24,7 @@ export type AppCommand =
     | 'toggle-panel'
     | 'version-history'
     | 'recently-deleted'
+    | 'copy-block-link'
     | 'extract-selection'
     | 'merge-note'
     | 'focus-mode'

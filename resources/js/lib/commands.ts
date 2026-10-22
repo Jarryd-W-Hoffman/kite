@@ -11,6 +11,7 @@ import {
     KeyRound,
     Keyboard,
     LayoutTemplate,
+    Link2,
     MessageSquare,
     Moon,
     Network,
@@ -182,6 +183,13 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         label: 'Show recently deleted notes',
         icon: Trash2,
         keywords: 'restore undelete undo recover trash bin',
+    },
+    {
+        id: 'copy-block-link',
+        label: 'Copy link to this block',
+        icon: Link2,
+        note: true,
+        keywords: 'block reference id anchor paragraph',
     },
     {
         id: 'extract-selection',

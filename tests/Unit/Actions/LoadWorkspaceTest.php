@@ -38,7 +38,7 @@ it('loads the vault tree, tags and vault list without a note', function (): void
 it('loads the note with contents, html, backlinks and outgoing links', function (): void {
     $vault = vaultWithFiles([
         'Topic.md' => "---\ntags: [idea]\n---\n# Topic\nSee [[Other]], [[Other#Again]], [[Ghost]] and [[Topic]].",
-        'Other.md' => "Intro\n  Mentions [[Topic]] here  \nAnd [[Topic|again]]",
+        'Other.md' => "Intro\n  Mentions [[Topic]] here  \nAnd [[Topic#Topic|again]]\nAnd [[Topic#^b1]]",
         'Gone.md' => 'Also [[Topic]]',
     ]);
 
@@ -61,10 +61,12 @@ it('loads the note with contents, html, backlinks and outgoing links', function 
     ])
         ->and($workspace['note']['html'])->toContain('<h1 id="h-topic">Topic</h1>')
         ->and($workspace['note']['outline'])->toBe([['level' => 1, 'text' => 'Topic', 'slug' => 'topic', 'line' => 4]])
+        ->and($workspace['note']['heading_links'])->toBe(['topic' => 1, '^b1' => 1])
         ->and($workspace['backlinks'])->toBe([
-            ['id' => $gone->id, 'title' => 'Gone', 'path' => 'Gone.md', 'line' => 1, 'context' => ''],
-            ['id' => $other->id, 'title' => 'Other', 'path' => 'Other.md', 'line' => 2, 'context' => 'Mentions [[Topic]] here'],
-            ['id' => $other->id, 'title' => 'Other', 'path' => 'Other.md', 'line' => 3, 'context' => 'And [[Topic|again]]'],
+            ['id' => $gone->id, 'title' => 'Gone', 'path' => 'Gone.md', 'line' => 1, 'context' => '', 'heading' => null],
+            ['id' => $other->id, 'title' => 'Other', 'path' => 'Other.md', 'line' => 2, 'context' => 'Mentions [[Topic]] here', 'heading' => null],
+            ['id' => $other->id, 'title' => 'Other', 'path' => 'Other.md', 'line' => 3, 'context' => 'And [[Topic#Topic|again]]', 'heading' => 'Topic'],
+            ['id' => $other->id, 'title' => 'Other', 'path' => 'Other.md', 'line' => 4, 'context' => 'And [[Topic#^b1]]', 'heading' => '^b1'],
         ])
         ->and($workspace['outgoing'])->toBe([
             ['target' => 'Other', 'note_id' => $other->id, 'title' => 'Other', 'path' => 'Other.md'],

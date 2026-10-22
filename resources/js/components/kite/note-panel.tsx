@@ -37,6 +37,8 @@ type Props = {
     outgoing: OutgoingLink[];
     mentions?: UnlinkedMention[];
     onSelectHeading?: (item: OutlineItem) => void;
+    /** Links from other notes to each heading, by slug. */
+    headingLinks?: Record<string, number>;
     /** The editor's cursor line, to highlight the section being edited. */
     cursorLine?: number | null;
     /** Editable frontmatter; without onPropertiesChange the properties are listed read-only. */
@@ -243,6 +245,19 @@ function Backlinks({
                                             title={`Line ${line.line}`}
                                             data-test="backlink-line"
                                         >
+                                            {line.heading && (
+                                                <span
+                                                    className="mr-1 rounded bg-muted px-1 py-px font-medium text-foreground"
+                                                    data-test="backlink-target"
+                                                >
+                                                    →{' '}
+                                                    {line.heading.startsWith(
+                                                        '^',
+                                                    )
+                                                        ? line.heading
+                                                        : `#${line.heading}`}
+                                                </span>
+                                            )}
                                             <LinkContext text={line.context} />
                                         </Link>
                                     </li>
@@ -267,6 +282,7 @@ export function NotePanel({
     outgoing,
     mentions,
     onSelectHeading,
+    headingLinks,
     cursorLine = null,
     properties,
     onPropertiesChange,
@@ -471,7 +487,7 @@ export function NotePanel({
                                                 : undefined
                                         }
                                         className={cn(
-                                            'block w-full truncate rounded-md px-2 py-1 text-left hover:bg-accent',
+                                            'flex w-full items-center gap-2 rounded-md px-2 py-1 text-left hover:bg-accent',
                                             item.level > 1 &&
                                                 'text-muted-foreground',
                                             index === currentHeading &&
@@ -481,7 +497,19 @@ export function NotePanel({
                                             paddingLeft: `${(item.level - 1) * 12 + 8}px`,
                                         }}
                                     >
-                                        {item.text}
+                                        <span className="min-w-0 flex-1 truncate">
+                                            {item.text}
+                                        </span>
+                                        {(headingLinks?.[item.slug] ?? 0) >
+                                            0 && (
+                                            <span
+                                                className="shrink-0 text-xs font-normal text-muted-foreground tabular-nums"
+                                                title="Links from other notes to this heading"
+                                                data-test="heading-links"
+                                            >
+                                                {headingLinks?.[item.slug]}
+                                            </span>
+                                        )}
                                     </button>
                                 </li>
                             ))}
