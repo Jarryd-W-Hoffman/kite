@@ -78,6 +78,14 @@ final class Vault extends Model
     }
 
     /**
+     * @return HasMany<DeletedNote, $this>
+     */
+    public function deletedNotes(): HasMany
+    {
+        return $this->hasMany(DeletedNote::class);
+    }
+
+    /**
      * @return HasMany<Note, $this>
      */
     public function notes(): HasMany

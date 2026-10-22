@@ -11,6 +11,7 @@ import {
     KeyRound,
     Keyboard,
     LayoutTemplate,
+    Link2,
     MessageSquare,
     Moon,
     Network,
@@ -27,6 +28,7 @@ import {
     LockKeyhole,
     Merge,
     Scissors,
+    Trash2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AppCommand } from '@/hooks/use-app-commands';
@@ -175,6 +177,19 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         icon: History,
         note: true,
         keywords: 'revisions restore diff',
+    },
+    {
+        id: 'recently-deleted',
+        label: 'Show recently deleted notes',
+        icon: Trash2,
+        keywords: 'restore undelete undo recover trash bin',
+    },
+    {
+        id: 'copy-block-link',
+        label: 'Copy link to this block',
+        icon: Link2,
+        note: true,
+        keywords: 'block reference id anchor paragraph',
     },
     {
         id: 'extract-selection',

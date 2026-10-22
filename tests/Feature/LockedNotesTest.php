@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\DeleteNote;
 use App\Actions\FindUnlinkedMentions;
 use App\Actions\IndexVault;
 use App\Actions\LinkMention;
@@ -9,6 +10,7 @@ use App\Actions\LockNote;
 use App\Actions\MergeNotes;
 use App\Actions\RemoveNoteLock;
 use App\Enums\VersionSource;
+use App\Models\DeletedNote;
 use App\Models\Note;
 use App\Services\CommentStore;
 use App\Services\DailyNotes;
@@ -262,4 +264,16 @@ it('refuses a stale save of a locked note, sending the text on disk unlocked', f
         ->assertConflict()
         ->assertJsonPath('note.contents', '# Secret from elsewhere')
         ->assertJsonPath('note.unlocked', true);
+});
+
+it('shows a deleted locked note only with the vault key', function (): void {
+    lockSecret();
+
+    resolve(DeleteNote::class)->handle($this->secret->fresh());
+    $deleted = DeletedNote::query()->sole();
+
+    expect($deleted->locked)->toBeTrue();
+
+    $this->withoutHeader(NoteLocks::HEADER)->getJson(route('deleted-notes.show', [$this->vault, $deleted]))->assertJsonPath('contents', '');
+    ($this->withKey)()->getJson(route('deleted-notes.show', [$this->vault, $deleted]))->assertJsonPath('contents', "# Secret\n\nThe code is swordfish");
 });

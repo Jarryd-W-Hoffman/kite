@@ -83,6 +83,13 @@ export type NoteEditorHandle = {
     replacePassage: (passage: EditorSelectionText, insert: string) => boolean;
     /** Select a comment's passage and scroll it into view. */
     revealComment: (id: string) => void;
+    /**
+     * The block id (`^my-id`) of the line the cursor is on, adding a new one at its end when it
+     * has none. Null on a blank line.
+     */
+    ensureBlockId: () => string | null;
+    /** Move to the line ending in a block id; false when there is none. */
+    jumpToBlock: (id: string) => boolean;
 };
 
 export type EditorComment = CommentAnchor & { id: string; resolved: boolean };
@@ -269,6 +276,61 @@ export function NoteEditor({
                 }),
             });
             view.focus();
+        },
+        jumpToBlock: (id: string) => {
+            const view = viewRef.current;
+
+            if (!view) {
+                return false;
+            }
+
+            for (let number = 1; number <= view.state.doc.lines; number++) {
+                const line = view.state.doc.line(number);
+
+                if (
+                    line.text.trimEnd().endsWith(`^${id}`) &&
+                    / \^[A-Za-z0-9-]+$|^\^[A-Za-z0-9-]+$/.test(
+                        line.text.trimEnd(),
+                    )
+                ) {
+                    view.dispatch({
+                        selection: { anchor: line.from },
+                        effects: EditorView.scrollIntoView(line.from, {
+                            y: 'center',
+                        }),
+                    });
+                    view.focus();
+
+                    return true;
+                }
+            }
+
+            return false;
+        },
+        ensureBlockId: () => {
+            const view = viewRef.current;
+
+            if (!view) {
+                return null;
+            }
+
+            const line = view.state.doc.lineAt(view.state.selection.main.head);
+            const existing = / \^([A-Za-z0-9-]+)\s*$/.exec(line.text)?.[1];
+
+            if (existing) {
+                return existing;
+            }
+
+            if (line.text.trim() === '') {
+                return null;
+            }
+
+            const id = Math.random().toString(36).slice(2, 8);
+            const insert = `${line.text.endsWith(' ') ? '' : ' '}^${id}`;
+
+            view.dispatch({ changes: { from: line.to, insert } });
+
+            return id;
         },
         revealComment: (id: string) => {
             const view = viewRef.current;

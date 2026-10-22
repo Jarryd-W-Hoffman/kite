@@ -53,8 +53,9 @@ export function DeleteNoteDialog({ vault, note, open, onOpenChange }: Props) {
                             The file{' '}
                             {kite.native
                                 ? 'will be moved to the trash.'
-                                : 'will be permanently deleted.'}{' '}
-                            Links to it will show as unresolved.
+                                : 'will be deleted.'}{' '}
+                            Links to it will show as unresolved. You can restore
+                            it from Recently deleted, in the vault menu.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

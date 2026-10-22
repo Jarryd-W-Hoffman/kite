@@ -57,8 +57,9 @@ Jot down a thought without switching to Kite. A small window pops up over whatev
 
 ### 🔗 Connecting
 - **Links:** wiki links (`[[Note]]`, `[[Note#Heading]]`, `[[Note|alias]]`) that are rewritten when you rename or move a note.
-- **Link previews:** rest the pointer on a link in the preview, or hold <kbd>Ctrl</kbd> (<kbd>⌘</kbd> on macOS) over one in the editor, to read the note (or just the heading) it goes to.
-- **Backlinks and unlinked mentions:** see everything that links to a note, or mentions it without linking, and link it in a click.
+- **Block links:** end a paragraph or list item with `^an-id` (or use **Copy link to this block**) to link to it with `[[Note#^an-id]]`, or embed just that block with `![[Note#^an-id]]`.
+- **Link previews:** rest the pointer on a link in the preview, or hold <kbd>Ctrl</kbd> (<kbd>⌘</kbd> on macOS) over one in the editor, to read the note (or just the heading or block) it goes to.
+- **Backlinks and unlinked mentions:** see everything that links to a note, and which heading or block each link points at, or mentions it without linking, and link it in a click.
 - **Tags:** inline `#tags` or in frontmatter, with nested tags like `#area/work`.
 - **Refactoring:** extract a selection into a new note, or merge notes together.
 - **Colour groups:** colour notes by a query, in the graph and the file tree.
@@ -132,6 +133,8 @@ Turn what you write into quiz cards. Kite shows each card again just before you'
   - a **recovery key** if you forget the passphrase
   - locks itself after 15 minutes idle
 - **Version history:** browse and restore earlier versions of every note, with changes from other apps kept too.
+- **Merging:** if a note changes on disk while you edit it, merge the two: changes on only one side are kept, and you choose where both changed the same lines. Conflicting copies left by Dropbox, Nextcloud, Obsidian Sync or Syncthing are spotted and can be merged back in.
+- **Recently deleted:** a deleted note keeps its history for 30 days. Undo right after deleting, or restore it later from the vault menu.
 - **Comments:** anchored to passages of a note.
 - **Export and publish:** export to HTML or PDF, or publish a note and the notes it links to as a small static site.
 - **Notion import:** bring in a Notion "Markdown & CSV" export; databases become table views.
@@ -258,6 +261,7 @@ composer test         # everything CI runs
 - **Pint**, **Rector** and **oxlint/oxfmt** (style)
 - **PHPStan** at max level and **TypeScript** (types)
 - **100% type coverage**
+- **Vitest** for the interface's own logic (`bun run test`)
 - **Pest** with **100% line coverage**, including the browser tests (Playwright)
 
 | Command | What it does |

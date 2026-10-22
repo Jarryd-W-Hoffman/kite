@@ -17,14 +17,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * a note's history can be listed without reading every version.
  *
  * @property-read int $id
- * @property-read int $note_id
+ * @property-read int|null $note_id
+ * @property-read int|null $deleted_note_id
  * @property-read string $contents
  * @property-read string $hash
  * @property-read int $size
  * @property-read VersionSource $source
  * @property-read CarbonInterface $created_at
  * @property-read CarbonInterface $updated_at
- * @property-read Note $note
+ * @property-read Note|null $note
  */
 final class NoteVersion extends Model
 {
@@ -39,6 +40,7 @@ final class NoteVersion extends Model
         return [
             'id' => 'integer',
             'note_id' => 'integer',
+            'deleted_note_id' => 'integer',
             'contents' => CompressedText::class.':size',
             'hash' => 'string',
             'size' => 'integer',

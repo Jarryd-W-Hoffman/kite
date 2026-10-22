@@ -12,6 +12,7 @@ use App\Actions\RenderMarkdown;
 use App\Actions\SaveNote;
 use App\Http\Requests\StoreNoteRequest;
 use App\Http\Requests\UpdateNoteRequest;
+use App\Models\DeletedNote;
 use App\Models\Note;
 use App\Models\Vault;
 use App\Services\CommentStore;
@@ -124,13 +125,17 @@ final readonly class NoteController
 
     public function destroy(Vault $vault, Note $note, DeleteNote $action, VaultFilesystem $files): RedirectResponse
     {
-        $action->handle($note);
+        $deleted = $action->handle($note);
 
         Inertia::flash('toast', [
             'type' => 'success',
             'message' => $files->usesTrash()
                 ? __('Moved “:name” to the trash.', ['name' => $note->title])
                 : __('Deleted “:name”.', ['name' => $note->title]),
+            ...($deleted instanceof DeletedNote ? ['action' => [
+                'label' => __('Undo'),
+                'url' => route('deleted-note-restores.store', [$vault, $deleted], absolute: false),
+            ]] : []),
         ]);
 
         return to_route('vaults.show', $vault);

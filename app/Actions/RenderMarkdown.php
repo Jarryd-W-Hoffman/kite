@@ -9,8 +9,9 @@ use App\Models\Vault;
 use App\Services\AttachmentResolver;
 use App\Services\AttachmentTypes;
 use App\Services\LinkResolver;
+use App\Services\Markdown\BlockId;
+use App\Services\Markdown\BlockIdTransformer;
 use App\Services\Markdown\CalloutTransformer;
-use App\Services\Markdown\HeadingSlugger;
 use App\Services\Markdown\MarkdownParser;
 use App\Services\Markdown\MarkdownSection;
 use App\Services\Markdown\MathBlock;
@@ -135,6 +136,7 @@ final readonly class RenderMarkdown
         $environment->addRenderer(MathBlock::class, new MathRenderer());
         $environment->addEventListener(DocumentParsedEvent::class, new CalloutTransformer(), 5);
         $environment->addEventListener(DocumentParsedEvent::class, new TaskCheckboxLabeller());
+        $environment->addEventListener(DocumentParsedEvent::class, new BlockIdTransformer(assignIds: $depth === 0));
 
         $environment->addRenderer(NoteEmbed::class, new NoteEmbedRenderer());
         $environment->addEventListener(DocumentParsedEvent::class, new NoteEmbedTransformer(
@@ -162,7 +164,7 @@ final readonly class RenderMarkdown
 
         $title = $heading === null || $heading === '' ? $note->title : "{$note->title} › {$heading}";
         $url = route('notes.show', ['vault' => $vault->id, 'note' => $note->id], absolute: false)
-            .($heading === null || $heading === '' ? '' : '#'.HeadingSlugger::slug($heading));
+            .($heading === null || $heading === '' ? '' : '#'.BlockId::fragment($heading));
 
         if (in_array($note->id, $embedding, true)) {
             return new NoteEmbed($title, $url, '', NoteEmbed::LOOP);

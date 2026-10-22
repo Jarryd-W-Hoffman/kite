@@ -95,3 +95,38 @@ it('only renders note embed nodes', function (): void {
         Mockery::mock(ChildNodeRendererInterface::class),
     );
 })->throws(InvalidArgumentException::class, 'Expected a note embed.');
+
+it('links to blocks, anchors them and embeds just the block', function (): void {
+    $vault = embedVault([
+        'Home.md' => "Read [[Guide#^key]] or [[#^mine|my block]].\n\n![[Guide#^key]]\n\n![[Guide#^gone]]\n\nMine ^mine",
+        'Guide.md' => "# Guide\n\nBefore.\n\nThe key point,\nin two lines. ^key\n\n- An item ^item-1\n\nAfter.",
+    ]);
+    $guide = Note::query()->where('path', 'Guide.md')->sole();
+    $url = route('notes.show', ['vault' => $vault->id, 'note' => $guide->id], absolute: false);
+
+    $home = renderNote($vault, 'Home.md');
+    $guideHtml = renderNote($vault, 'Guide.md');
+
+    expect($home)
+        ->toContain('href="'.$url.'#^key"')
+        ->toContain('<a class="wiki-link heading-link" href="#^mine">my block</a>')
+        ->toContain('<div class="note-embed-body"><p>The key point,'."\n".'in two lines.</p>')
+        ->not->toContain('Before.')
+        ->toContain('That section was not found.')
+        ->toContain('<p id="b-mine">Mine</p>')
+        ->and($guideHtml)
+        ->toContain('<p id="b-key">The key point,'."\n".'in two lines.</p>')
+        ->toContain('<li id="b-item-1">An item</li>')
+        ->not->toContain('^key');
+});
+
+it('anchors a block id on a line of its own to the block before it', function (): void {
+    $vault = embedVault(['Table.md' => "| a |\n| - |\n| 1 |\n\n^grid\n\nText with a ^caret in the middle.\n\nRight above\n^under"]);
+
+    $html = renderNote($vault, 'Table.md');
+
+    expect($html)->toContain('<table id="b-grid">')
+        ->toContain('<p id="b-under">Right above</p>')
+        ->not->toContain('^grid')
+        ->toContain('Text with a ^caret in the middle.');
+});
