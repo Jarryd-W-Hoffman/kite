@@ -17,7 +17,7 @@ it('takes a visit to a note that has gone back to its vault, saying why', functi
     $this->withHeader('X-Inertia', 'true')->get(route('notes.show', [999, Note::query()->sole()]))->assertRedirectToRoute('vaults.index');
 });
 
-it('keeps a real not found for requests that aren\'t page visits', function (): void {
+it("keeps a real not found for requests that aren't page visits", function (): void {
     $vault = vaultWithFiles();
 
     $this->get(route('notes.show', [$vault, 999]))->assertNotFound();
