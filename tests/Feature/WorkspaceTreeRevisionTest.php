@@ -33,17 +33,17 @@ beforeEach(function (): void {
 
 it('sends the tree and its neighbours once per revision', function (): void {
     $revision = ($this->revision)();
-    $keys = array_map(fn (string $prop): string => "{$prop}:{$this->vault->id}:{$revision}", ['tree', 'folders', 'templates', 'daily_dates', 'tags']);
+    $keys = array_map(fn (string $prop): string => "{$prop}:{$this->vault->id}:{$revision}", ['tree', 'folders', 'attachments', 'templates', 'daily_dates', 'tags']);
 
     $first = ($this->visit)()->assertOk()->json();
 
-    expect($first['props'])->toHaveKeys(['tree', 'folders', 'templates', 'daily_dates', 'tags'])
+    expect($first['props'])->toHaveKeys(['tree', 'folders', 'attachments', 'templates', 'daily_dates', 'tags'])
         ->and($first['props']['tree_revision'])->toBe($revision)
         ->and(array_keys($first['onceProps']))->toEqualCanonicalizing($keys);
 
     $second = ($this->visit)($keys)->assertOk()->json();
 
-    expect($second['props'])->not->toHaveKeys(['tree', 'folders', 'templates', 'daily_dates', 'tags'])
+    expect($second['props'])->not->toHaveKeys(['tree', 'folders', 'attachments', 'templates', 'daily_dates', 'tags'])
         ->and($second['props'])->toHaveKeys(['note', 'colour_groups', 'favourites'])
         ->and(array_keys($second['onceProps']))->toEqualCanonicalizing($keys);
 

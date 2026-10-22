@@ -71,6 +71,7 @@ final readonly class LoadWorkspace
             'tree_revision' => $revision,
             'tree' => $once('tree', fn (): array => $this->tree($vault)),
             'folders' => $once('folders', fn (): array => $this->files->folders($vault)),
+            'attachments' => $once('attachments', fn (): array => $this->attachmentPaths($vault)),
             'colour_groups' => $this->colourGroups->summaries($vault),
             'templates' => $once('templates', fn (): array => $this->templates->all($vault)),
             'daily_dates' => $once('daily_dates', fn (): array => $this->dailyDates($vault)),
@@ -148,6 +149,22 @@ final readonly class LoadWorkspace
                 'group' => $groups[Row::int($row, 'id')] ?? null,
                 'locked' => Row::int($row, 'locked') === 1,
             ])
+            ->all());
+    }
+
+    /**
+     * Every attachment in the vault (images, PDFs and other files notes can embed), in path order,
+     * so the file tree can list them beside the notes.
+     *
+     * @return list<string>
+     */
+    private function attachmentPaths(Vault $vault): array
+    {
+        return array_values(DB::table('attachments')
+            ->where('vault_id', $vault->id)
+            ->orderByRaw('path COLLATE NOCASE')
+            ->get(['path'])
+            ->map(fn (object $row): string => Row::string($row, 'path'))
             ->all());
     }
 

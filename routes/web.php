@@ -50,6 +50,7 @@ use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\VaultAttachmentController;
 use App\Http\Controllers\VaultController;
 use App\Http\Controllers\VaultFileController;
+use App\Http\Controllers\VaultFileOpenController;
 use App\Http\Controllers\VaultFolderController;
 use App\Http\Controllers\VaultGraphController;
 use App\Http\Controllers\VaultKeyController;
@@ -94,6 +95,7 @@ Route::get('vaults/{vault}/status', [VaultStatusController::class, 'show'])->nam
 Route::post('vaults/{vault}/sync', [VaultSyncController::class, 'store'])->name('vault-sync.store');
 Route::get('vaults/{vault}/search', [VaultSearchController::class, 'index'])->name('vault-search.index');
 Route::post('vaults/{vault}/preview', [VaultPreviewController::class, 'store'])->name('vault-preview.store');
+Route::post('vaults/{vault}/file-opens', [VaultFileOpenController::class, 'store'])->name('vault-file-opens.store');
 Route::get('vaults/{vault}/files/{path}', [VaultFileController::class, 'show'])->where('path', '.*')->name('vault-files.show');
 Route::post('vaults/{vault}/folders', [FolderController::class, 'store'])->name('folders.store');
 Route::post('vaults/{vault}/templates', [TemplateController::class, 'store'])->name('templates.store');

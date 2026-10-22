@@ -105,6 +105,9 @@ type Props = {
     onSearch: () => void;
 };
 
+/** Kept stable, so the file tree isn't rebuilt on every render while there are none. */
+const NO_ATTACHMENTS: string[] = [];
+
 export function createNote(
     vault: VaultSummary,
     title = 'Untitled',
@@ -151,6 +154,7 @@ export function WorkspaceSidebar({
         open_tasks: openTasks = 0,
         table_views: tableViews = [],
         canvases = [],
+        attachments = NO_ATTACHMENTS,
         saved_searches: savedSearches = [],
         favourites = [],
         recent_notes: recentNotes = [],
@@ -161,6 +165,7 @@ export function WorkspaceSidebar({
         open_tasks?: number;
         table_views?: { id: number; name: string }[];
         canvases?: { path: string; name: string }[];
+        attachments?: string[];
         saved_searches?: { id: number; name: string }[];
         favourites?: NoteLinkSummary[];
         recent_notes?: NoteLinkSummary[];
@@ -392,6 +397,8 @@ export function WorkspaceSidebar({
                     vault={vault}
                     notes={tree}
                     folders={folders}
+                    files={attachments}
+                    native={kite.native}
                     groups={kite.tree_group_colours ? colourGroups : []}
                     activeNoteId={activeNoteId}
                     onNewNote={(folder) =>

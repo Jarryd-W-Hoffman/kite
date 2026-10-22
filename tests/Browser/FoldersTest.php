@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\IndexAttachments;
 use App\Actions\IndexVault;
 use App\Models\Note;
 
@@ -136,4 +137,15 @@ it('deletes a folder after confirming and leaves it if the open note was inside'
 
     expect(is_dir($vault->path.'/Projects'))->toBeFalse()
         ->and(Note::query()->pluck('path')->all())->toBe(['Home.md']);
+});
+
+it("lists attachments in the file tree, so a folder of them isn't shown as empty", function (): void {
+    $vault = vaultWithFiles(['Note.md' => "# Note\n\n![[Screenshot.png]]", 'attachments/Screenshot.png' => 'png', 'Empty folder/.gitkeep' => '']);
+    resolve(IndexVault::class)->handle($vault);
+    resolve(IndexAttachments::class)->handle($vault);
+
+    visit(route('notes.show', [$vault, Note::query()->sole()]))
+        ->assertSeeIn('[data-test=tree-file][data-path="attachments/Screenshot.png"]', 'Screenshot.png')
+        ->assertCount('@tree-empty-folder', 1)
+        ->assertNoJavaScriptErrors();
 });
