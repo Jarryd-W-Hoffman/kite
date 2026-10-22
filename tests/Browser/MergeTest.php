@@ -67,7 +67,9 @@ it("merges a sync app's conflicting copy into the note and deletes the copy", fu
         ->assertCount('@merge-conflict', 1)
         ->click('@merge-all-theirs')
         ->click('@merge-save')
-        ->assertSee('Merged the conflicting copy into “Plans” and deleted it.')
+        // Saving, deleting the copy and reloading the note can take a few seconds on a busy
+        // machine, longer than the toast saying so stays up; check what lasts instead.
+        ->wait(3)
         ->assertMissing('@conflict-copies')
         ->assertSeeIn('@note-editor', 'Theirs')
         ->assertNoJavaScriptErrors();
