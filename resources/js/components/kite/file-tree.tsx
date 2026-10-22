@@ -2,7 +2,9 @@ import { Link, router } from '@inertiajs/react';
 import {
     ChevronRight,
     FilePlus,
+    File,
     FileText,
+    Image,
     LockKeyhole,
     Folder,
     FolderOpen,
@@ -24,13 +26,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { groupColourVariable } from '@/lib/colour-groups';
 import type { ColourGroup } from '@/lib/colour-groups';
-import { buildTree, noteFolder, noteName } from '@/lib/note-tree';
+import { requestJson } from '@/lib/kite-http';
+import { buildTree, fileName, noteFolder, noteName } from '@/lib/note-tree';
 import type { TreeFolder } from '@/lib/note-tree';
 import { readStored, stringListCodec, writeStored } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { update as updateFolder } from '@/routes/folders';
 import { update as updatePath } from '@/routes/note-path';
 import { show } from '@/routes/notes';
+import { store as openFile } from '@/routes/vault-file-opens';
+import { show as showFile } from '@/routes/vault-files';
 import type { TreeNote, VaultSummary } from '@/types';
 
 type FolderActions = {
@@ -50,6 +55,10 @@ type Props = FolderActions & {
     vault: VaultSummary;
     notes: TreeNote[];
     folders: string[];
+    /** The vault's other files (images, PDFs…), listed beside the notes. */
+    files?: string[];
+    /** Whether this is the desktop app, which opens files in their own apps. */
+    native?: boolean;
     /** Colour groups by id; notes in a group get a coloured dot. Empty to hide the dots. */
     groups: ColourGroup[];
     activeNoteId: number | null;
@@ -73,6 +82,7 @@ type TreeContextValue = {
     dropHandlers: (folder: string) => DropHandlers;
     onDragStart: (event: DragEvent, item: Dragged) => void;
     onDragEnd: () => void;
+    onOpenFile: (path: string) => void;
 };
 
 const TreeContext = createContext<TreeContextValue | null>(null);
@@ -119,6 +129,8 @@ export function FileTree({
     vault,
     notes,
     folders,
+    files = [],
+    native = false,
     groups,
     activeNoteId,
     onNewNote,
@@ -127,7 +139,10 @@ export function FileTree({
     onRenameFolder,
     onDeleteFolder,
 }: Props) {
-    const tree = useMemo(() => buildTree(notes, folders), [notes, folders]);
+    const tree = useMemo(
+        () => buildTree(notes, folders, files),
+        [notes, folders, files],
+    );
     const [collapsed, setCollapsed] = useState<Set<string>>(
         () => new Set(readStored(storageKey(vault), stringListCodec, [])),
     );
@@ -325,6 +340,23 @@ export function FileTree({
             cancelExpand();
             setDropTarget(null);
         },
+        // In the desktop app a file opens in its usual app (a PDF reader, an image viewer); in a
+        // browser, in a new tab.
+        onOpenFile: (path) => {
+            if (!native) {
+                window.open(
+                    showFile({ vault: vault.id, path }).url,
+                    '_blank',
+                    'noopener',
+                );
+
+                return;
+            }
+
+            void requestJson(openFile(vault.id), { path }).catch(() =>
+                toast.error(`Could not open “${fileName(path)}”.`),
+            );
+        },
     };
 
     /**
@@ -429,15 +461,17 @@ function FolderContents({
                     indent={indent}
                 />
             ))}
-            {folder.folders.length === 0 && folder.notes.length === 0 && (
-                <li
-                    className="py-1 pr-2 text-xs text-muted-foreground italic"
-                    style={{ paddingLeft: `${depth * INDENT + 8 + 18}px` }}
-                    data-test="tree-empty-folder"
-                >
-                    Empty
-                </li>
-            )}
+            {folder.folders.length === 0 &&
+                folder.notes.length === 0 &&
+                folder.files.length === 0 && (
+                    <li
+                        className="py-1 pr-2 text-xs text-muted-foreground italic"
+                        style={{ paddingLeft: `${depth * INDENT + 8 + 18}px` }}
+                        data-test="tree-empty-folder"
+                    >
+                        Empty
+                    </li>
+                )}
             {folder.notes.map((note) => (
                 <li key={note.id}>
                     <Link
@@ -481,9 +515,34 @@ function FolderContents({
                     </Link>
                 </li>
             ))}
+            {folder.files.map((path) => {
+                const Icon = IMAGE.test(path) ? Image : File;
+
+                return (
+                    <li key={path}>
+                        <button
+                            type="button"
+                            onClick={() => tree.onOpenFile(path)}
+                            data-tree-item
+                            data-parent={folder.path}
+                            data-test="tree-file"
+                            data-path={path}
+                            className="flex w-full items-center gap-2 rounded-md py-[5px] pr-2 text-left text-[13.5px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            style={indent}
+                            title={`Open ${path}`}
+                        >
+                            <Icon className="size-[15px] shrink-0 text-muted-foreground/70" />
+                            <span className="truncate">{fileName(path)}</span>
+                        </button>
+                    </li>
+                );
+            })}
         </ul>
     );
 }
+
+/** Files the tree shows with an image icon. */
+const IMAGE = /\.(apng|avif|bmp|gif|jpe?g|png|svg|webp)$/i;
 
 function FolderItem({
     folder,

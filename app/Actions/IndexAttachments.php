@@ -56,6 +56,8 @@ final readonly class IndexAttachments
             ];
         }
 
+        $added = array_filter($rows, fn (array $row): bool => ! isset($indexed[$row['path']]));
+
         DB::transaction(function () use ($removed, $rows): void {
             foreach (array_chunk($removed, 500) as $ids) {
                 DB::table('attachments')->whereIn('id', $ids)->delete();
@@ -65,6 +67,11 @@ final readonly class IndexAttachments
                 DB::table('attachments')->upsert($chunk, ['vault_id', 'path'], ['path_key', 'name_key', 'extension', 'size', 'modified_at']);
             }
         });
+
+        // The file tree lists attachments, so one appearing or going is a change to it.
+        if ($removed !== [] || $added !== []) {
+            Vault::markTreeChanged($vault->id);
+        }
 
         return count($removed) + count($rows);
     }

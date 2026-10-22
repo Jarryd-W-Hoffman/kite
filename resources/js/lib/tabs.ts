@@ -183,6 +183,41 @@ export function visitTab(vaultId: number, visited: Tab): TabState {
 }
 
 /**
+ * Bring tabs in line with the vault's notes: drop tabs whose note is gone (deleted, or replaced
+ * while Kite was closed) so they don't lead nowhere, and update renamed notes' titles. The tab
+ * being shown is always kept.
+ */
+export function reconcileTabs(
+    vaultId: number,
+    notes: { id: number; title: string }[],
+    keep: string,
+): TabState {
+    const state = readTabs(vaultId);
+    const titles = new Map(notes.map((note) => [note.id, note.title]));
+
+    const tabs = state.tabs.flatMap((tab): Tab[] => {
+        if (tab.kind !== 'note') {
+            return [tab];
+        }
+
+        const title = titles.get(tab.id);
+
+        if (title === undefined) {
+            return tabKey(tab) === keep ? [tab] : [];
+        }
+
+        return [{ ...tab, title }];
+    });
+
+    return writeTabs(vaultId, {
+        tabs,
+        active: tabs.some((tab) => tabKey(tab) === state.active)
+            ? state.active
+            : keep,
+    });
+}
+
+/**
  * Close a tab, returning the new state and the tab to show next (if the active one closed).
  */
 export function closeTab(

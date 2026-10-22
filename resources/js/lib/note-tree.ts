@@ -5,6 +5,8 @@ export type TreeFolder = {
     path: string;
     folders: TreeFolder[];
     notes: TreeNote[];
+    /** Other files in the folder (images, PDFs…), by path. */
+    files: string[];
 };
 
 export function noteName(path: string): string {
@@ -13,19 +15,30 @@ export function noteName(path: string): string {
     return file.replace(/\.md$/i, '');
 }
 
+export function fileName(path: string): string {
+    return path.split('/').pop() ?? path;
+}
+
 export function noteFolder(path: string): string {
     return path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
 }
 
 /**
- * Turn a flat list of note paths, plus any folders that exist on disk (including empty ones),
- * into a nested folder tree, folders first, sorted naturally.
+ * Turn a flat list of note paths, plus any folders that exist on disk (including empty ones) and
+ * the vault's other files, into a nested folder tree, folders first, sorted naturally.
  */
 export function buildTree(
     notes: TreeNote[],
     extraFolders: string[] = [],
+    files: string[] = [],
 ): TreeFolder {
-    const root: TreeFolder = { name: '', path: '', folders: [], notes: [] };
+    const root: TreeFolder = {
+        name: '',
+        path: '',
+        folders: [],
+        notes: [],
+        files: [],
+    };
     const folders = new Map<string, TreeFolder>([['', root]]);
 
     const folderFor = (path: string): TreeFolder => {
@@ -41,6 +54,7 @@ export function buildTree(
             path,
             folders: [],
             notes: [],
+            files: [],
         };
 
         parent.folders.push(folder);
@@ -57,6 +71,10 @@ export function buildTree(
         folderFor(noteFolder(note.path)).notes.push(note);
     }
 
+    for (const file of files) {
+        folderFor(noteFolder(file)).files.push(file);
+    }
+
     const collator = new Intl.Collator(undefined, {
         numeric: true,
         sensitivity: 'base',
@@ -67,6 +85,7 @@ export function buildTree(
         folder.notes.sort((a, b) =>
             collator.compare(noteName(a.path), noteName(b.path)),
         );
+        folder.files.sort((a, b) => collator.compare(fileName(a), fileName(b)));
         folder.folders.forEach(sort);
     };
 

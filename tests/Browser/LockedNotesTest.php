@@ -153,3 +153,24 @@ it('changes the passphrase and makes a new recovery key from the note menu', fun
     expect($locks->unlock($vault, 'staple battery horse'))->toBe($key)
         ->and($locks->unlockWithRecoveryKey($vault, $recoveryKey))->toBe($key);
 });
+
+it('lays out the vault passphrase submenu like the other menu items', function (): void {
+    $vault = vaultWithFiles(['Secret.md' => '# Secret']);
+    resolve(IndexVault::class)->handle($vault);
+    resolve(NoteLocks::class)->setUp($vault, 'correct horse battery');
+
+    $page = visit(route('notes.show', [$vault, Note::query()->sole()]))->click('@note-actions');
+
+    $page->assertScript(<<<'JS'
+        (() => {
+            const submenu = document.querySelector('[data-test=vault-passphrase-menu]');
+            const item = document.querySelector('[data-test=open-history]');
+            const iconWidth = (element) => element.querySelector('svg').getBoundingClientRect().width;
+
+            return iconWidth(submenu) === iconWidth(item)
+                && getComputedStyle(submenu).columnGap === getComputedStyle(item).columnGap
+                && getComputedStyle(submenu).fontSize === getComputedStyle(item).fontSize;
+        })()
+        JS, true)
+        ->assertNoJavaScriptErrors();
+});

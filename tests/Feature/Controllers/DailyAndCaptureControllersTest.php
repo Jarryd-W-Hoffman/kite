@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\IndexVault;
 use App\Listeners\OpenQuickCapture;
 use App\Models\Note;
+use App\Services\LocalTime;
 use Carbon\CarbonImmutable;
 use Native\Desktop\Facades\Window;
 use Native\Desktop\Http\Middleware\PreventRegularBrowserAccess;
@@ -70,4 +71,21 @@ it('shares the dates that have daily notes for the calendar', function (): void 
 
     $this->get(route('notes.show', [$vault, Note::query()->where('path', 'Home.md')->sole()]))
         ->assertInertia(fn ($page) => $page->where('daily_dates', ['2026-10-02', '2026-10-14']));
+});
+
+it('captures and opens daily notes in the local time the window says it is in', function (): void {
+    // 09:44 UTC on Sunday is 19:44 the same evening in Brisbane, and 20:30 UTC is already Monday there.
+    $this->travelTo(CarbonImmutable::parse('2026-10-18 09:44:00', 'UTC'));
+    $vault = vaultWithFiles();
+    $brisbane = [LocalTime::HEADER => 'Australia/Brisbane'];
+
+    $this->withHeaders($brisbane)->post(route('capture.store'), ['text' => 'Quick capture uses local time'])
+        ->assertInertiaFlash('toast.message', 'Added to Sunday, 18 October 2026.');
+
+    expect(file_get_contents($vault->path.'/Daily/2026-10-18.md'))->toEndWith("- 19:44 Quick capture uses local time\n");
+
+    $this->travelTo(CarbonImmutable::parse('2026-10-18 20:30:00', 'UTC'));
+
+    $this->withHeaders($brisbane)->post(route('daily-notes.store', $vault))
+        ->assertRedirectToRoute('notes.show', [$vault, Note::query()->where('path', 'Daily/2026-10-19.md')->sole()]);
 });

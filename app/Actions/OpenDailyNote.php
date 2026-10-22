@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Models\Note;
 use App\Models\Vault;
 use App\Services\DailyNotes;
+use App\Services\LocalTime;
 use App\Services\Templates;
 use App\Services\VaultFilesystem;
 use Carbon\CarbonImmutable;
@@ -20,16 +21,18 @@ final readonly class OpenDailyNote
         private DailyNotes $daily,
         private IndexNote $indexNote,
         private Templates $templates,
+        private LocalTime $time,
     ) {
         //
     }
 
     /**
-     * Open the daily note for a date, creating it from the template when it does not exist yet.
+     * Open the daily note for a date (today, where the person is, by default), creating it from the
+     * template when it does not exist yet.
      */
     public function handle(Vault $vault, ?CarbonInterface $date = null): Note
     {
-        $date = CarbonImmutable::instance($date ?? now());
+        $date = $date instanceof CarbonInterface ? CarbonImmutable::instance($date) : $this->time->now();
         $path = $this->daily->pathFor($date);
 
         if (! $this->files->exists($vault, $path)) {

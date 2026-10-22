@@ -18,6 +18,8 @@ it('renders the vault graph and opens notes from the sidebar', function (): void
     $page->assertSee('Local graph')
         ->click('@graph-link')
         ->assertSee('3 notes · 2 links')
+        ->assertAttribute('@graph-unresolved', 'title', "Show links to notes that don't exist yet, as hollow dots")
+        ->assertAttribute('@graph-orphans', 'title', 'Show notes with no links in or out')
         ->assertAriaAttribute('@graph-canvas', 'label', 'Graph of 4 notes and 2 links')
         ->click('Orphans')
         ->assertAriaAttribute('@graph-canvas', 'label', 'Graph of 3 notes and 2 links')

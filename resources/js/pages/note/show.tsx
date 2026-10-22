@@ -616,6 +616,7 @@ function NoteWorkspace({
                 {!focus && (
                     <TabBar
                         vault={vault}
+                        notes={tree}
                         current={{
                             kind: 'note',
                             id: note.id,

@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import { installCrashReports } from '@/lib/crash-reports';
+import { installLocalTimezone } from '@/lib/local-time';
 import { installUpdateNotice } from '@/lib/update-notice';
 import { installVaultKeys } from '@/lib/vault-keys';
 import '../css/app.css';
@@ -38,6 +39,7 @@ void createInertiaApp({
 });
 
 installCrashReports();
+installLocalTimezone();
 installVaultKeys();
 installUpdateNotice();
 

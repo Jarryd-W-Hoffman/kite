@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Vault;
 use App\Services\AttachmentTypes;
+use App\Services\LocalTime;
 use App\Services\VaultFilesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,7 @@ final readonly class StoreAttachment
         private VaultFilesystem $files,
         private AttachmentTypes $types,
         private IndexAttachments $indexAttachments,
+        private LocalTime $time,
     ) {
         //
     }
@@ -30,7 +32,7 @@ final readonly class StoreAttachment
         $extension = $this->types->extension($file->getClientOriginalName()) ?: mb_strtolower((string) $file->extension());
         $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $name = mb_trim((string) preg_replace('/[\\\\\/:*?"<>|#^\[\]\x00-\x1F]+/u', ' ', $name));
-        $name = mb_trim((string) preg_replace('/\s+/u', ' ', $name), ' .') ?: 'Pasted '.now()->format('Y-m-d His');
+        $name = mb_trim((string) preg_replace('/\s+/u', ' ', $name), ' .') ?: 'Pasted '.$this->time->now()->format('Y-m-d His');
 
         $folder = $this->types->folder();
         $prefix = $folder === '' ? '' : $folder.'/';

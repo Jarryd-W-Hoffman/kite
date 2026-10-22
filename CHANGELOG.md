@@ -25,6 +25,12 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 - **Notes renamed or moved outside Kite** (in your file manager, Git or a sync app) keep their version history, star and comments, instead of starting again as new notes.
 - **A note changed outside Kite while you were editing it** (in another app, a sync or the other pane) is no longer overwritten. Kite stops saving and lets you compare the two versions, then keep yours or use the one on disk.
 - **Preferences:** choosing a section on the left no longer scrolls the whole window up and hides its title, and the section you chose (or scrolled to) is the one highlighted.
+- **Times in your local time zone.** Quick capture stamped entries in UTC (09:44 for a thought captured at 19:44 in Brisbane), and today's daily note and template dates could be a day out near midnight. They now use your computer's time zone.
+- **A tab for a deleted note** no longer opens an error page. Tabs for notes that are gone close themselves, tab titles follow renames, and an old link to a missing note goes back to the vault and says why.
+- **Folders of attachments** no longer say "Empty" in the file tree. Images, PDFs and other files are listed under their folders, and choosing one opens it in its usual app.
+- **The Vault passphrase menu item** is spaced like the others, with a normal-sized icon.
+- **Graph filters** explain themselves: rest the pointer on **Unresolved** or **Orphans** to see what they show.
+
 
 ## [0.2.0] - 2026-10-17
 
