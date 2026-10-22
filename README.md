@@ -17,6 +17,19 @@
     <img src=".github/screenshots/note.png" alt="A note open in Kite: the file tree on the left, the editor and its preview side by side, and a local graph, outline and backlinks on the right." width="900">
 </p>
 
+<p align="center">
+    <a href="#why-kite">Why Kite?</a> ·
+    <a href="#features">Features</a> ·
+    <a href="#user-manual">User manual</a> ·
+    <a href="#your-vault-on-disk">Your vault on disk</a> ·
+    <a href="#keyboard-shortcuts">Keyboard shortcuts</a> ·
+    <a href="#download">Download</a> ·
+    <a href="#getting-started">Getting started</a> ·
+    <a href="#how-its-built">How it's built</a> ·
+    <a href="#development">Development</a> ·
+    <a href="#license">License</a>
+</p>
+
 ---
 
 ## Why Kite?
@@ -150,6 +163,19 @@ Turn what you write into quiz cards. Kite shows each card again just before you'
     <img src=".github/screenshots/note-dark.png" alt="The same note in Kite's dark theme." width="900">
 </p>
 
+## User manual
+
+The features above are the short version. The **[user manual](docs/manual/README.md)** takes each one in turn: what it's for, a diagram of how it works, screenshots, and step-by-step instructions, with tips at the end.
+
+| | | |
+| --- | --- | --- |
+| [Getting started](docs/manual/01-getting-started.md) | [Writing](docs/manual/02-writing.md) | [Daily notes and templates](docs/manual/03-daily-notes-and-templates.md) |
+| [Links](docs/manual/04-links.md) | [Tags and colour groups](docs/manual/05-tags-and-colour-groups.md) | [Search and commands](docs/manual/06-search.md) |
+| [Views and tasks](docs/manual/07-views-and-tasks.md) | [Graph](docs/manual/08-graph.md) | [Canvases](docs/manual/09-canvases.md) |
+| [Flashcards](docs/manual/10-flashcards.md) | [Reorganising notes](docs/manual/11-reorganising-notes.md) | [History and recovery](docs/manual/12-history-and-recovery.md) |
+| [Locked notes](docs/manual/13-locked-notes.md) | [Comments](docs/manual/14-comments.md) | [Sharing and importing](docs/manual/15-sharing-and-importing.md) |
+| [Preferences and shortcuts](docs/manual/16-preferences-and-shortcuts.md) | | |
+
 ## Your vault on disk
 
 Kite keeps everything in the vault folder. Beyond your notes, it only writes to a hidden `.kite/` folder:
@@ -252,6 +278,27 @@ The tag sets the version. Check the draft, edit its notes, then **publish** it. 
 | Watching | A Node file watcher that re-indexes changes made by other apps |
 
 The code follows an **actions** pattern: business logic lives in single-purpose classes in `app/Actions`, used by controllers, jobs and commands alike.
+
+### Why this stack?
+
+Honestly, it's not what I'd choose to build a desktop notes app professionally. Kite is a personal project, and part of the point was to try this stack out and see how far it goes.
+
+**What I'd normally reach for:** a native app (Swift on macOS, for example), or a cross-platform one built on [Tauri](https://tauri.app) or Electron with TypeScript throughout. In a product with a team and users depending on it, I'd weigh this stack's trade-offs heavily:
+
+- **Two runtimes in one app.** NativePHP ships a PHP runtime alongside Electron, so the download is bigger and the app uses more memory than a single-runtime app would.
+- **The app talks to itself over HTTP.** The interface is a web page served by a PHP server running on your machine. That's an extra layer at startup and on every action, and a local server has to be locked down: Kite only answers requests that carry a secret the desktop window holds.
+- **Two languages to keep in step:** PHP for the backend, TypeScript for the interface, with the boundary between them to maintain.
+- **A smaller path to walk.** PHP on the desktop is young. Packaging, auto-updates, code signing and platform quirks have far fewer guides and answers than they do for Electron or native apps.
+
+**Why I chose it anyway:**
+
+- **I wanted to try NativePHP** on something bigger than a demo, to see where it shines and where it creaks.
+- **Laravel is quick to build with.** Validation, migrations, queues, events and testing come built in, which let one person get a lot done. [Pest](https://pestphp.com) covers everything with unit, feature and real-browser tests, at 100% line coverage.
+- **SQLite does the heavy lifting.** Its full-text search keeps search fast in big vaults, and the database is just a file next to the app.
+- **[Inertia](https://inertiajs.com) keeps the interface simple.** The React front end talks to Laravel controllers directly, with no separate API to design and version.
+- **It holds up.** In the [benchmark](#development) on a generated vault of 10,000 notes, searches take tens of milliseconds and opening a note well under a second, which is more than good enough for a notes app.
+
+So: a fun experiment that turned into a capable app, and an honest example of what this stack can (and can't) comfortably do. If you're choosing technology for a product of your own, weigh the trade-offs above against your team and your users.
 
 ## Development
 
