@@ -26,6 +26,15 @@ beforeEach(function (): void {
     $this->home = Note::query()->where('path', 'Home.md')->sole();
 });
 
+/**
+ * A script that's true once an element has finished animating in, so axe judges its colours as
+ * they end up rather than part way through a fade.
+ */
+function settled(string $selector): string
+{
+    return "document.querySelector('{$selector}')?.getAnimations({ subtree: true }).length === 0";
+}
+
 it('has no accessibility issues on any page, in light or dark', function (bool $dark): void {
     $view = TableView::factory()->for($this->vault)->create(['name' => 'All', 'columns' => ['status']]);
     resolve(Canvases::class)->write($this->vault, 'Board.canvas', [['id' => 'a', 'type' => 'text', 'text' => 'Hi', 'x' => 0, 'y' => 0, 'width' => 200, 'height' => 80]], []);
@@ -33,8 +42,8 @@ it('has no accessibility issues on any page, in light or dark', function (bool $
 
     $visit(route('notes.show', [$this->vault, $this->home]))->assertSee('Home')->assertNoAccessibilityIssues(3)
         ->click('[aria-label=Preview]')->assertSee('Callout')->assertNoAccessibilityIssues(3)
-        ->keys('body', 'Control+k')->assertVisible('@command-palette-input')->wait(0.6)->assertNoAccessibilityIssues(3);
-    $visit(route('notes.show', [$this->vault, $this->home]))->click('@preferences-link')->assertVisible('@preferences-dialog')->wait(0.6)->assertNoAccessibilityIssues(3);
+        ->keys('body', 'Control+k')->assertVisible('@command-palette-input')->assertScript(settled('[role=dialog]'), true)->assertNoAccessibilityIssues(3);
+    $visit(route('notes.show', [$this->vault, $this->home]))->click('@preferences-link')->assertVisible('@preferences-dialog')->assertScript(settled('[data-test=preferences-dialog]'), true)->assertNoAccessibilityIssues(3);
     $visit(route('vault-graph.show', $this->vault))->assertSee('Graph')->assertNoAccessibilityIssues(3);
     $visit(route('tasks.index', $this->vault))->assertSee('A task')->assertNoAccessibilityIssues(3);
     $visit(route('table-views.show', [$this->vault, $view]))->assertSee('All')->assertNoAccessibilityIssues(3);
