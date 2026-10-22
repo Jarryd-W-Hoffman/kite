@@ -107,7 +107,8 @@ it('deletes a note', function (): void {
 
     $this->delete(route('notes.destroy', [$vault, Note::query()->sole()]))
         ->assertRedirectToRoute('vaults.show', $vault)
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Deleted “A”.']);
+        ->assertInertiaFlash('toast.message', 'Deleted “A”.')
+        ->assertInertiaFlash('toast.action.label', 'Undo');
 
     expect(Note::query()->count())->toBe(0)
         ->and(file_exists($vault->path.'/A.md'))->toBeFalse();
@@ -120,7 +121,8 @@ it('says a deleted note went to the trash in the desktop app', function (): void
 
     $this->withoutMiddleware(PreventRegularBrowserAccess::class)
         ->delete(route('notes.destroy', [$vault, Note::query()->sole()]))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Moved “A” to the trash.']);
+        ->assertInertiaFlash('toast.message', 'Moved “A” to the trash.')
+        ->assertInertiaFlash('toast.action.label', 'Undo');
 
     Shell::assertTrashedFile(osPath($vault->path.'/A.md'));
 });

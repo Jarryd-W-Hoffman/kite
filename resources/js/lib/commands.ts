@@ -27,6 +27,7 @@ import {
     LockKeyhole,
     Merge,
     Scissors,
+    Trash2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AppCommand } from '@/hooks/use-app-commands';
@@ -175,6 +176,12 @@ export const PALETTE_COMMANDS: PaletteCommand[] = [
         icon: History,
         note: true,
         keywords: 'revisions restore diff',
+    },
+    {
+        id: 'recently-deleted',
+        label: 'Show recently deleted notes',
+        icon: Trash2,
+        keywords: 'restore undelete undo recover trash bin',
     },
     {
         id: 'extract-selection',

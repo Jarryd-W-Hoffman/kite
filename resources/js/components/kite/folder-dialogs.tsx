@@ -287,8 +287,9 @@ function DeleteFolderConfirmation({
                         : `The folder and its ${noteCount === 1 ? 'note' : `${noteCount} notes`}`}{' '}
                     {native
                         ? 'will be moved to the trash.'
-                        : 'will be permanently deleted.'}{' '}
-                    Links to those notes will show as unresolved.
+                        : 'will be deleted.'}{' '}
+                    Links to those notes will show as unresolved. Its notes can
+                    be restored from Recently deleted, in the vault menu.
                 </DialogDescription>
             </DialogHeader>
             <InputError message={error} />

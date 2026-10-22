@@ -138,7 +138,7 @@ it('deletes a note after confirming in a dialog', function (): void {
         ->click('@note-actions')
         ->click('@delete-note')
         ->assertSeeIn('@delete-note-dialog', 'Delete “Gone”?')
-        ->assertSeeIn('@delete-note-dialog', 'will be permanently deleted')
+        ->assertSeeIn('@delete-note-dialog', 'will be deleted')
         ->click('Delete note')
         ->assertSee('Deleted “Gone”.')
         ->assertNoJavaScriptErrors();

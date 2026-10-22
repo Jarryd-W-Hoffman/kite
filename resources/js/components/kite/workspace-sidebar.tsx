@@ -10,6 +10,7 @@ import {
     ChevronsUpDown,
     FolderOpen,
     Import,
+    Trash2,
     FolderPlus,
     Hash,
     Keyboard,
@@ -29,6 +30,7 @@ import {
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { DailyCalendar } from '@/components/kite/daily-calendar';
+import { DeletedNotesDialog } from '@/components/kite/deleted-notes-dialog';
 import { FileTree } from '@/components/kite/file-tree';
 import { FolderDialogs } from '@/components/kite/folder-dialogs';
 import type { FolderDialogState } from '@/components/kite/folder-dialogs';
@@ -137,6 +139,7 @@ export function WorkspaceSidebar({
     const [preferencesOpen, setPreferencesOpen] = useState(false);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const [importing, setImporting] = useState(false);
+    const [deletedOpen, setDeletedOpen] = useState(false);
     const [calendarOpen, setCalendarOpen] = useStoredState(
         'kite:calendar-open',
         booleanCodec,
@@ -189,6 +192,7 @@ export function WorkspaceSidebar({
             requestNewTab();
             router.visit(showWelcome(vault.id));
         },
+        'recently-deleted': () => setDeletedOpen(true),
         'toggle-theme': () =>
             updateAppearance(resolvedAppearance === 'dark' ? 'light' : 'dark'),
     });
@@ -247,6 +251,13 @@ export function WorkspaceSidebar({
                         >
                             <Import />
                             Import from Notion…
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onSelect={() => setDeletedOpen(true)}
+                            data-test="recently-deleted"
+                        >
+                            <Trash2 />
+                            Recently deleted…
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -574,6 +585,11 @@ export function WorkspaceSidebar({
                 vault={vault}
                 open={importing}
                 onOpenChange={setImporting}
+            />
+            <DeletedNotesDialog
+                vault={vault}
+                open={deletedOpen}
+                onOpenChange={setDeletedOpen}
             />
         </aside>
     );

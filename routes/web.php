@@ -13,6 +13,8 @@ use App\Http\Controllers\ColourGroupPreviewController;
 use App\Http\Controllers\CrashReportConsentController;
 use App\Http\Controllers\CrashReportController;
 use App\Http\Controllers\DailyNoteController;
+use App\Http\Controllers\DeletedNoteController;
+use App\Http\Controllers\DeletedNoteRestoreController;
 use App\Http\Controllers\DiagnosticsController;
 use App\Http\Controllers\DiagnosticsLogController;
 use App\Http\Controllers\ExternalLinkController;
@@ -128,6 +130,9 @@ Route::scopeBindings()->group(function (): void {
     Route::get('vaults/{vault}/searches/{savedSearch}', [SavedSearchController::class, 'show'])->whereNumber('savedSearch')->middleware(WatchVault::class)->name('saved-searches.show');
     Route::put('vaults/{vault}/searches/{savedSearch}', [SavedSearchController::class, 'update'])->whereNumber('savedSearch')->name('saved-searches.update');
     Route::delete('vaults/{vault}/searches/{savedSearch}', [SavedSearchController::class, 'destroy'])->whereNumber('savedSearch')->name('saved-searches.destroy');
+    Route::get('vaults/{vault}/deleted-notes', [DeletedNoteController::class, 'index'])->name('deleted-notes.index');
+    Route::get('vaults/{vault}/deleted-notes/{deletedNote}', [DeletedNoteController::class, 'show'])->whereNumber('deletedNote')->name('deleted-notes.show');
+    Route::post('vaults/{vault}/deleted-notes/{deletedNote}/restore', [DeletedNoteRestoreController::class, 'store'])->whereNumber('deletedNote')->name('deleted-note-restores.store');
     Route::put('vaults/{vault}/colour-groups/{colourGroup}', [ColourGroupController::class, 'update'])->whereNumber('colourGroup')->name('colour-groups.update');
     Route::delete('vaults/{vault}/colour-groups/{colourGroup}', [ColourGroupController::class, 'destroy'])->whereNumber('colourGroup')->name('colour-groups.destroy');
     Route::post('vaults/{vault}/notes', [NoteController::class, 'store'])->name('notes.store');
