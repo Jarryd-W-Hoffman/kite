@@ -28,6 +28,8 @@
 
 ## Features
 
+> 📖 **New to Kite?** The [user manual](docs/manual/README.md) covers every feature step by step, with diagrams of how each one works.
+
 ### ✍️ Writing
 - **Editor:** a CodeMirror editor with **live preview**: headings, emphasis, links, checkboxes and images look like they will read, as you type.
 - **Views:** edit, split or preview, plus **focus mode**, **tabs** and a **second pane** to open notes side by side.
@@ -168,7 +170,7 @@ Kite also keeps a search index and other caches in its own database. These can b
 
 ## Keyboard shortcuts
 
-`Mod` is <kbd>⌘</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. Press <kbd>Mod</kbd>+<kbd>/</kbd> in the app for the full list.
+`Mod` is <kbd>⌘</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. Press <kbd>Mod</kbd>+<kbd>/</kbd> in the app for the full list, or see [Preferences and shortcuts](docs/manual/16-preferences-and-shortcuts.md#keyboard-shortcuts) in the manual.
 
 | Shortcut | Action | | Shortcut | Action |
 | --- | --- | --- | --- | --- |
