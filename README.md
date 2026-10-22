@@ -131,6 +131,7 @@ Turn what you write into quiz cards. Kite shows each card again just before you'
   - a **recovery key** if you forget the passphrase
   - locks itself after 15 minutes idle
 - **Version history:** browse and restore earlier versions of every note, with changes from other apps kept too.
+- **Merging:** if a note changes on disk while you edit it, merge the two: changes on only one side are kept, and you choose where both changed the same lines. Conflicting copies left by Dropbox, Nextcloud, Obsidian Sync or Syncthing are spotted and can be merged back in.
 - **Recently deleted:** a deleted note keeps its history for 30 days. Undo right after deleting, or restore it later from the vault menu.
 - **Comments:** anchored to passages of a note.
 - **Export and publish:** export to HTML or PDF, or publish a note and the notes it links to as a small static site.
@@ -258,6 +259,7 @@ composer test         # everything CI runs
 - **Pint**, **Rector** and **oxlint/oxfmt** (style)
 - **PHPStan** at max level and **TypeScript** (types)
 - **100% type coverage**
+- **Vitest** for the interface's own logic (`bun run test`)
 - **Pest** with **100% line coverage**, including the browser tests (Playwright)
 
 | Command | What it does |

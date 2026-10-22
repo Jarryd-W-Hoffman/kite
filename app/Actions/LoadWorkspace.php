@@ -11,6 +11,7 @@ use App\Models\TableView;
 use App\Models\Vault;
 use App\Services\Canvases;
 use App\Services\ColourGroups;
+use App\Services\ConflictCopies;
 use App\Services\DailyNotes;
 use App\Services\IndexingProgress;
 use App\Services\NoteLocks;
@@ -39,6 +40,7 @@ final readonly class LoadWorkspace
         private Templates $templates,
         private NoteLocks $locks,
         private Canvases $canvases,
+        private ConflictCopies $conflictCopies,
     ) {
         //
     }
@@ -119,6 +121,8 @@ final readonly class LoadWorkspace
             'outline' => $rendered->outline,
             'locked' => $locked,
             'unlocked' => $locked && $contents !== null,
+            'conflict_copies' => $this->conflictCopies->of($note),
+            'conflict_of' => $this->conflictCopies->originalOf($note),
         ];
     }
 

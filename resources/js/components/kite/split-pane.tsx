@@ -87,8 +87,10 @@ function SplitPaneDocument({
         meta,
         saveState,
         save,
+        savedText,
         conflict,
         keepMine,
+        keepMerged,
         takeDisk,
     } = useNoteDocument(vault, note, { autosaveMs: editor.autosave_ms });
 
@@ -140,8 +142,10 @@ function SplitPaneDocument({
                 <SaveConflictBanner
                     disk={conflict.contents}
                     mine={contents}
+                    base={savedText}
                     onKeepMine={keepMine}
                     onTakeDisk={takeDisk}
+                    onMerge={keepMerged}
                     compact
                 />
             )}

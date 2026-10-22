@@ -1,6 +1,7 @@
 import { TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { DiffView } from '@/components/kite/diff-view';
+import { MergeDialog } from '@/components/kite/merge-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -18,23 +19,29 @@ type Props = {
     disk: string;
     /** This window's unsaved text. */
     mine: string;
+    /** The text both started from: as this window last loaded or saved it. */
+    base: string;
     onKeepMine: () => void;
     onTakeDisk: () => void;
+    onMerge: (text: string) => void;
     compact?: boolean;
 };
 
 /**
  * Shown when a note changed on disk while it had unsaved edits here: autosave is paused until
- * one version is chosen, and the two can be compared first.
+ * one version is chosen or the two are merged, and they can be compared first.
  */
 export function SaveConflictBanner({
     disk,
     mine,
+    base,
     onKeepMine,
     onTakeDisk,
+    onMerge,
     compact = false,
 }: Props) {
     const [comparing, setComparing] = useState(false);
+    const [merging, setMerging] = useState(false);
     const lines = useMemo(
         () => (comparing ? diffLines(disk, mine) : []),
         [comparing, disk, mine],
@@ -89,6 +96,14 @@ export function SaveConflictBanner({
                 >
                     Compare
                 </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setMerging(true)}
+                    data-test="conflict-merge"
+                >
+                    Merge…
+                </Button>
                 {choices}
             </div>
 
@@ -107,6 +122,22 @@ export function SaveConflictBanner({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <MergeDialog
+                open={merging}
+                onOpenChange={setMerging}
+                title="Merge your changes"
+                description="Changes made only here or only on disk are kept. Where both changed the same lines, choose what to keep."
+                base={base}
+                mine={mine}
+                theirs={disk}
+                labels={{ mine: 'Yours', theirs: 'On disk' }}
+                saveLabel="Save merged note"
+                onSave={(text) => {
+                    setMerging(false);
+                    onMerge(text);
+                }}
+            />
         </div>
     );
 }
