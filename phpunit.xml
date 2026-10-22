@@ -18,6 +18,9 @@
         <testsuite name="Benchmark">
             <directory>tests/Benchmark</directory>
         </testsuite>
+        <testsuite name="Manual">
+            <directory>tests/Manual</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

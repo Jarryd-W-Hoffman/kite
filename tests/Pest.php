@@ -37,7 +37,7 @@ pest()->extend(TestCase::class)
 
         TemporaryVaults::$paths = [];
     })
-    ->in('Browser', 'Feature', 'Unit');
+    ->in('Browser', 'Feature', 'Manual', 'Unit');
 
 // Benchmarks set up their own database file, to time work as the app does it.
 pest()->extend(TestCase::class)->in('Benchmark');
