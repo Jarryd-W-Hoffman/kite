@@ -24,6 +24,7 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useShortcuts } from '@/lib/key-bindings';
 import { formatShortcut } from '@/lib/shortcuts';
 
 type Props = {
@@ -69,6 +70,8 @@ export function NoteActionsMenu({
     onPublish,
     onDelete,
 }: Props) {
+    const focusShortcut = useShortcuts()('focus-mode');
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -90,9 +93,11 @@ export function NoteActionsMenu({
                 <DropdownMenuItem onSelect={onFocus} data-test="enter-focus">
                     <Focus />
                     Focus mode
-                    <DropdownMenuShortcut>
-                        {formatShortcut('Mod+Shift+F', platform)}
-                    </DropdownMenuShortcut>
+                    {focusShortcut && (
+                        <DropdownMenuShortcut>
+                            {formatShortcut(focusShortcut, platform)}
+                        </DropdownMenuShortcut>
+                    )}
                 </DropdownMenuItem>
                 {!locked && (
                     <DropdownMenuItem onSelect={onMerge} data-test="merge-note">

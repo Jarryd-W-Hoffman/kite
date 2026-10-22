@@ -22,6 +22,7 @@ use App\Http\Controllers\FlashcardController;
 use App\Http\Controllers\FlashcardReviewController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\KeyBindingController;
 use App\Http\Controllers\NoteCommentController;
 use App\Http\Controllers\NoteConflictCopyController;
 use App\Http\Controllers\NoteController;
@@ -69,6 +70,7 @@ Route::get('/', HomeController::class)->name('home');
 
 // Preferences...
 Route::put('preferences', [PreferencesController::class, 'update'])->name('preferences.update');
+Route::put('key-bindings', [KeyBindingController::class, 'update'])->name('key-bindings.update');
 Route::put('appearance', [AppearanceController::class, 'update'])->name('appearance.update');
 Route::get('diagnostics', [DiagnosticsController::class, 'show'])->name('diagnostics.show');
 Route::post('diagnostics/logs', [DiagnosticsLogController::class, 'store'])->name('diagnostics-logs.store');

@@ -59,6 +59,7 @@ import { useAppearance } from '@/hooks/use-appearance';
 import type { Appearance } from '@/hooks/use-appearance';
 import type { ColourGroup } from '@/lib/colour-groups';
 import { flashcardsUrl } from '@/lib/flashcards';
+import { useShortcuts } from '@/lib/key-bindings';
 import { formatShortcut } from '@/lib/shortcuts';
 import { booleanCodec, useStoredState } from '@/lib/storage';
 import { requestNewTab } from '@/lib/tabs';
@@ -139,6 +140,7 @@ export function WorkspaceSidebar({
     onSearch,
 }: Props) {
     const { kite } = usePage().props;
+    const shortcutFor = useShortcuts();
     const [preferencesOpen, setPreferencesOpen] = useState(false);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const [importing, setImporting] = useState(false);
@@ -370,14 +372,20 @@ export function WorkspaceSidebar({
                 <SectionHeading title="Notes">
                     <SectionAction
                         label="New note"
-                        shortcut={formatShortcut('Mod+N', kite.platform)}
+                        shortcut={formatShortcut(
+                            shortcutFor('new-note') ?? '',
+                            kite.platform,
+                        )}
                         onClick={() => createNote(vault)}
                     >
                         <Plus />
                     </SectionAction>
                     <SectionAction
                         label="New note from template"
-                        shortcut={formatShortcut('Mod+Shift+N', kite.platform)}
+                        shortcut={formatShortcut(
+                            shortcutFor('new-from-template') ?? '',
+                            kite.platform,
+                        )}
                         onClick={() => setTemplateFolder('')}
                         testId="new-from-template"
                     >
@@ -555,8 +563,9 @@ export function WorkspaceSidebar({
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">
-                        Keyboard shortcuts (
-                        {formatShortcut('Mod+/', kite.platform)})
+                        Keyboard shortcuts
+                        {shortcutFor('shortcuts') &&
+                            ` (${formatShortcut(shortcutFor('shortcuts') ?? '', kite.platform)})`}
                     </TooltipContent>
                 </Tooltip>
                 <ThemeButton

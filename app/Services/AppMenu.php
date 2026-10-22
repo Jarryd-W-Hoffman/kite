@@ -10,7 +10,8 @@ use Native\Desktop\Facades\Menu;
 use Native\Desktop\Menu\Items\Label;
 
 /**
- * The native application menu. Commands are handled by the window, so the menu owns their accelerators.
+ * The native application menu. Commands are handled by the window, so the menu owns their
+ * accelerators: each command's default below, or the one the user chose (see KeyBindings).
  */
 final readonly class AppMenu
 {
@@ -28,6 +29,11 @@ final readonly class AppMenu
         'toggle-theme' => ['Toggle dark mode', 'CmdOrCtrl+Shift+L'],
         'shortcuts' => ['Keyboard shortcuts', 'CmdOrCtrl+/'],
     ];
+
+    public function __construct(private KeyBindings $bindings)
+    {
+        //
+    }
 
     public function register(): void
     {
@@ -66,10 +72,14 @@ final readonly class AppMenu
 
     private function command(string $id): Label
     {
-        [$label, $accelerator] = self::COMMANDS[$id];
+        $accelerator = $this->bindings->all()[$id];
 
-        $item = Menu::label($label);
-        $item->id($id)->event(MenuCommandSelected::class)->hotkey($accelerator);
+        $item = Menu::label(self::COMMANDS[$id][0]);
+        $item->id($id)->event(MenuCommandSelected::class);
+
+        if ($accelerator !== '') {
+            $item->hotkey($accelerator);
+        }
 
         return $item;
     }

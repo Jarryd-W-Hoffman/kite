@@ -40,6 +40,8 @@ final readonly class Settings
             'welcome_on_startup' => ['config' => null, 'default' => true, 'rules' => ['required', 'boolean']],
             'whats_new_after_update' => ['config' => null, 'default' => true, 'rules' => ['required', 'boolean']],
             'crash_reports' => ['config' => null, 'default' => false, 'rules' => ['required', 'boolean']],
+            // Changed from the keyboard shortcuts dialog; see App\Services\KeyBindings.
+            'key_bindings' => ['config' => null, 'default' => [], 'rules' => ['array']],
         ];
     }
 

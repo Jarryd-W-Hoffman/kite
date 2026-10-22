@@ -35,6 +35,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // character, surrounding spaces included.
         $middleware->trimStrings(except: ['contents', 'quote', 'prefix', 'suffix']);
 
+        // A key binding of '' means no shortcut, which null (the default) must not be mistaken for.
+        $middleware->convertEmptyStringsToNull(except: [
+            fn (Request $request): bool => $request->is('key-bindings'),
+        ]);
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
