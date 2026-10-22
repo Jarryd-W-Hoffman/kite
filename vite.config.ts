@@ -52,6 +52,9 @@ export default defineConfig({
             'resources/js/wayfinder/*',
         ],
     },
+    test: {
+        include: ['resources/js/**/*.test.ts'],
+    },
     server: {
         watch: {
             ignored: [

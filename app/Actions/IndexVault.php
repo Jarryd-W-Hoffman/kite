@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Models\DeletedNote;
 use App\Models\Note;
 use App\Models\Vault;
 use App\Services\CommentStore;
@@ -29,6 +30,8 @@ final readonly class IndexVault
         private ResolveLinks $resolveLinks,
         private IndexingProgress $progress,
         private CommentStore $comments,
+        private ArchiveNote $archive,
+        private RestoreDeletedNote $restore,
     ) {
         //
     }
@@ -38,7 +41,8 @@ final readonly class IndexVault
      *
      * Only one index run per vault happens at a time; a concurrent call returns without changes.
      * Work is committed in batches so other requests are never blocked for long. A note moved or
-     * renamed outside Kite keeps its row, and so its history, star and comments.
+     * renamed outside Kite keeps its row, and so its history, star and comments. A note deleted
+     * outside Kite keeps its history for a while, and gets it back if the same text returns.
      *
      * @param  (Closure(int, int): void)|null  $onProgress  Called with (notes done, notes to index).
      * @return array{added: int, updated: int, removed: int, moved: int}
@@ -64,9 +68,10 @@ final readonly class IndexVault
 
             $moves = $this->moves($vault, $removed, array_diff_key($changed, $indexed));
             $removed = array_diff_key($removed, $moves);
+            $returning = $this->returning($vault, array_diff_key($changed, $indexed, array_flip($moves)));
 
             if ($removed !== [] || $changed !== []) {
-                $this->index($vault, $indexed, $removed, $changed, $moves, $summary, $onProgress);
+                $this->index($vault, $indexed, $removed, $changed, $moves, $returning, $summary, $onProgress);
             }
         } finally {
             $lock->release();
@@ -98,10 +103,11 @@ final readonly class IndexVault
      * @param  array<string, array{id: int, size: int, modified_at: int}>  $removed
      * @param  array<string, array{size: int, modified_at: int}>  $changed
      * @param  array<string, string>  $moves  Old path => new path.
+     * @param  array<string, DeletedNote>  $returning  New path => the deleted note it brings back.
      * @param  array{added: int, updated: int, removed: int, moved: int}  $summary
      * @param  (Closure(int, int): void)|null  $onProgress
      */
-    private function index(Vault $vault, array $indexed, array $removed, array $changed, array $moves, array &$summary, ?Closure $onProgress): void
+    private function index(Vault $vault, array $indexed, array $removed, array $changed, array $moves, array $returning, array &$summary, ?Closure $onProgress): void
     {
         $total = count($changed);
         $report = function (int $done) use ($onProgress, $total): void {
@@ -111,6 +117,8 @@ final readonly class IndexVault
         };
 
         $report(0);
+
+        $this->archive->archiveMissing($vault, array_column($removed, 'id'));
 
         foreach (array_chunk(array_column($removed, 'id'), 500) as $ids) {
             $summary['removed'] += Note::query()->whereKey($ids)->toBase()->delete();
@@ -142,7 +150,7 @@ final readonly class IndexVault
         $done = 0;
 
         foreach (array_chunk($changed, $this->batchSize(), preserve_keys: true) as $batch) {
-            DB::transaction(function () use ($vault, $indexed, $movedTo, $batch, &$summary, &$pending, &$addedKeys, &$done, $report): void {
+            DB::transaction(function () use ($vault, $indexed, $movedTo, $returning, $batch, &$summary, &$pending, &$addedKeys, &$done, $report): void {
                 // Readers only see the batch once it commits, so one new tree revision covers it.
                 $treeChanged = false;
                 $onTreeChange = function () use (&$treeChanged): void {
@@ -163,6 +171,11 @@ final readonly class IndexVault
                     } elseif (! isset($movedTo[$path])) {
                         $summary['added']++;
                         array_push($addedKeys, ...$this->resolver->keysFor($note->path_key));
+                    }
+
+                    if (isset($returning[$path])) {
+                        $this->comments->move($vault, $returning[$path]->path, $path);
+                        $this->restore->reattach($returning[$path], $note);
                     }
 
                     $done++;
@@ -244,6 +257,43 @@ final readonly class IndexVault
         }
 
         return $moves;
+    }
+
+    /**
+     * New files bringing back a note deleted earlier: one with exactly the text the deleted note
+     * last had (a delete and an add seen in separate syncs, or a file put back from the trash).
+     *
+     * @param  array<string, array{size: int, modified_at: int}>  $added
+     * @return array<string, DeletedNote> New path => deleted note.
+     */
+    private function returning(Vault $vault, array $added): array
+    {
+        if ($added === []) {
+            return [];
+        }
+
+        $sizes = array_flip(DeletedNote::query()->where('vault_id', $vault->id)->get(['size'])->map(fn (DeletedNote $note): int => $note->size)->all());
+        $returning = [];
+
+        foreach ($added as $path => $stat) {
+            if (! isset($sizes[$stat['size']])) {
+                continue;
+            }
+
+            $path = (string) $path;
+            $deleted = DeletedNote::query()
+                ->where('vault_id', $vault->id)
+                ->where('hash', hash('xxh128', $this->files->read($vault, $path)))
+                ->whereNotIn('id', array_map(fn (DeletedNote $note): int => $note->id, $returning))
+                ->latest('id')
+                ->first();
+
+            if ($deleted instanceof DeletedNote) {
+                $returning[$path] = $deleted;
+            }
+        }
+
+        return $returning;
     }
 
     /**

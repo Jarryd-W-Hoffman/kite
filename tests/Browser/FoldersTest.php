@@ -128,7 +128,7 @@ it('deletes a folder after confirming and leaves it if the open note was inside'
         ->click('@tree-folder-actions')
         ->click('@tree-delete-folder')
         ->assertSee('Delete “Projects”?')
-        ->assertSee('The folder and its 2 notes will be permanently deleted.')
+        ->assertSee('The folder and its 2 notes will be deleted.')
         ->click('Delete folder')
         ->assertSee('Deleted “Projects”.')
         ->assertMissing('@tree-folder')
