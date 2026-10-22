@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Note;
 use App\Models\Vault;
+use App\Services\LocalTime;
 use App\Services\VaultFilesystem;
 use InvalidArgumentException;
 
@@ -15,6 +16,7 @@ final readonly class AppendToDailyNote
         private OpenDailyNote $openDailyNote,
         private VaultFilesystem $files,
         private SaveNote $saveNote,
+        private LocalTime $time,
     ) {
         //
     }
@@ -30,7 +32,7 @@ final readonly class AppendToDailyNote
         throw_if($note->locked, InvalidArgumentException::class, "Today's note is locked.");
 
         $lines = preg_split('/\R/', mb_trim($text)) ?: [];
-        $entry = '- '.now()->format('H:i').' '.array_shift($lines);
+        $entry = '- '.$this->time->now()->format('H:i').' '.array_shift($lines);
 
         foreach ($lines as $line) {
             $entry .= "\n  ".$line;

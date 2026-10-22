@@ -16,6 +16,11 @@ use Illuminate\Support\Facades\DB;
  */
 final readonly class Templates
 {
+    public function __construct(private LocalTime $time = new LocalTime)
+    {
+        //
+    }
+
     public function folder(): string
     {
         $folder = config('kite.templates.folder');
@@ -88,8 +93,9 @@ final readonly class Templates
      */
     public function render(string $contents, array $context): string
     {
-        $date = CarbonImmutable::instance($context['date'] ?? now());
-        $now = CarbonImmutable::now();
+        // Dates and times where the person is, not in the UTC Kite stores its own timestamps in.
+        $now = $this->time->now();
+        $date = isset($context['date']) ? CarbonImmutable::instance($context['date']) : $now;
 
         $values = [
             'title' => $context['title'],
