@@ -34,6 +34,7 @@ use App\Http\Controllers\NoteMentionController;
 use App\Http\Controllers\NoteMergeController;
 use App\Http\Controllers\NotePaneController;
 use App\Http\Controllers\NotePathController;
+use App\Http\Controllers\NotePeekController;
 use App\Http\Controllers\NotePropertiesController;
 use App\Http\Controllers\NotePublicationController;
 use App\Http\Controllers\NoteStarController;
@@ -139,6 +140,7 @@ Route::scopeBindings()->group(function (): void {
     Route::get('vaults/{vault}/notes/{note}', [NoteController::class, 'show'])->middleware(WatchVault::class)->name('notes.show');
     Route::put('vaults/{vault}/notes/{note}', [NoteController::class, 'update'])->name('notes.update');
     Route::get('vaults/{vault}/notes/{note}/pane', [NotePaneController::class, 'show'])->name('note-panes.show');
+    Route::get('vaults/{vault}/notes/{note}/peek', [NotePeekController::class, 'show'])->name('note-peeks.show');
     Route::get('vaults/{vault}/notes/{note}/graph', [NoteGraphController::class, 'show'])->name('note-graphs.show');
     Route::post('vaults/{vault}/notes/{note}/mentions', [NoteMentionController::class, 'store'])->name('note-mentions.store');
     Route::put('vaults/{vault}/notes/{note}/path', [NotePathController::class, 'update'])->name('note-path.update');

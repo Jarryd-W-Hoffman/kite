@@ -36,6 +36,7 @@ import {
 import { usePage } from '@inertiajs/react';
 import { useEffect, useImperativeHandle, useRef } from 'react';
 import type { Ref } from 'react';
+import { LinkPeek } from '@/components/kite/link-peek';
 import { captureAnchor, findAnchor } from '@/lib/comment-anchors';
 import type { AnchorRange, CommentAnchor } from '@/lib/comment-anchors';
 import {
@@ -57,6 +58,7 @@ import {
 } from '@/lib/editor-extensions';
 import { livePreview, livePreviewTheme } from '@/lib/live-preview';
 import { markdownBlocks, markdownBlocksTheme } from '@/lib/markdown-blocks';
+import { findNote } from '@/lib/note-actions';
 import { matchNotes, noteName } from '@/lib/note-tree';
 import {
     BASE_COMMANDS,
@@ -66,7 +68,7 @@ import {
 import type { SlashCommand } from '@/lib/slash-commands';
 import { typewriterScrolling } from '@/lib/typewriter';
 import { cn, editorFontClass, editorWidthClass } from '@/lib/utils';
-import type { TreeNote } from '@/types';
+import type { TreeNote, VaultSummary } from '@/types';
 
 export type EditorSelectionText = { from: number; to: number; text: string };
 
@@ -100,6 +102,8 @@ type Props = {
     onUpload?: (files: File[]) => Promise<string[]>;
     onFollowLink?: (target: string) => void;
     notes: TreeNote[];
+    /** With a vault, holding Ctrl or ⌘ over a link previews the note it goes to. */
+    vault?: VaultSummary;
     className?: string;
     testId?: string;
     /** Comments to highlight. Passing onAddComment also offers a Comment button on selections. */
@@ -171,6 +175,7 @@ export function NoteEditor({
     onUpload,
     onFollowLink,
     notes,
+    vault,
     className,
     testId = 'note-editor',
     comments = NO_COMMENTS,
@@ -708,7 +713,29 @@ export function NoteEditor({
                     '--kite-editor-width': editorMaxWidth[editor.editor_width],
                 } as React.CSSProperties
             }
-        />
+        >
+            {vault && (
+                <LinkPeek
+                    vault={vault}
+                    containerRef={containerRef}
+                    requireModifier
+                    resolve={(element) => {
+                        const link =
+                            element.closest<HTMLElement>('.cm-wikilink');
+                        const note = link?.dataset.wikiTarget
+                            ? findNote(notes, link.dataset.wikiTarget)
+                            : undefined;
+
+                        return note
+                            ? {
+                                  noteId: note.id,
+                                  section: link?.dataset.wikiHeading ?? '',
+                              }
+                            : null;
+                    }}
+                />
+            )}
+        </div>
     );
 }
 

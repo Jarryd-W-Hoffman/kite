@@ -757,6 +757,7 @@ function NoteWorkspace({
                     {narrow && !focus && sidePanels}
                     {shownMode !== 'preview' && (
                         <NoteEditor
+                            vault={vault}
                             ref={editorRef}
                             value={contents}
                             onChange={setContents}
