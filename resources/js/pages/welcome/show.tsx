@@ -24,6 +24,7 @@ import { runAppCommand } from '@/hooks/use-app-commands';
 import type { AppCommand } from '@/hooks/use-app-commands';
 import { useOpenExternalLink } from '@/hooks/use-open-external-link';
 import { useVaultSync } from '@/hooks/use-vault-sync';
+import { tipsWithShortcuts, useShortcuts } from '@/lib/key-bindings';
 import { requestNewTab } from '@/lib/tabs';
 import { update as updateCrashReportConsent } from '@/routes/crash-report-consent';
 import { show as showNote } from '@/routes/notes';
@@ -45,12 +46,20 @@ type Props = WorkspaceProps & {
     recent_notes?: NoteLinkSummary[];
 };
 
-const TIPS: { shortcut: string; text: string }[] = [
-    { shortcut: 'Mod+K', text: 'Search every note, or type > for commands' },
+const TIPS: { shortcut: string; command?: AppCommand; text: string }[] = [
+    {
+        shortcut: 'Mod+K',
+        command: 'search',
+        text: 'Search every note, or type > for commands',
+    },
     { shortcut: '[[', text: 'Link to another note as you write' },
     { shortcut: 'Mod+Shift+Space', text: 'Quick capture from anywhere' },
-    { shortcut: 'Mod+D', text: "Open today's note" },
-    { shortcut: 'Mod+/', text: 'See every keyboard shortcut' },
+    { shortcut: 'Mod+D', command: 'daily-note', text: "Open today's note" },
+    {
+        shortcut: 'Mod+/',
+        command: 'shortcuts',
+        text: 'See every keyboard shortcut',
+    },
 ];
 
 export default function WelcomeShow({
@@ -70,6 +79,7 @@ export default function WelcomeShow({
     ask_crash_reports: askCrashReports,
     recent_notes: recentNotes = [],
 }: Props) {
+    const shortcutFor = useShortcuts();
     const [paletteOpen, setPaletteOpen] = useState(false);
     const [onStartup, setOnStartup] = useState(welcomeOnStartup);
     const openExternalLink = useOpenExternalLink();
@@ -339,17 +349,19 @@ export default function WelcomeShow({
 
                             <Section title="Tips">
                                 <ul className="grid gap-2 text-sm">
-                                    {TIPS.map((tip) => (
-                                        <li
-                                            key={tip.shortcut}
-                                            className="flex items-center gap-3"
-                                        >
-                                            <Kbd shortcut={tip.shortcut} />
-                                            <span className="text-muted-foreground">
-                                                {tip.text}
-                                            </span>
-                                        </li>
-                                    ))}
+                                    {tipsWithShortcuts(TIPS, shortcutFor).map(
+                                        (tip) => (
+                                            <li
+                                                key={tip.text}
+                                                className="flex items-center gap-3"
+                                            >
+                                                <Kbd shortcut={tip.shortcut} />
+                                                <span className="text-muted-foreground">
+                                                    {tip.text}
+                                                </span>
+                                            </li>
+                                        ),
+                                    )}
                                 </ul>
                             </Section>
 

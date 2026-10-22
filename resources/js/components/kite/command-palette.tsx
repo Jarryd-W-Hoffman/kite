@@ -10,6 +10,7 @@ import {
 import { runAppCommand } from '@/hooks/use-app-commands';
 import { matchCommands } from '@/lib/commands';
 import type { PaletteCommand } from '@/lib/commands';
+import { useShortcuts } from '@/lib/key-bindings';
 import { isAbortError, requestJson } from '@/lib/kite-http';
 import { formatShortcut } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
@@ -42,6 +43,7 @@ export function CommandPalette({
     noteOpen = false,
 }: Props) {
     const { kite } = usePage().props;
+    const shortcutFor = useShortcuts();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResult[]>([]);
     const [resultsQuery, setResultsQuery] = useState<string | null>(null);
@@ -312,10 +314,16 @@ export function CommandPalette({
                                     >
                                         {item.command.label}
                                     </span>
-                                    {item.command.shortcut && (
+                                    {shortcutFor(
+                                        item.command.id,
+                                        item.command.shortcut,
+                                    ) && (
                                         <kbd className="self-center rounded border bg-background px-1.5 py-0.5 font-sans text-[10px] text-muted-foreground">
                                             {formatShortcut(
-                                                item.command.shortcut,
+                                                shortcutFor(
+                                                    item.command.id,
+                                                    item.command.shortcut,
+                                                ) ?? '',
                                                 kite.platform,
                                             )}
                                         </kbd>

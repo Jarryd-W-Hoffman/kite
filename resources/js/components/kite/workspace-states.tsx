@@ -12,7 +12,9 @@ import { LockedNoteScreen } from '@/components/kite/lock-dialogs';
 import { TabBar } from '@/components/kite/tab-bar';
 import { createNote, openDailyNote } from '@/components/kite/workspace-sidebar';
 import { Button } from '@/components/ui/button';
+import type { AppCommand } from '@/hooks/use-app-commands';
 import { useVaultSync } from '@/hooks/use-vault-sync';
+import { tipsWithShortcuts, useShortcuts } from '@/lib/key-bindings';
 import type { NoteDetail, WorkspaceProps } from '@/types';
 
 /*
@@ -20,11 +22,27 @@ import type { NoteDetail, WorkspaceProps } from '@/types';
  * note while its vault is locked.
  */
 
-const GETTING_STARTED: { shortcut: string; text: ReactNode }[] = [
-    { shortcut: 'Mod+N', text: 'Create a note' },
-    { shortcut: 'Mod+K', text: 'Search notes, or create one by name' },
-    { shortcut: 'Mod+D', text: "Open today's daily note" },
-    { shortcut: 'Mod+G', text: 'See how your notes connect' },
+const GETTING_STARTED: {
+    shortcut: string;
+    command?: AppCommand;
+    text: ReactNode;
+}[] = [
+    { shortcut: 'Mod+N', command: 'new-note', text: 'Create a note' },
+    {
+        shortcut: 'Mod+K',
+        command: 'search',
+        text: 'Search notes, or create one by name',
+    },
+    {
+        shortcut: 'Mod+D',
+        command: 'daily-note',
+        text: "Open today's daily note",
+    },
+    {
+        shortcut: 'Mod+G',
+        command: 'graph',
+        text: 'See how your notes connect',
+    },
     {
         shortcut: '[[',
         text: 'Link to another note; missing notes are created on click',
@@ -34,6 +52,7 @@ const GETTING_STARTED: { shortcut: string; text: ReactNode }[] = [
 
 export function EmptyWorkspace({ vault, indexing, watching }: WorkspaceProps) {
     useVaultSync(vault, () => router.reload(), watching);
+    const shortcutFor = useShortcuts();
 
     return (
         <main className="flex flex-1 flex-col">
@@ -81,9 +100,12 @@ export function EmptyWorkspace({ vault, indexing, watching }: WorkspaceProps) {
                                 Getting started
                             </h2>
                             <ul className="space-y-2 text-sm">
-                                {GETTING_STARTED.map((tip) => (
+                                {tipsWithShortcuts(
+                                    GETTING_STARTED,
+                                    shortcutFor,
+                                ).map((tip, index) => (
                                     <li
-                                        key={tip.shortcut}
+                                        key={index}
                                         className="flex items-center gap-3"
                                     >
                                         <Kbd

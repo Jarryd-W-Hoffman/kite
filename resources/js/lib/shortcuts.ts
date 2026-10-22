@@ -8,6 +8,7 @@ export function formatShortcut(shortcut: string, platform: string): string {
         : { Mod: 'Ctrl', Shift: 'Shift', Alt: 'Alt', Ctrl: 'Ctrl' };
 
     return shortcut
+        .replace(/^CmdOrCtrl\b/, 'Mod')
         .split('+')
         .map((key) => names[key] ?? key)
         .join(mac ? '' : '+');

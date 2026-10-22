@@ -1,4 +1,10 @@
+import { usePage } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
+import {
+    commandFor,
+    isRecordingShortcut,
+    RECORDED_COMMAND_EVENT,
+} from '@/lib/key-bindings';
 import { isNativeApp, onNativeEvent } from '@/lib/native-events';
 
 export type AppCommand =
@@ -45,32 +51,27 @@ export function runAppCommand(command: AppCommand): void {
     window.dispatchEvent(new CustomEvent(COMMAND_EVENT, { detail: command }));
 }
 
-/**
- * Keyboard equivalents of the native menu. In the desktop app the menu owns these accelerators,
- * so handling them here too would run commands twice; they are only bound in a browser.
- */
-const SHORTCUTS: Record<string, AppCommand> = {
-    n: 'new-note',
-    w: 'close-tab',
-    d: 'daily-note',
-    o: 'open-vault',
-    ',': 'preferences',
-    k: 'search',
-    g: 'graph',
-    e: 'toggle-preview',
-    'shift+f': 'focus-mode',
-    'shift+l': 'toggle-theme',
-    'shift+n': 'new-from-template',
-    '/': 'shortcuts',
-};
-
 type Handlers = Partial<Record<AppCommand, () => void>>;
 
+/**
+ * Run commands chosen from the native menu, the command palette or, in a browser, by their
+ * shortcuts. In the desktop app the menu owns the shortcuts, so handling them here too would run
+ * commands twice.
+ */
 export function useAppCommands(handlers: Handlers): void {
+    const { kite } = usePage().props;
     const handlersRef = useRef(handlers);
+    const keysRef = useRef({
+        bindings: kite.key_bindings,
+        platform: kite.platform,
+    });
 
     useEffect(() => {
         handlersRef.current = handlers;
+        keysRef.current = {
+            bindings: kite.key_bindings,
+            platform: kite.platform,
+        };
     });
 
     useEffect(() => {
@@ -91,6 +92,16 @@ export function useAppCommands(handlers: Handlers): void {
             const stopListening = onNativeEvent<{ command: string }>(
                 'App\\Events\\MenuCommandSelected',
                 (payload) => {
+                    if (isRecordingShortcut()) {
+                        window.dispatchEvent(
+                            new CustomEvent(RECORDED_COMMAND_EVENT, {
+                                detail: payload.command,
+                            }),
+                        );
+
+                        return;
+                    }
+
                     run(payload.command);
                 },
             );
@@ -102,17 +113,17 @@ export function useAppCommands(handlers: Handlers): void {
         }
 
         const onKeyDown = (event: KeyboardEvent) => {
-            const command =
-                SHORTCUTS[
-                    `${event.shiftKey ? 'shift+' : ''}${event.key.toLowerCase()}`
-                ];
+            if (isRecordingShortcut()) {
+                return;
+            }
 
-            if (
-                (event.metaKey || event.ctrlKey) &&
-                !event.altKey &&
-                command &&
-                run(command)
-            ) {
+            const command = commandFor(
+                event,
+                keysRef.current.bindings,
+                keysRef.current.platform,
+            );
+
+            if (command !== null && run(command)) {
                 event.preventDefault();
             }
         };
