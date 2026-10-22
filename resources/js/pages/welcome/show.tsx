@@ -127,6 +127,7 @@ export default function WelcomeShow({
                 <main className="flex min-w-0 flex-1 flex-col">
                     <TabBar
                         vault={vault}
+                        notes={tree}
                         current={{
                             kind: 'page',
                             page: 'welcome',

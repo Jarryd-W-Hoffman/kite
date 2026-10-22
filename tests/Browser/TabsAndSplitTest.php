@@ -105,3 +105,19 @@ it('keeps tabs saved before tabs could hold pages', function (): void {
         ->assertScript('typeof window.__pestBrowser?.jsErrors', 'object')
         ->assertNoJavaScriptErrors();
 });
+
+it('drops tabs whose note has gone, and keeps tab titles current', function (): void {
+    $vault = vaultWithFiles(['Alpha.md' => '# Alpha', 'Beta.md' => '# Beta']);
+    resolve(IndexVault::class)->handle($vault);
+    $alpha = Note::query()->where('path', 'Alpha.md')->value('id');
+    $beta = Note::query()->where('path', 'Beta.md')->value('id');
+
+    $page = visit(route('notes.show', [$vault, $alpha]));
+    $page->script("localStorage.setItem('kite:tabs:{$vault->id}', JSON.stringify({ tabs: [{ kind: 'note', id: {$alpha}, title: 'Alpha' }, { kind: 'note', id: 999, title: 'Gone' }, { kind: 'note', id: {$beta}, title: 'Old name' }], active: 'note:{$alpha}' }))");
+
+    $page->refresh()
+        ->assertSeeIn('@tab-bar', 'Beta')
+        ->assertDontSeeIn('@tab-bar', 'Gone')
+        ->assertDontSeeIn('@tab-bar', 'Old name')
+        ->assertNoJavaScriptErrors();
+});

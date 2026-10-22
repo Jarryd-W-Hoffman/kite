@@ -107,12 +107,14 @@ export function EmptyWorkspace({ vault, indexing, watching }: WorkspaceProps) {
  */
 export function LockedWorkspace({
     vault,
+    tree,
     note,
 }: WorkspaceProps & { note: NoteDetail }) {
     return (
         <main className="flex min-w-0 flex-1 flex-col">
             <TabBar
                 vault={vault}
+                notes={tree}
                 current={{ kind: 'note', id: note.id, title: note.title }}
             />
             <header className="kite-drag flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-3 text-sm">

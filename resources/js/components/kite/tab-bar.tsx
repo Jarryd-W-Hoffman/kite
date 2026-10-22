@@ -2,25 +2,36 @@ import { Link, router } from '@inertiajs/react';
 import { Pin, PinOff, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAppCommands } from '@/hooks/use-app-commands';
-import { closeTab, tabHref, tabKey, togglePin, visitTab } from '@/lib/tabs';
+import {
+    closeTab,
+    reconcileTabs,
+    tabHref,
+    tabKey,
+    togglePin,
+    visitTab,
+} from '@/lib/tabs';
 import type { Tab, TabState } from '@/lib/tabs';
 import { cn } from '@/lib/utils';
 import { show as showVault } from '@/routes/vaults';
-import type { VaultSummary } from '@/types';
+import type { TreeNote, VaultSummary } from '@/types';
 
 type Props = {
     vault: VaultSummary;
     /** What this page shows, as a tab. */
     current: Tab;
+    /** The vault's notes, to drop tabs whose note is gone and keep titles current. */
+    notes: TreeNote[];
 };
 
-export function TabBar({ vault, current }: Props) {
+export function TabBar({ vault, current, notes }: Props) {
     const currentKey = tabKey(current);
 
     // The parent keys this component by page, so each visit records the tab exactly once.
-    const [state, setState] = useState<TabState>(() =>
-        visitTab(vault.id, current),
-    );
+    const [state, setState] = useState<TabState>(() => {
+        visitTab(vault.id, current);
+
+        return reconcileTabs(vault.id, notes, tabKey(current));
+    });
 
     const close = (closing: string) => {
         const { state: next, next: target } = closeTab(vault.id, closing);

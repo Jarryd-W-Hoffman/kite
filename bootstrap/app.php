@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Models\Vault;
 use App\Services\DesktopCachePaths;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Native\Desktop\Http\Middleware\PreventRegularBrowserAccess;
 use Sentry\Laravel\Integration;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 new DesktopCachePaths()->apply();
 
@@ -44,4 +48,28 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request): bool => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // Visiting a page that's gone (say, a note deleted while a tab or link to it stayed around)
+        // leads back to its vault with a word about why, rather than to a bare error page. Other
+        // requests, such as for an attachment, still get a plain 404.
+        $exceptions->render(function (NotFoundHttpException $exception, Request $request): ?RedirectResponse {
+            $vault = $request->route()?->parameter('vault');
+
+            if (! $request->isMethod('GET') || ! $request->hasHeader('X-Inertia') || $vault === null) {
+                return null;
+            }
+
+            $vault = $vault instanceof Vault ? $vault : Vault::query()->find($vault);
+
+            if (! $vault instanceof Vault) {
+                return to_route('vaults.index');
+            }
+
+            Inertia::flash('toast', [
+                'type' => 'info',
+                'message' => __('That page isn’t there any more. Its note may have been deleted, or moved or renamed outside Kite.'),
+            ]);
+
+            return to_route('vaults.show', $vault);
+        });
     })->create();
