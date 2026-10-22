@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Services\KeyBindings;
 use App\Services\Settings;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -47,6 +48,8 @@ final class HandleInertiaRequests extends Middleware
                         array_flip(['editor_font', 'editor_font_size', 'editor_width', 'autosave_ms', 'live_preview']),
                     ),
                     'tree_group_colours' => (bool) $settings['tree_group_colours'],
+                    'key_bindings' => resolve(KeyBindings::class)->all(),
+                    'default_key_bindings' => resolve(KeyBindings::class)->defaults(),
                 ];
             },
             'preferences' => Inertia::optional(fn (): array => resolve(Settings::class)->all()),

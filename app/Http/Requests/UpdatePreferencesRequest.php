@@ -15,7 +15,8 @@ final class UpdatePreferencesRequest extends FormRequest
      */
     public function rules(Settings $settings): array
     {
-        // Appearance applies instantly from its own control, so the preferences form never sends it.
-        return array_diff_key($settings->rules(), ['appearance' => true]);
+        // Appearance applies instantly from its own control, and key bindings are changed in the
+        // keyboard shortcuts dialog, so the preferences form never sends them.
+        return array_diff_key($settings->rules(), ['appearance' => true, 'key_bindings' => true]);
     }
 }

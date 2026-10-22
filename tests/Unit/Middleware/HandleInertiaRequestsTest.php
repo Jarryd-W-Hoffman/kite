@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Services\KeyBindings;
 use Illuminate\Http\Request;
 
 it('shares app name from config', function (): void {
@@ -77,5 +78,7 @@ it('shares whether kite is running as a desktop app', function (bool $native): v
             'live_preview' => true,
         ],
         'tree_group_colours' => true,
+        'key_bindings' => resolve(KeyBindings::class)->defaults(),
+        'default_key_bindings' => resolve(KeyBindings::class)->defaults(),
     ]);
 })->with([true, false]);
