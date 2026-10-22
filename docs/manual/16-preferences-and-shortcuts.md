@@ -46,7 +46,7 @@ A report says what went wrong and where in Kite's code. It **never includes your
 
 ![The keyboard shortcuts dialog.](images/shortcuts.png)
 
-Press <kbd>Mod</kbd>+<kbd>/</kbd> in Kite for this list. `Mod` is <kbd>⌘</kbd> on macOS and <kbd>Ctrl</kbd> on Windows and Linux.
+Press <kbd>Mod</kbd>+<kbd>/</kbd> in Kite for this list. `Mod` is <kbd>⌘</kbd> on macOS and <kbd>Ctrl</kbd> on Windows and Linux. These are the defaults; you can [change most of them](#change-a-shortcut).
 
 ### General
 
@@ -92,6 +92,16 @@ Press <kbd>Mod</kbd>+<kbd>/</kbd> in Kite for this list. `Mod` is <kbd>⌘</kbd>
 | <kbd>Mod</kbd>+<kbd>Shift</kbd>+click | Open a link beside this note |
 | <kbd>Shift</kbd>+<kbd>Enter</kbd> | Open a search result beside this note |
 | <kbd>Mod</kbd>+<kbd>Enter</kbd> | Create a note from the search text |
+
+### Change a shortcut
+
+The shortcuts under **General** and **Tabs and views** (all but next and previous tab) can be changed, or turned off.
+
+1. Press <kbd>Mod</kbd>+<kbd>/</kbd> and choose **Customise…**.
+2. Choose the shortcut you want to change, then press the new keys. A shortcut is <kbd>Mod</kbd> with a letter, number or punctuation key, plus <kbd>Alt</kbd> or <kbd>Shift</kbd> if you like. Press <kbd>Esc</kbd> to keep the old one.
+3. Choose **×** to turn a shortcut off, or **↺** to put it back as it was. **Reset all** puts every one back.
+
+Kite won't take a shortcut that's already in use, by another command or by the editor (such as <kbd>Mod</kbd>+<kbd>B</kbd> for bold); it says what uses it. New shortcuts work straight away, show in the menus and the command palette, and apply to every vault. The editor's own shortcuts, and those for links and search, stay as they are.
 
 ## Accessibility
 
