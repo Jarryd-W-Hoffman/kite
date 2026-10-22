@@ -1,4 +1,5 @@
 import {
+    ArrowRightLeft,
     Ban,
     FileText,
     Frame,
@@ -7,11 +8,12 @@ import {
     Minus,
     Plus,
     Redo2,
+    Shapes,
     StickyNote,
     Trash2,
     Undo2,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,9 +24,32 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PRESET_COLORS } from '@/lib/canvas';
+import {
+    endsOf,
+    LINE_STYLES,
+    lineStyleOf,
+    PRESET_COLORS,
+    SHAPES,
+    shapePaths,
+} from '@/lib/canvas';
+import type {
+    CanvasEdge,
+    CanvasEnds,
+    CanvasShape,
+    LineStyle,
+} from '@/lib/canvas';
 import { isAbortError, requestJson } from '@/lib/kite-http';
 import { cn } from '@/lib/utils';
 import { index as search } from '@/routes/vault-search';
@@ -35,12 +60,21 @@ type Props = {
     readOnly: boolean;
     zoom: number;
     hasSelection: boolean;
+    /** Text cards in the selection, which can take a shape. */
+    selectedTextCards: number;
+    /** Connections in the selection. */
+    selectedEdges: CanvasEdge[];
     canUndo: boolean;
     canRedo: boolean;
     onAddText: () => void;
     onAddNote: (path: string) => void;
     onAddLink: (url: string) => void;
     onAddGroup: () => void;
+    onAddShape: (shape: CanvasShape) => void;
+    onShape: (shape: CanvasShape | null) => void;
+    onEnds: (ends: CanvasEnds) => void;
+    onReverse: () => void;
+    onLineStyle: (style: LineStyle) => void;
     onColor: (color: string | null) => void;
     onDelete: () => void;
     onUndo: () => void;
@@ -49,14 +83,25 @@ type Props = {
     onFit: () => void;
 };
 
+const ENDS: { ends: CanvasEnds; label: string }[] = [
+    { ends: 'end', label: 'Arrow at one end' },
+    { ends: 'both', label: 'Arrows at both ends' },
+    { ends: 'none', label: 'No arrows' },
+];
+
 /**
- * The bar floating at the bottom of the canvas: add cards, colour or delete the selection, undo,
- * and zoom.
+ * The bar floating at the bottom of the canvas: add cards and shapes, colour, shape or delete
+ * the selection, choose a connection's arrows and line, undo, and zoom.
  */
 export function CanvasToolbar(props: Props) {
     const [picking, setPicking] = useState(false);
     const [linking, setLinking] = useState(false);
-    const { readOnly } = props;
+    // A shape chosen from the menu is added once the menu has closed and let go of focus, so the
+    // new shape's text box keeps it.
+    const chosenShape = useRef<CanvasShape | null>(null);
+    const { readOnly, selectedEdges } = props;
+    const sharedEnds = shared(selectedEdges.map(endsOf));
+    const sharedLine = shared(selectedEdges.map(lineStyleOf));
 
     return (
         <>
@@ -75,6 +120,49 @@ export function CanvasToolbar(props: Props) {
                         >
                             <StickyNote />
                         </Tool>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8"
+                                    aria-label="Add a shape"
+                                    title="Add a shape"
+                                    data-test="canvas-add-shape"
+                                >
+                                    <Shapes />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                side="top"
+                                align="center"
+                                className="kite-no-drag"
+                                onCloseAutoFocus={(event) => {
+                                    if (chosenShape.current !== null) {
+                                        event.preventDefault();
+                                        props.onAddShape(chosenShape.current);
+                                        chosenShape.current = null;
+                                    }
+                                }}
+                            >
+                                <DropdownMenuLabel>
+                                    Add a shape
+                                </DropdownMenuLabel>
+                                {SHAPES.map(({ shape, label }) => (
+                                    <DropdownMenuItem
+                                        key={shape}
+                                        data-test={`canvas-add-shape-${shape}`}
+                                        onSelect={() => {
+                                            chosenShape.current = shape;
+                                        }}
+                                    >
+                                        <ShapeIcon shape={shape} />
+                                        {label}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                         <Tool
                             label="Add a note"
                             testId="canvas-add-note"
@@ -101,6 +189,120 @@ export function CanvasToolbar(props: Props) {
                             <Frame />
                         </Tool>
                         <Divider />
+                        {props.selectedTextCards > 0 && (
+                            <>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 px-2 text-xs"
+                                            title="Change the shape of the selected cards"
+                                            data-test="canvas-shape"
+                                        >
+                                            Shape
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        side="top"
+                                        align="center"
+                                        className="kite-no-drag"
+                                    >
+                                        <DropdownMenuItem
+                                            data-test="canvas-shape-none"
+                                            onSelect={() => props.onShape(null)}
+                                        >
+                                            <StickyNote />
+                                            Card
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        {SHAPES.map(({ shape, label }) => (
+                                            <DropdownMenuItem
+                                                key={shape}
+                                                data-test={`canvas-shape-${shape}`}
+                                                onSelect={() =>
+                                                    props.onShape(shape)
+                                                }
+                                            >
+                                                <ShapeIcon shape={shape} />
+                                                {label}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                <Divider />
+                            </>
+                        )}
+                        {selectedEdges.length > 0 && (
+                            <>
+                                {ENDS.map(({ ends, label }) => (
+                                    <Tool
+                                        key={ends}
+                                        label={label}
+                                        testId={`canvas-ends-${ends}`}
+                                        pressed={sharedEnds === ends}
+                                        onClick={() => props.onEnds(ends)}
+                                    >
+                                        <EndsIcon ends={ends} />
+                                    </Tool>
+                                ))}
+                                <Tool
+                                    label="Reverse direction"
+                                    testId="canvas-reverse"
+                                    onClick={props.onReverse}
+                                >
+                                    <ArrowRightLeft />
+                                </Tool>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="size-8"
+                                            aria-label="Line style"
+                                            title="Line style"
+                                            data-test="canvas-line-style"
+                                        >
+                                            <LineIcon
+                                                style={sharedLine ?? 'solid'}
+                                            />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        side="top"
+                                        align="center"
+                                        className="kite-no-drag"
+                                    >
+                                        <DropdownMenuRadioGroup
+                                            value={sharedLine ?? ''}
+                                            onValueChange={(value) =>
+                                                props.onLineStyle(
+                                                    value as LineStyle,
+                                                )
+                                            }
+                                        >
+                                            {LINE_STYLES.map(
+                                                ({ style, label }) => (
+                                                    <DropdownMenuRadioItem
+                                                        key={style}
+                                                        value={style}
+                                                        data-test={`canvas-line-${style}`}
+                                                    >
+                                                        <LineIcon
+                                                            style={style}
+                                                        />
+                                                        {label}
+                                                    </DropdownMenuRadioItem>
+                                                ),
+                                            )}
+                                        </DropdownMenuRadioGroup>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                <Divider />
+                            </>
+                        )}
                         {props.hasSelection && (
                             <>
                                 {Object.entries(PRESET_COLORS).map(
@@ -193,16 +395,89 @@ export function CanvasToolbar(props: Props) {
     );
 }
 
+/** The value every item has, or null when they differ (or there are none). */
+function shared<T>(values: T[]): T | null {
+    return values.length > 0 && values.every((value) => value === values[0])
+        ? values[0]
+        : null;
+}
+
+/** A small outline of a shape, for menus. */
+function ShapeIcon({ shape }: { shape: CanvasShape }) {
+    const size = shape === 'circle' ? [14, 14] : [18, 12];
+    const { outline, details } = shapePaths(shape, size[0], size[1]);
+
+    return (
+        <svg
+            aria-hidden
+            viewBox={`-1 -1 ${size[0] + 2} ${size[1] + 2}`}
+            className="h-4 w-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.25}
+        >
+            <path d={outline} />
+            {details && <path d={details} />}
+        </svg>
+    );
+}
+
+/** A line with arrowheads where a connection has them. */
+function EndsIcon({ ends }: { ends: CanvasEnds }) {
+    return (
+        <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="M3 12h18" />
+            {ends !== 'none' && <path d="m16 7 5 5-5 5" />}
+            {ends === 'both' && <path d="m8 7-5 5 5 5" />}
+        </svg>
+    );
+}
+
+/** The line styles' dashes, scaled down to fit an icon. */
+const ICON_DASHES: Record<LineStyle, string | undefined> = {
+    solid: undefined,
+    'long-dashed': '6 4',
+    'short-dashed': '3 3',
+    dotted: '0.5 4.5',
+};
+
+/** A line drawn in a line style. */
+function LineIcon({ style }: { style: LineStyle }) {
+    return (
+        <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+        >
+            <path d="M2 12h20" strokeDasharray={ICON_DASHES[style]} />
+        </svg>
+    );
+}
+
 function Tool({
     label,
     testId,
     disabled,
+    pressed,
     onClick,
     children,
 }: {
     label: string;
     testId?: string;
     disabled?: boolean;
+    /** For a choice that's on or off: whether it's chosen. */
+    pressed?: boolean;
     onClick: () => void;
     children: ReactNode;
 }) {
@@ -211,8 +486,12 @@ function Tool({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-8"
+            className={cn(
+                'size-8',
+                pressed && 'bg-accent text-accent-foreground',
+            )}
             aria-label={label}
+            aria-pressed={pressed}
             title={label}
             data-test={testId}
             disabled={disabled}

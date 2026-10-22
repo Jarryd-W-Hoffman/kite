@@ -1,8 +1,13 @@
 import { FileQuestion, FileText, Globe, LockKeyhole } from 'lucide-react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { NotePreview } from '@/components/kite/note-preview';
-import { colorValue } from '@/lib/canvas';
-import type { CanvasFile, CanvasNode, CanvasSide } from '@/lib/canvas';
+import { colorValue, shapeInsets, shapeOf, shapePaths } from '@/lib/canvas';
+import type {
+    CanvasFile,
+    CanvasNode,
+    CanvasShape,
+    CanvasSide,
+} from '@/lib/canvas';
 import { cn } from '@/lib/utils';
 import type { VaultSummary } from '@/types';
 
@@ -88,6 +93,28 @@ export function CanvasCard({
         );
     }
 
+    const shape = shapeOf(node);
+
+    if (node.type === 'text' && shape !== null) {
+        return (
+            <ShapeCard
+                node={node}
+                shape={shape}
+                color={color}
+                style={style}
+                html={html}
+                vault={vault}
+                selected={selected}
+                editing={editing}
+                readOnly={readOnly}
+                onTextChange={onTextChange}
+                onEditEnd={onEditEnd}
+                onConnectStart={onConnectStart}
+                onResizeStart={onResizeStart}
+            />
+        );
+    }
+
     return (
         <div
             data-node-id={node.id}
@@ -103,24 +130,11 @@ export function CanvasCard({
             <div className="min-h-0 flex-1 overflow-hidden rounded-[10px]">
                 {node.type === 'text' &&
                     (editing ? (
-                        <textarea
-                            autoFocus
-                            defaultValue={node.text}
-                            aria-label="Card text"
-                            data-test="canvas-card-editor"
-                            className="size-full resize-none bg-transparent p-3 font-mono text-sm outline-none"
-                            onChange={(event) =>
-                                onTextChange(event.target.value)
-                            }
-                            onBlur={onEditEnd}
-                            onKeyDown={(event) => {
-                                event.stopPropagation();
-
-                                if (event.key === 'Escape') {
-                                    event.currentTarget.blur();
-                                }
-                            }}
-                            onPointerDown={(event) => event.stopPropagation()}
+                        <CardEditor
+                            text={node.text}
+                            className="p-3"
+                            onTextChange={onTextChange}
+                            onEditEnd={onEditEnd}
                         />
                     ) : (
                         <Scrollable>
@@ -165,10 +179,152 @@ export function CanvasCard({
     );
 }
 
-/** Card content that scrolls on its own instead of moving the canvas. */
-function Scrollable({ children }: { children: React.ReactNode }) {
+/**
+ * A text card drawn as a flowchart shape, its text centred inside the outline.
+ */
+function ShapeCard({
+    node,
+    shape,
+    color,
+    style,
+    html,
+    vault,
+    selected,
+    editing,
+    readOnly,
+    onTextChange,
+    onEditEnd,
+    onConnectStart,
+    onResizeStart,
+}: Omit<Props, 'file' | 'node'> & {
+    node: Extract<CanvasNode, { type: 'text' }>;
+    shape: CanvasShape;
+    color: string | null;
+    style: CSSProperties;
+}) {
+    const { outline, details } = shapePaths(shape, node.width, node.height);
+    const inset = shapeInsets(shape, node.width, node.height);
+    const stroke = selected ? 'var(--primary)' : (color ?? 'var(--border)');
+
     return (
-        <div data-canvas-scroll className="h-full overflow-auto">
+        <div
+            data-node-id={node.id}
+            data-test="canvas-card"
+            data-card-type="text"
+            data-shape={shape}
+            className="group/card absolute"
+            style={style}
+        >
+            <svg
+                aria-hidden
+                className="absolute inset-0 size-full overflow-visible drop-shadow-[0_1px_2px_rgb(0_0_0/0.08)]"
+            >
+                <path
+                    d={outline}
+                    fill={
+                        color
+                            ? `color-mix(in srgb, ${color} 10%, var(--card))`
+                            : 'var(--card)'
+                    }
+                    stroke={stroke}
+                    strokeWidth={selected ? 3 : 2}
+                    strokeLinejoin="round"
+                />
+                {details && (
+                    <path
+                        d={details}
+                        fill="none"
+                        stroke={stroke}
+                        strokeWidth={selected ? 3 : 2}
+                    />
+                )}
+            </svg>
+            <div
+                className="absolute flex items-center justify-center overflow-hidden text-center"
+                style={inset}
+            >
+                {editing ? (
+                    <CardEditor
+                        text={node.text}
+                        className="text-center"
+                        onTextChange={onTextChange}
+                        onEditEnd={onEditEnd}
+                    />
+                ) : (
+                    <Scrollable className="flex flex-col">
+                        {html === undefined ? (
+                            <p className="my-auto w-full text-sm whitespace-pre-wrap">
+                                {node.text}
+                            </p>
+                        ) : (
+                            <NotePreview
+                                vault={vault}
+                                html={html}
+                                className="kite-canvas-text my-auto w-full p-0"
+                            />
+                        )}
+                    </Scrollable>
+                )}
+            </div>
+            {!readOnly && (
+                <Handles
+                    onConnectStart={onConnectStart}
+                    onResizeStart={onResizeStart}
+                />
+            )}
+        </div>
+    );
+}
+
+/** Editing a text card's Markdown. Escape or clicking away finishes. */
+function CardEditor({
+    text,
+    className,
+    onTextChange,
+    onEditEnd,
+}: {
+    text: string;
+    className?: string;
+    onTextChange: (text: string) => void;
+    onEditEnd: () => void;
+}) {
+    return (
+        <textarea
+            autoFocus
+            defaultValue={text}
+            aria-label="Card text"
+            data-test="canvas-card-editor"
+            className={cn(
+                'size-full resize-none bg-transparent font-mono text-sm outline-none',
+                className,
+            )}
+            onChange={(event) => onTextChange(event.target.value)}
+            onBlur={onEditEnd}
+            onKeyDown={(event) => {
+                event.stopPropagation();
+
+                if (event.key === 'Escape') {
+                    event.currentTarget.blur();
+                }
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+        />
+    );
+}
+
+/** Card content that scrolls on its own instead of moving the canvas. */
+function Scrollable({
+    children,
+    className,
+}: {
+    children: React.ReactNode;
+    className?: string;
+}) {
+    return (
+        <div
+            data-canvas-scroll
+            className={cn('h-full w-full overflow-auto', className)}
+        >
             {children}
         </div>
     );

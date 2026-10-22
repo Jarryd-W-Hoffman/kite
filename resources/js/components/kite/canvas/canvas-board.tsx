@@ -31,12 +31,20 @@ import {
     intersects,
     nearestSide,
     newId,
+    reversed,
+    shapeOf,
+    SHAPES,
     snap,
+    withEnds,
+    withLineStyle,
+    withShape,
 } from '@/lib/canvas';
 import type {
     CanvasData,
+    CanvasEdge,
     CanvasFile,
     CanvasNode,
+    CanvasShape,
     CanvasSide,
     Point,
     Rect,
@@ -266,8 +274,13 @@ export function CanvasBoard({
 
         setEditing(null);
 
-        if (node?.type === 'text' && node.text.trim() === '') {
-            // An empty card goes away rather than cluttering the canvas.
+        if (
+            node?.type === 'text' &&
+            node.text.trim() === '' &&
+            shapeOf(node) === null
+        ) {
+            // An empty card goes away rather than cluttering the canvas. An empty shape stays,
+            // since a flowchart can use one on its own, like a junction circle.
             doc.preview((current) => without(current, new Set([node.id])));
             doc.end();
 
@@ -294,6 +307,46 @@ export function CanvasBoard({
             setSelected(new Set());
         }
     };
+
+    const addShape = (shape: CanvasShape) => {
+        const { width, height } =
+            SHAPES.find((option) => option.shape === shape) ?? SHAPES[0];
+        const at = center();
+        const card = freeSpot(
+            {
+                x: snap(at.x - width / 2),
+                y: snap(at.y - height / 2),
+                width,
+                height,
+            },
+            data.nodes,
+        );
+        const node = withShape<CanvasNode>(
+            { id: newId(), ...card, type: 'text', text: '' },
+            shape,
+        );
+
+        addNode(node);
+        startEditing(node.id);
+    };
+
+    const setShape = (shape: CanvasShape | null) =>
+        doc.change((current) => ({
+            ...current,
+            nodes: current.nodes.map((node) =>
+                selected.has(node.id) && node.type === 'text'
+                    ? withShape(node, shape)
+                    : node,
+            ),
+        }));
+
+    const changeEdges = (update: (edge: CanvasEdge) => CanvasEdge) =>
+        doc.change((current) => ({
+            ...current,
+            edges: current.edges.map((edge) =>
+                selected.has(edge.id) ? update(edge) : edge,
+            ),
+        }));
 
     const setColor = (color: string | null) =>
         doc.change((current) => ({
@@ -932,12 +985,27 @@ export function CanvasBoard({
                 readOnly={readOnly}
                 zoom={view.zoom}
                 hasSelection={selected.size > 0}
+                selectedTextCards={
+                    data.nodes.filter(
+                        (node) => node.type === 'text' && selected.has(node.id),
+                    ).length
+                }
+                selectedEdges={data.edges.filter((edge) =>
+                    selected.has(edge.id),
+                )}
                 canUndo={doc.canUndo}
                 canRedo={doc.canRedo}
                 onAddText={() => addText()}
                 onAddNote={(path) => addFile(path)}
                 onAddLink={addLink}
                 onAddGroup={addGroup}
+                onAddShape={addShape}
+                onShape={setShape}
+                onEnds={(ends) => changeEdges((edge) => withEnds(edge, ends))}
+                onReverse={() => changeEdges(reversed)}
+                onLineStyle={(style) =>
+                    changeEdges((edge) => withLineStyle(edge, style))
+                }
                 onColor={setColor}
                 onDelete={deleteSelection}
                 onUndo={doc.undo}

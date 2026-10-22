@@ -114,18 +114,292 @@ export function newId(): string {
     );
 }
 
-/** The middle of one side of a card. */
-export function anchor(node: Rect, side: CanvasSide): Point {
+/**
+ * The middle of one side of a card, where connections meet it. A parallelogram's slanted sides
+ * are met halfway along their slant.
+ */
+export function anchor(node: Rect & Styled, side: CanvasSide): Point {
+    const slant =
+        shapeOf(node) === 'parallelogram'
+            ? parallelogramSlant(node.width, node.height) / 2
+            : 0;
+
     switch (side) {
         case 'top':
             return { x: node.x + node.width / 2, y: node.y };
         case 'bottom':
             return { x: node.x + node.width / 2, y: node.y + node.height };
         case 'left':
-            return { x: node.x, y: node.y + node.height / 2 };
+            return { x: node.x + slant, y: node.y + node.height / 2 };
         case 'right':
-            return { x: node.x + node.width, y: node.y + node.height / 2 };
+            return {
+                x: node.x + node.width - slant,
+                y: node.y + node.height / 2,
+            };
     }
+}
+
+/**
+ * Shapes and line styles aren't part of JSON Canvas. Kite keeps them where Obsidian's Advanced
+ * Canvas plugin does, in `styleAttributes`, using its names, so diagrams look the same there.
+ */
+type Styled = {
+    type?: string;
+    styleAttributes?: unknown;
+    [key: string]: unknown;
+};
+
+/** The usual flowchart shapes a text card can take. */
+export type CanvasShape =
+    | 'rectangle'
+    | 'pill'
+    | 'diamond'
+    | 'parallelogram'
+    | 'circle'
+    | 'predefined-process'
+    | 'document'
+    | 'database';
+
+/** Each shape, what it's for in a flowchart, and the size a new one starts at. */
+export const SHAPES: {
+    shape: CanvasShape;
+    label: string;
+    width: number;
+    height: number;
+}[] = [
+    { shape: 'rectangle', label: 'Process', width: 220, height: 100 },
+    { shape: 'pill', label: 'Start or end', width: 220, height: 80 },
+    { shape: 'diamond', label: 'Decision', width: 220, height: 140 },
+    {
+        shape: 'parallelogram',
+        label: 'Input or output',
+        width: 240,
+        height: 100,
+    },
+    { shape: 'circle', label: 'Connector', width: 120, height: 120 },
+    {
+        shape: 'predefined-process',
+        label: 'Predefined process',
+        width: 240,
+        height: 100,
+    },
+    { shape: 'document', label: 'Document', width: 220, height: 120 },
+    { shape: 'database', label: 'Database', width: 160, height: 140 },
+];
+
+function styleAttributes(item: Styled): Record<string, unknown> {
+    const attributes = item.styleAttributes;
+
+    return typeof attributes === 'object' &&
+        attributes !== null &&
+        !Array.isArray(attributes)
+        ? (attributes as Record<string, unknown>)
+        : {};
+}
+
+/** Set or clear one style attribute, keeping the rest (other apps may have added some). */
+function withStyleAttribute<T extends Styled>(
+    item: T,
+    key: string,
+    value: string | null,
+): T {
+    const { [key]: _removed, ...rest } = styleAttributes(item);
+    const attributes = value === null ? rest : { ...rest, [key]: value };
+    const { styleAttributes: _old, ...plain } = item;
+
+    return (
+        Object.keys(attributes).length === 0
+            ? plain
+            : { ...plain, styleAttributes: attributes }
+    ) as T;
+}
+
+/** A text card's shape, or null for an ordinary card. */
+export function shapeOf(node: Styled): CanvasShape | null {
+    const shape = styleAttributes(node).shape;
+
+    return node.type === 'text' &&
+        SHAPES.some((option) => option.shape === shape)
+        ? (shape as CanvasShape)
+        : null;
+}
+
+/** A card with another shape, or as an ordinary card for null. */
+export function withShape<T extends Styled>(
+    node: T,
+    shape: CanvasShape | null,
+): T {
+    return withStyleAttribute(node, 'shape', shape);
+}
+
+/** How far a parallelogram's top is pushed right of its bottom. */
+export function parallelogramSlant(width: number, height: number): number {
+    return Math.min(height * 0.4, width * 0.25);
+}
+
+/**
+ * A shape's outline as SVG paths in the card's own coordinates: the outline, filled, and any
+ * lines drawn inside it (a predefined process's side bars, a database's rim).
+ */
+export function shapePaths(
+    shape: CanvasShape,
+    width: number,
+    height: number,
+): { outline: string; details?: string } {
+    const w = width;
+    const h = height;
+
+    switch (shape) {
+        case 'rectangle':
+            return { outline: roundedRect(w, h, 4) };
+        case 'pill':
+            return { outline: roundedRect(w, h, Math.min(w, h) / 2) };
+        case 'diamond':
+            return {
+                outline: `M ${w / 2} 0 L ${w} ${h / 2} L ${w / 2} ${h} L 0 ${h / 2} Z`,
+            };
+        case 'parallelogram': {
+            const slant = parallelogramSlant(w, h);
+
+            return {
+                outline: `M ${slant} 0 L ${w} 0 L ${w - slant} ${h} L 0 ${h} Z`,
+            };
+        }
+        case 'circle':
+            return {
+                outline: `M 0 ${h / 2} A ${w / 2} ${h / 2} 0 1 1 ${w} ${h / 2} A ${w / 2} ${h / 2} 0 1 1 0 ${h / 2} Z`,
+            };
+        case 'predefined-process': {
+            const bar = Math.min(14, w / 8);
+
+            return {
+                outline: roundedRect(w, h, 4),
+                details: `M ${bar} 0 V ${h} M ${w - bar} 0 V ${h}`,
+            };
+        }
+        case 'document': {
+            const wave = Math.min(h * 0.12, 14);
+
+            return {
+                outline: `M 0 0 H ${w} V ${h - wave} Q ${(w * 3) / 4} ${h - wave * 2.5} ${w / 2} ${h - wave} T 0 ${h - wave} Z`,
+            };
+        }
+        case 'database': {
+            const rim = Math.min(h * 0.14, w * 0.14, 18);
+
+            return {
+                outline: `M 0 ${rim} A ${w / 2} ${rim} 0 0 1 ${w} ${rim} V ${h - rim} A ${w / 2} ${rim} 0 0 1 0 ${h - rim} Z`,
+                details: `M 0 ${rim} A ${w / 2} ${rim} 0 0 0 ${w} ${rim}`,
+            };
+        }
+    }
+}
+
+function roundedRect(w: number, h: number, radius: number): string {
+    const r = Math.min(radius, w / 2, h / 2);
+
+    return `M ${r} 0 H ${w - r} A ${r} ${r} 0 0 1 ${w} ${r} V ${h - r} A ${r} ${r} 0 0 1 ${w - r} ${h} H ${r} A ${r} ${r} 0 0 1 0 ${h - r} V ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`;
+}
+
+/**
+ * Room to leave inside a shape so its text stays within the outline, in canvas units.
+ */
+export function shapeInsets(
+    shape: CanvasShape,
+    width: number,
+    height: number,
+): { top: number; right: number; bottom: number; left: number } {
+    const even = (x: number, y: number) => ({
+        top: y,
+        right: x,
+        bottom: y,
+        left: x,
+    });
+
+    switch (shape) {
+        case 'diamond':
+            return even(width / 4, height / 4);
+        case 'circle':
+            return even(width * 0.15, height * 0.15);
+        case 'parallelogram':
+            return even(parallelogramSlant(width, height) + 4, 8);
+        case 'predefined-process':
+            return even(Math.min(14, width / 8) + 8, 8);
+        case 'document':
+            return { ...even(10, 8), bottom: Math.min(height * 0.12, 14) * 2 };
+        case 'database':
+            return {
+                ...even(10, 8),
+                top: Math.min(height * 0.14, width * 0.14, 18) * 2 + 4,
+            };
+        default:
+            return even(12, 8);
+    }
+}
+
+/** How a connection's line is drawn. */
+export type LineStyle = 'solid' | 'long-dashed' | 'short-dashed' | 'dotted';
+
+export const LINE_STYLES: { style: LineStyle; label: string }[] = [
+    { style: 'solid', label: 'Solid line' },
+    { style: 'long-dashed', label: 'Dashed line' },
+    { style: 'dotted', label: 'Dotted line' },
+];
+
+export function lineStyleOf(edge: CanvasEdge): LineStyle {
+    const path = styleAttributes(edge).path;
+
+    return path === 'long-dashed' ||
+        path === 'short-dashed' ||
+        path === 'dotted'
+        ? path
+        : 'solid';
+}
+
+export function withLineStyle(edge: CanvasEdge, style: LineStyle): CanvasEdge {
+    return withStyleAttribute(edge, 'path', style === 'solid' ? null : style);
+}
+
+/** The SVG dash pattern for a line style, at a 2-unit stroke. */
+export const DASHES: Record<LineStyle, string | undefined> = {
+    solid: undefined,
+    'long-dashed': '10 6',
+    'short-dashed': '5 5',
+    dotted: '0.5 6',
+};
+
+/** Which ends of a connection have arrowheads. */
+export type CanvasEnds = 'end' | 'both' | 'none';
+
+export function endsOf(edge: CanvasEdge): CanvasEnds {
+    const from = (edge.fromEnd ?? 'none') === 'arrow';
+    const to = (edge.toEnd ?? 'arrow') === 'arrow';
+
+    return from && to ? 'both' : from || to ? 'end' : 'none';
+}
+
+export function withEnds(edge: CanvasEdge, ends: CanvasEnds): CanvasEdge {
+    return {
+        ...edge,
+        fromEnd: ends === 'both' ? 'arrow' : 'none',
+        toEnd: ends === 'none' ? 'none' : 'arrow',
+    };
+}
+
+/** The same connection running the other way: its ends, sides and arrowheads swap. */
+export function reversed(edge: CanvasEdge): CanvasEdge {
+    const { fromNode, toNode, fromSide, toSide, fromEnd, toEnd, ...rest } =
+        edge;
+
+    return {
+        ...rest,
+        fromNode: toNode,
+        toNode: fromNode,
+        ...(toSide === undefined ? {} : { fromSide: toSide }),
+        ...(fromSide === undefined ? {} : { toSide: fromSide }),
+        fromEnd: toEnd ?? 'arrow',
+        toEnd: fromEnd ?? 'none',
+    };
 }
 
 const NORMALS: Record<CanvasSide, Point> = {
