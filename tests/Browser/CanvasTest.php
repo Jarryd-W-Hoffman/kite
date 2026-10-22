@@ -102,3 +102,58 @@ it('explains a canvas it can’t read instead of opening it', function (): void 
         ->assertMissing('@canvas-board')
         ->assertNoJavaScriptErrors();
 });
+
+it("draws flowchart shapes, and changes a connection's arrows, direction and line", function (): void {
+    $vault = vaultWithFiles();
+    resolve(Canvases::class)->write($vault, 'Flow.canvas', [
+        ['id' => 'start', 'type' => 'text', 'text' => 'Start', 'x' => 0, 'y' => 0, 'width' => 220, 'height' => 80, 'styleAttributes' => ['shape' => 'pill', 'border' => 'dashed']],
+        ['id' => 'step', 'type' => 'text', 'text' => 'Step', 'x' => 400, 'y' => 0, 'width' => 220, 'height' => 100],
+    ], [
+        ['id' => 'link', 'fromNode' => 'start', 'fromSide' => 'right', 'toNode' => 'step', 'toSide' => 'left', 'toEnd' => 'arrow'],
+    ]);
+
+    $page = visit(route('canvases.show', [$vault, 'Flow.canvas']))
+        ->assertAttribute('[data-node-id=start]', 'data-shape', 'pill')
+        ->click('@canvas-add-shape')
+        ->click('@canvas-add-shape-diamond')
+        ->type('@canvas-card-editor', 'Done?')
+        ->keys('@canvas-card-editor', 'Escape')
+        ->assertSeeIn('[data-shape=diamond]', 'Done?')
+        ->click('[data-node-id=step]')
+        ->click('@canvas-shape')
+        ->click('@canvas-shape-database')
+        ->assertAttribute('[data-node-id=step]', 'data-shape', 'database')
+        ->click('[data-node-id=start]')
+        ->click('@canvas-shape')
+        ->click('@canvas-shape-none')
+        ->assertAttributeMissing('[data-node-id=start]', 'data-shape')
+        ->click('[data-edge-id=link] path.cursor-pointer')
+        ->assertAttribute('@canvas-ends-end', 'aria-pressed', 'true')
+        ->click('@canvas-ends-both')
+        ->assertCount('[data-edge-id=link] [data-test=canvas-arrow-from]', 1)
+        ->click('@canvas-ends-none')
+        ->assertCount('[data-edge-id=link] polygon', 0)
+        ->click('@canvas-ends-end')
+        ->click('@canvas-reverse')
+        ->click('@canvas-line-style')
+        ->click('@canvas-line-dotted')
+        ->assertAttribute('[data-edge-id=link] [data-line-style]', 'data-line-style', 'dotted')
+        ->assertSeeIn('@canvas-save-state', 'Saved')
+        ->assertNoJavaScriptErrors();
+
+    $canvas = canvasFile($vault, 'Flow.canvas');
+    $nodes = collect($canvas['nodes'])->keyBy('id');
+    $diamond = collect($canvas['nodes'])->firstWhere('text', 'Done?');
+
+    expect($diamond['styleAttributes'])->toBe(['shape' => 'diamond'])
+        ->and($nodes['step']['styleAttributes'])->toBe(['shape' => 'database'])
+        ->and($nodes['start']['styleAttributes'])->toBe(['border' => 'dashed'])
+        ->and($canvas['edges'][0])->toMatchArray([
+            'fromNode' => 'step', 'fromSide' => 'left', 'fromEnd' => 'arrow',
+            'toNode' => 'start', 'toSide' => 'right', 'toEnd' => 'none',
+            'styleAttributes' => ['path' => 'dotted'],
+        ]);
+
+    $page->keys('@canvas-board', 'Control+z')
+        ->assertAttribute('[data-edge-id=link] [data-line-style]', 'data-line-style', 'solid');
+});

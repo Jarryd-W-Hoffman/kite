@@ -1,4 +1,11 @@
-import { anchor, colorValue, edgeGeometry, facingSide } from '@/lib/canvas';
+import {
+    anchor,
+    colorValue,
+    DASHES,
+    edgeGeometry,
+    facingSide,
+    lineStyleOf,
+} from '@/lib/canvas';
 import type { CanvasEdge, CanvasNode, CanvasSide, Point } from '@/lib/canvas';
 
 const ARROW = 12;
@@ -133,17 +140,21 @@ export function CanvasEdges({
                             stroke={stroke}
                             strokeWidth={isSelected ? 3 : 2}
                             strokeLinecap="round"
+                            strokeDasharray={DASHES[lineStyleOf(edge)]}
+                            data-line-style={lineStyleOf(edge)}
                         />
                         {(edge.toEnd ?? 'arrow') === 'arrow' && (
                             <polygon
                                 points={arrowhead(to.point, to.side)}
                                 fill={stroke}
+                                data-test="canvas-arrow-to"
                             />
                         )}
                         {edge.fromEnd === 'arrow' && (
                             <polygon
                                 points={arrowhead(from.point, from.side)}
                                 fill={stroke}
+                                data-test="canvas-arrow-from"
                             />
                         )}
                     </g>

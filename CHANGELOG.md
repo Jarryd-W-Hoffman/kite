@@ -8,6 +8,8 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ### Added
 
+- **Flowchart shapes on canvases.** Choose **Add a shape** for a process, start or end, decision, input or output, connector, predefined process, document or database, or change a card's shape with **Shape**. Shapes match Obsidian's Advanced Canvas plugin.
+- **Arrows your way.** Select a connection on a canvas to put arrowheads at one end, both ends or neither, reverse its direction, or make it dashed or dotted.
 - **Optional crash reports.** If you turn them on (Preferences → Privacy, or when the Welcome tab asks), Kite sends a report when something goes wrong so it can be fixed. Reports never include your notes, and folder paths are removed. They're off unless you choose otherwise.
 - **Welcome in the tray menu:** open the Welcome tab from Kite's tray icon (the menu bar on macOS).
 - **Merge changes.** When a note changes on disk while you're editing it, choose **Merge…** to combine the two: changes made on only one side are kept, and where both changed the same lines you pick yours, theirs or both.
