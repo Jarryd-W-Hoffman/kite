@@ -7,8 +7,8 @@ use App\Models\Note;
 
 it('previews the note a link goes to when you hover it', function (): void {
     $vault = vaultWithFiles([
-        'Home.md' => "Read [[Guide]] and [[Guide#Usage]]. [[Missing]] isn't there.",
-        'Guide.md' => "# Guide\n\nAll about the guide.\n\n## Usage\n\nUse it daily.",
+        'Home.md' => "Read [[Guide]], [[Guide#Usage]] and [[Guide#^tip]]. [[Missing]] isn't there.",
+        'Guide.md' => "# Guide\n\nAll about the guide.\n\n## Usage\n\nUse it daily.\n\nA handy tip. ^tip",
     ]);
     resolve(IndexVault::class)->handle($vault);
 
@@ -21,6 +21,11 @@ it('previews the note a link goes to when you hover it', function (): void {
         ->assertSeeIn('@link-peek', 'Guide › Usage')
         ->assertSeeIn('@link-peek-body', 'Use it daily.')
         ->assertDontSeeIn('@link-peek-body', 'All about the guide.')
+        ->hover('[data-test=note-preview] a[href$="#^tip"]')
+        ->wait(0.6)
+        ->assertSeeIn('@link-peek', 'Guide › ^tip')
+        ->assertSeeIn('@link-peek-body', 'A handy tip.')
+        ->assertDontSeeIn('@link-peek-body', 'Use it daily.')
         ->keys('@note-editor', 'Escape')
         ->assertMissing('@link-peek')
         ->hover('[data-test=note-preview] a.is-unresolved')

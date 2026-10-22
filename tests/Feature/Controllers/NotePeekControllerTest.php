@@ -66,3 +66,11 @@ it('keeps vaults apart', function (): void {
 
     $this->getJson(route('note-peeks.show', [Vault::factory()->create(), Note::query()->sole()]))->assertNotFound();
 });
+
+it('previews just the block a link points at', function (): void {
+    $vault = peekVault(['Guide.md' => "# Guide\n\nBefore.\n\nThe key point. ^key\n\nAfter."]);
+
+    $this->getJson(route('note-peeks.show', [$vault, Note::query()->sole(), 'section' => '^key']))
+        ->assertJsonPath('title', 'Guide › ^key')
+        ->assertJsonPath('html', "<p>The key point.</p>\n");
+});
