@@ -217,7 +217,11 @@ export default function GraphShow({
                                     </option>
                                 ))}
                             </select>
-                            <div className="flex items-center gap-2 text-[13px]">
+                            <div
+                                className="flex items-center gap-2 text-[13px]"
+                                title="Show links to notes that don't exist yet, as hollow dots"
+                                data-test="graph-unresolved"
+                            >
                                 <Checkbox
                                     id="show-ghosts"
                                     checked={showGhosts}
@@ -227,7 +231,11 @@ export default function GraphShow({
                                 />
                                 <Label htmlFor="show-ghosts">Unresolved</Label>
                             </div>
-                            <div className="flex items-center gap-2 text-[13px]">
+                            <div
+                                className="flex items-center gap-2 text-[13px]"
+                                title="Show notes with no links in or out"
+                                data-test="graph-orphans"
+                            >
                                 <Checkbox
                                     id="show-orphans"
                                     checked={showOrphans}
