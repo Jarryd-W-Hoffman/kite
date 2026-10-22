@@ -30,17 +30,47 @@ The toolbar at the bottom adds cards in the middle of the view:
 | Button | Adds |
 | --- | --- |
 | **Add a card** | a text card: start typing |
+| **Add a shape** | a flowchart shape (see below): start typing its text |
 | **Add a note** | a note card: pick a note |
 | **Add a link** | a link card: type a web address |
 | **Add a group** | a group (or **Group the selection**, to put selected cards in one) |
 
 You can also **double-click empty space** for a new text card, or **drag a note** from the file tree onto the canvas.
 
+### Shapes for flowcharts
+
+Choose **Add a shape** for the usual flowchart shapes. Their text sits in the middle, and they connect like any card.
+
+| Shape | Usually means |
+| --- | --- |
+| Process (rectangle) | a step |
+| Start or end (pill) | where the flow starts or stops |
+| Decision (diamond) | a question with more than one way on, such as yes or no |
+| Input or output (parallelogram) | data coming in or going out |
+| Connector (circle) | a join, or a jump to another part of the chart |
+| Predefined process | a step described somewhere else |
+| Document | a document or report |
+| Database (cylinder) | stored data |
+
+To change a text card's shape, or turn a shape back into an ordinary card, select it and choose **Shape** in the toolbar. Shapes are saved the way Obsidian's Advanced Canvas plugin saves them, so they look the same there; plain Obsidian shows them as ordinary cards.
+
 ## Connect cards
 
 1. Move the pointer over a card: a handle appears on each side.
 2. Drag a handle to another card. Dropping it on empty space makes a new card there, already connected.
 3. Double-click a connection to give it a label, such as "plan" or "then".
+
+### Arrows and lines
+
+A connection has an arrowhead where it ends. Select one or more connections, then choose in the toolbar:
+
+| Button | Does |
+| --- | --- |
+| **Arrow at one end** | an arrowhead at one end only |
+| **Arrows at both ends** | an arrowhead at each end, for a two-way connection |
+| **No arrows** | a plain line |
+| **Reverse direction** | swap the ends, so the arrow points the other way |
+| **Line style** | a solid, dashed or dotted line |
 
 ## Arrange and edit
 
