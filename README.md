@@ -17,6 +17,19 @@
     <img src=".github/screenshots/note.png" alt="A note open in Kite: the file tree on the left, the editor and its preview side by side, and a local graph, outline and backlinks on the right." width="900">
 </p>
 
+<p align="center">
+    <a href="#why-kite">Why Kite?</a> ·
+    <a href="#features">Features</a> ·
+    <a href="#user-manual">User manual</a> ·
+    <a href="#your-vault-on-disk">Your vault on disk</a> ·
+    <a href="#keyboard-shortcuts">Keyboard shortcuts</a> ·
+    <a href="#download">Download</a> ·
+    <a href="#getting-started">Getting started</a> ·
+    <a href="#how-its-built">How it's built</a> ·
+    <a href="#development">Development</a> ·
+    <a href="#license">License</a>
+</p>
+
 ---
 
 ## Why Kite?
