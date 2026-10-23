@@ -6,6 +6,8 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-23
+
 ### Added
 
 - **Flowchart shapes on canvases.** Choose **Add a shape** for a process, start or end, decision, input or output, connector, predefined process, document or database, or change a card's shape with **Shape**. Shapes match Obsidian's Advanced Canvas plugin.
