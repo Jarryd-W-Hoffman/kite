@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\IndexVault;
+use App\Services\SystemOpener;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Native\Desktop\Facades\Shell;
@@ -60,6 +61,7 @@ it('shows the log files only in the desktop app', function (): void {
     $this->post(route('diagnostics-logs.store'))->assertNotFound();
 
     config(['nativephp-internal.running' => true, 'nativephp-internal.secret' => 'secret']);
+    app()->instance(SystemOpener::class, new SystemOpener('Darwin'));
     Shell::shouldReceive('openFile')->once()->with(storage_path('logs'))->andReturn('');
 
     $this->withHeader('X-NativePHP-Secret', 'secret')->post(route('diagnostics-logs.store'))->assertNoContent();

@@ -6,6 +6,7 @@ use App\Actions\IndexAttachments;
 use App\Actions\IndexVault;
 use App\Actions\LoadWorkspace;
 use App\Models\Vault;
+use App\Services\SystemOpener;
 use Native\Desktop\Facades\Shell;
 
 it('opens an attachment in its own app, only in the desktop app', function (): void {
@@ -14,6 +15,7 @@ it('opens an attachment in its own app, only in the desktop app', function (): v
     $this->postJson(route('vault-file-opens.store', $vault), ['path' => 'attachments/Report.pdf'])->assertNotFound();
 
     config(['nativephp-internal.running' => true, 'nativephp-internal.secret' => 'secret']);
+    app()->instance(SystemOpener::class, new SystemOpener('Darwin'));
     Shell::fake();
 
     $this->withHeader('X-NativePHP-Secret', 'secret')
