@@ -16,14 +16,14 @@ Everything Kite does, one feature at a time: what it's for, how it works, and ho
 | 🔎 | [Search and commands](06-search.md) | The command palette, search filters, saved searches |
 | 📋 | [Views and tasks](07-views-and-tasks.md) | Table and board views of your notes' properties, every task in one place |
 | 🕸️ | [Graph](08-graph.md) | The graph of your whole vault, and each note's local graph |
-| 🧩 | [Canvases](09-canvases.md) | A whiteboard of cards, notes and links |
+| 🧩 | [Canvases](09-canvases.md) | A whiteboard of cards, notes, links and flowchart shapes, with arrows your way |
 | 🧠 | [Flashcards](10-flashcards.md) | Writing cards in your notes and studying them with spaced repetition |
 | 🗂️ | [Reorganising notes](11-reorganising-notes.md) | Renaming, moving, folders, extracting and merging, with links that follow |
 | 🕰️ | [History and recovery](12-history-and-recovery.md) | Version history, recently deleted notes, merging changes, sync apps' conflicting copies |
 | 🔒 | [Locked notes](13-locked-notes.md) | Encrypting notes with a passphrase, and the recovery key |
 | 💬 | [Comments](14-comments.md) | Comments on passages of a note |
 | 📤 | [Sharing and importing](15-sharing-and-importing.md) | Exporting to HTML or PDF, publishing a small website, importing from Notion |
-| ⚙️ | [Preferences and shortcuts](16-preferences-and-shortcuts.md) | Every preference, privacy and crash reports, every keyboard shortcut, accessibility |
+| ⚙️ | [Preferences and shortcuts](16-preferences-and-shortcuts.md) | Every preference, privacy and crash reports, every keyboard shortcut and how to change them, accessibility |
 
 ## Conventions
 

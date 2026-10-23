@@ -95,6 +95,8 @@ Press <kbd>Mod</kbd>+<kbd>/</kbd> in Kite for this list. `Mod` is <kbd>⌘</kbd>
 
 ### Change a shortcut
 
+![The keyboard shortcuts dialog while customising: each command with its shortcut, a button to remove it and one to reset it. Graph view is waiting for new keys.](images/shortcuts-customise.png)
+
 The shortcuts under **General** and **Tabs and views** (all but next and previous tab) can be changed, or turned off.
 
 1. Press <kbd>Mod</kbd>+<kbd>/</kbd> and choose **Customise…**.

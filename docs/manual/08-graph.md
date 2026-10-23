@@ -45,6 +45,8 @@ The bar at the top changes what the graph shows:
 | **Filter** | shows only notes matching a rule, such as `folder:Work -tag:old` (the [search filter](06-search.md#filters) language) |
 | **Highlight notes** | keeps the notes whose titles match bright and dims the rest |
 
+Rest the pointer on **Unresolved** or **Orphans** for a reminder of what each shows.
+
 The legend in the top-left corner lists the groups, with counts. Choose a group there to hide or show its notes, and **Edit groups…** to open the [colour groups editor](05-tags-and-colour-groups.md#make-a-group). When filters hide everything, choose **Reset filters**.
 
 ## The local graph

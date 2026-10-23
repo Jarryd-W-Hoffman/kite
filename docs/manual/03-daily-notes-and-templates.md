@@ -26,6 +26,7 @@ Daily notes are ordinary notes named after their date (`Daily/2026-10-22.md` by 
 
 - Press <kbd>Mod</kbd>+<kbd>D</kbd>, or choose **Today** in the sidebar.
 - The first time each day, Kite creates the note, headed with the date ("Wednesday, 22 October 2026").
+- "Today" follows your computer's time zone, so the new day starts at your midnight. This also goes for quick capture times and template dates and times.
 
 ### Go to another day
 
