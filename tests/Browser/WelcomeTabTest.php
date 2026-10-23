@@ -78,3 +78,20 @@ it('asks once about crash reports, and remembers the answer', function (): void 
         ->assertSee('Recent notes')
         ->assertMissing('@crash-reports-ask');
 });
+
+it("shows the quick capture shortcut set in Preferences, and no tip when it's off", function (): void {
+    $vault = vaultWithFiles(['Alpha.md' => '# Alpha']);
+    resolve(IndexVault::class)->handle($vault);
+    resolve(Settings::class)->update(['capture_shortcut' => 'CommandOrControl+Alt+K']);
+
+    $page = visit(route('welcome.show', $vault))
+        ->assertSee('Quick capture from anywhere')
+        ->assertScript("[...document.querySelectorAll('li')].find((tip) => tip.textContent.includes('Quick capture'))?.querySelector('kbd')?.textContent", 'Ctrl+Alt+K');
+
+    resolve(Settings::class)->update(['capture_shortcut' => null]);
+
+    $page->refresh()
+        ->assertSee("Open today's note")
+        ->assertDontSee('Quick capture from anywhere')
+        ->assertNoJavaScriptErrors();
+});

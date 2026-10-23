@@ -24,6 +24,7 @@ final readonly class WelcomeController
         $vault->update(['opened_at' => now()]);
 
         $version = config()->string('nativephp.version');
+        $preferences = $settings->all();
 
         return Inertia::render('welcome/show', [
             ...$workspace->handle($vault),
@@ -31,7 +32,9 @@ final readonly class WelcomeController
             'updated' => $request->boolean('updated'),
             'whats_new' => $changelog->html($version),
             'release_notes_url' => mb_rtrim(config()->string('nativephp.website'), '/')."/releases/tag/v{$version}",
-            'welcome_on_startup' => $settings->all()['welcome_on_startup'] === true,
+            'welcome_on_startup' => $preferences['welcome_on_startup'] === true,
+            // Empty when quick capture is turned off.
+            'capture_shortcut' => is_string($preferences['capture_shortcut']) ? $preferences['capture_shortcut'] : '',
             // Asked once, and only when there's somewhere to send reports.
             'ask_crash_reports' => $settings->state('crash_reports_asked') !== true && filled(config('sentry.dsn')),
         ]);
