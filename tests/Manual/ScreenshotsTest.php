@@ -9,6 +9,7 @@ use App\Actions\SaveNote;
 use App\Models\Note;
 use App\Models\TableView;
 use App\Models\Vault;
+use App\Services\Canvases;
 use App\Services\NoteLocks;
 use Illuminate\Support\Facades\File;
 use Tests\Support\DemoVault;
@@ -184,6 +185,38 @@ it('shows canvases', function (): void {
     $page = visit(route('canvases.show', [$this->vault, 'Launch plan.canvas']));
     framed($page)->click('[aria-label="Show everything"]')->wait(1);
     shoot($page, 'canvas');
+
+    $shape = fn (string $id, string $shape, string $text, int $x, int $y, int $width = 200, int $height = 90, array $extra = []): array => [
+        'id' => $id, 'type' => 'text', 'text' => $text, 'x' => $x, 'y' => $y, 'width' => $width, 'height' => $height,
+        'styleAttributes' => ['shape' => $shape], ...$extra,
+    ];
+    $edge = fn (string $id, string $from, string $fromSide, string $to, string $toSide, array $extra = []): array => [
+        'id' => $id, 'fromNode' => $from, 'fromSide' => $fromSide, 'toNode' => $to, 'toSide' => $toSide, 'toEnd' => 'arrow', ...$extra,
+    ];
+    resolve(Canvases::class)->write($this->vault, 'Release flow.canvas', [
+        $shape('start', 'pill', 'Start', 0, 20, 180, 70),
+        $shape('draft', 'rectangle', 'Write the release notes', 260, 10),
+        $shape('ready', 'diamond', 'Reviewed?', 540, -5, 200, 120, ['color' => '5']),
+        $shape('publish', 'parallelogram', 'Publish the update', 820, 10, 220),
+        $shape('feed', 'database', 'Update feed', 860, 200, 140, 120),
+        $shape('done', 'pill', 'Done', 540, 220, 180, 70),
+        $shape('notes', 'document', 'Changelog', 260, 200, 200, 100),
+    ], [
+        $edge('e1', 'start', 'right', 'draft', 'left'),
+        $edge('e2', 'draft', 'right', 'ready', 'left'),
+        $edge('e3', 'ready', 'right', 'publish', 'left', ['label' => 'yes']),
+        $edge('e4', 'ready', 'top', 'draft', 'top', ['label' => 'no', 'styleAttributes' => ['path' => 'long-dashed']]),
+        $edge('e5', 'publish', 'bottom', 'feed', 'top'),
+        $edge('e6', 'feed', 'left', 'done', 'right'),
+        $edge('e7', 'draft', 'bottom', 'notes', 'top', ['fromEnd' => 'arrow', 'styleAttributes' => ['path' => 'dotted']]),
+    ]);
+
+    $page = visit(route('canvases.show', [$this->vault, 'Release flow.canvas']));
+    framed($page)->click('[aria-label="Show everything"]')->wait(1);
+    // Select the "yes" connection, so the toolbar shows its arrow and line choices.
+    $page->script("document.querySelector('[data-edge-id=e3] path').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))");
+    $page->wait(0.3);
+    shoot($page, 'canvas-flowchart');
 });
 
 it('shows flashcards', function (): void {
@@ -276,6 +309,11 @@ it('shows preferences and shortcuts', function (): void {
     $page = visit(noteUrl($this->vault, 'Home.md'));
     framed($page)->click('@shortcuts-link')->wait(0.5);
     shoot($page, 'shortcuts');
+
+    $page->click('@customise-shortcuts')
+        ->click('@record-shortcut-graph')
+        ->wait(0.3);
+    shoot($page, 'shortcuts-customise');
 
     $page = visit(noteUrl($this->vault, 'Projects/Kite launch.md'))->inDarkMode();
     shoot(framed($page), 'dark-mode');
