@@ -6,6 +6,10 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ## [Unreleased]
 
+### Fixed
+
+- **Opening an attachment no longer stops notes from opening** (Linux). After an image or PDF opened in its own app from the file tree, Kite stopped responding to clicks until it was restarted. **Open logs** in Preferences → Diagnostics did the same.
+
 ## [0.3.0] - 2026-10-23
 
 ### Added
