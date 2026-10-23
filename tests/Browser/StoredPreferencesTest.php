@@ -29,7 +29,5 @@ it('ignores stored preferences it can’t read', function (): void {
     $page->refresh()
         ->assertSeeIn('@note-editor', 'Note')
         ->assertSee('Inner')
-        // Pest's error check crashes, rather than retrying, if its collector isn't on the new page yet.
-        ->assertScript('typeof window.__pestBrowser?.jsErrors', 'object')
-        ->assertNoJavaScriptErrors();
+        ->assertScript(JS_ERRORS, '[]');
 });
