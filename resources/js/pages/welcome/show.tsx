@@ -24,7 +24,11 @@ import { runAppCommand } from '@/hooks/use-app-commands';
 import type { AppCommand } from '@/hooks/use-app-commands';
 import { useOpenExternalLink } from '@/hooks/use-open-external-link';
 import { useVaultSync } from '@/hooks/use-vault-sync';
-import { tipsWithShortcuts, useShortcuts } from '@/lib/key-bindings';
+import {
+    shortcutText,
+    tipsWithShortcuts,
+    useShortcuts,
+} from '@/lib/key-bindings';
 import { requestNewTab } from '@/lib/tabs';
 import { update as updateCrashReportConsent } from '@/routes/crash-report-consent';
 import { show as showNote } from '@/routes/notes';
@@ -41,19 +45,31 @@ type Props = WorkspaceProps & {
     whats_new: string | null;
     release_notes_url: string;
     welcome_on_startup: boolean;
+    /** The quick capture shortcut set in Preferences, e.g. `CmdOrCtrl+Shift+Space`; empty when it's off. */
+    capture_shortcut: string;
     /** Whether to ask, once, about sending crash reports. */
     ask_crash_reports: boolean;
     recent_notes?: NoteLinkSummary[];
 };
 
-const TIPS: { shortcut: string; command?: AppCommand; text: string }[] = [
+const TIPS: {
+    shortcut: string;
+    command?: AppCommand;
+    /** The quick capture tip, which shows the shortcut set in Preferences. */
+    quickCapture?: boolean;
+    text: string;
+}[] = [
     {
         shortcut: 'Mod+K',
         command: 'search',
         text: 'Search every note, or type > for commands',
     },
     { shortcut: '[[', text: 'Link to another note as you write' },
-    { shortcut: 'Mod+Shift+Space', text: 'Quick capture from anywhere' },
+    {
+        shortcut: 'Mod+Shift+Space',
+        quickCapture: true,
+        text: 'Quick capture from anywhere',
+    },
     { shortcut: 'Mod+D', command: 'daily-note', text: "Open today's note" },
     {
         shortcut: 'Mod+/',
@@ -61,6 +77,23 @@ const TIPS: { shortcut: string; command?: AppCommand; text: string }[] = [
         text: 'See every keyboard shortcut',
     },
 ];
+
+/**
+ * Tips with the quick capture shortcut set in Preferences, leaving out its tip when it's off.
+ */
+function withCaptureShortcut<
+    Tip extends { shortcut: string; quickCapture?: boolean },
+>(tips: Tip[], captureShortcut: string): Tip[] {
+    return tips.flatMap((tip) => {
+        if (!tip.quickCapture) {
+            return [tip];
+        }
+
+        return captureShortcut.trim() === ''
+            ? []
+            : [{ ...tip, shortcut: shortcutText(captureShortcut) }];
+    });
+}
 
 export default function WelcomeShow({
     vault,
@@ -76,6 +109,7 @@ export default function WelcomeShow({
     whats_new: whatsNew,
     release_notes_url: releaseNotesUrl,
     welcome_on_startup: welcomeOnStartup,
+    capture_shortcut: captureShortcut,
     ask_crash_reports: askCrashReports,
     recent_notes: recentNotes = [],
 }: Props) {
@@ -349,19 +383,23 @@ export default function WelcomeShow({
 
                             <Section title="Tips">
                                 <ul className="grid gap-2 text-sm">
-                                    {tipsWithShortcuts(TIPS, shortcutFor).map(
-                                        (tip) => (
-                                            <li
-                                                key={tip.text}
-                                                className="flex items-center gap-3"
-                                            >
-                                                <Kbd shortcut={tip.shortcut} />
-                                                <span className="text-muted-foreground">
-                                                    {tip.text}
-                                                </span>
-                                            </li>
+                                    {tipsWithShortcuts(
+                                        withCaptureShortcut(
+                                            TIPS,
+                                            captureShortcut,
                                         ),
-                                    )}
+                                        shortcutFor,
+                                    ).map((tip) => (
+                                        <li
+                                            key={tip.text}
+                                            className="flex items-center gap-3"
+                                        >
+                                            <Kbd shortcut={tip.shortcut} />
+                                            <span className="text-muted-foreground">
+                                                {tip.text}
+                                            </span>
+                                        </li>
+                                    ))}
                                 </ul>
                             </Section>
 

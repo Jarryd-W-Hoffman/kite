@@ -32,6 +32,7 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 - **A tab for a deleted note** no longer opens an error page. Tabs for notes that are gone close themselves, tab titles follow renames, and an old link to a missing note goes back to the vault and says why.
 - **Folders of attachments** no longer say "Empty" in the file tree. Images, PDFs and other files are listed under their folders, and choosing one opens it in its usual app.
 - **The Vault passphrase menu item** is spaced like the others, with a normal-sized icon.
+- **The Welcome tab's quick capture tip** shows the shortcut you set in Preferences, and is left out when quick capture is off.
 - **Graph filters** explain themselves: rest the pointer on **Unresolved** or **Orphans** to see what they show.
 
 

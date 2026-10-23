@@ -62,10 +62,23 @@ export function acceleratorFor(
 }
 
 /**
+ * Electron's longer names for modifier keys, as the short ones `formatShortcut` knows.
+ */
+const MODIFIERS: Record<string, string> = {
+    CmdOrCtrl: 'Mod',
+    CommandOrControl: 'Mod',
+    Control: 'Ctrl',
+    Option: 'Alt',
+};
+
+/**
  * An accelerator in the `Mod+K` form that `Kbd` and `formatShortcut` show.
  */
 export function shortcutText(accelerator: string): string {
-    return accelerator.replace(/^CmdOrCtrl\b/, 'Mod');
+    return accelerator
+        .split('+')
+        .map((key) => MODIFIERS[key] ?? key)
+        .join('+');
 }
 
 /**

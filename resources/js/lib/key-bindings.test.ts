@@ -136,4 +136,12 @@ describe('shortcutText', () => {
     it('writes accelerators the way Kbd shows them', () => {
         expect(shortcutText('CmdOrCtrl+Shift+K')).toBe('Mod+Shift+K');
     });
+
+    it("shortens Electron's longer modifier names", () => {
+        expect(shortcutText('CommandOrControl+Option+Space')).toBe(
+            'Mod+Alt+Space',
+        );
+        expect(shortcutText('Control+Shift+K')).toBe('Ctrl+Shift+K');
+        expect(shortcutText('Alt+Shift+K')).toBe('Alt+Shift+K');
+    });
 });

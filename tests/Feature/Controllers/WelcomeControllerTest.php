@@ -25,6 +25,21 @@ it('shows the Welcome tab inside the vault', function (): void {
     expect($vault->fresh()?->opened_at?->isToday())->toBeTrue();
 });
 
+it("passes the quick capture shortcut set in Preferences, or none when it's off", function (?string $shortcut, string $shared): void {
+    $vault = vaultWithFiles();
+
+    if ($shortcut !== 'default') {
+        resolve(Settings::class)->update(['capture_shortcut' => $shortcut]);
+    }
+
+    $this->get(route('welcome.show', $vault))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('capture_shortcut', $shared));
+})->with([
+    'the default' => ['default', 'CmdOrCtrl+Shift+Space'],
+    'a changed one' => ['Alt+Shift+K', 'Alt+Shift+K'],
+    'off' => [null, ''],
+]);
+
 it('says it was not just updated without the flag', function (): void {
     $vault = vaultWithFiles();
 
