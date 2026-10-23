@@ -54,6 +54,7 @@ Press <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> (or choose **Focus mode** und
 ![The Roadmap note with the Pricing ideas note open in a pane beside it.](images/split-pane.png)
 
 - <kbd>Mod</kbd>+click a note (in the file tree, a link or search) to open it in a **new tab**. <kbd>Mod</kbd>+<kbd>W</kbd> closes a tab. Pin a tab to keep it open.
+- Tabs are remembered for each vault. A tab whose note has gone (deleted, or replaced while Kite was closed) closes itself, and a tab's title follows its note when you rename it. Following an old link to a note that's gone takes you back to the vault, with a message saying why.
 - <kbd>Mod</kbd>+<kbd>Shift</kbd>+click a note to open it in a **second pane** beside the current one. In the command palette, <kbd>Shift</kbd>+<kbd>Enter</kbd> does the same. Each pane edits and saves on its own.
 
 ## Format quickly with `/`
@@ -98,6 +99,8 @@ Everything in standard Markdown and GitHub Flavored Markdown (bold, italics, lis
 ```
 
 Images, PDFs, audio, video, and CSV, JSON or text files are supported, up to 50 MB each. Files already in the vault are found by name, wherever they are.
+
+Attachments are listed in the file tree under their folders, after the notes, with an image or file icon. Choose one to open it in its usual app, such as your image viewer or PDF reader.
 
 ## Properties
 

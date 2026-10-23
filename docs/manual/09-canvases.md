@@ -39,6 +39,8 @@ You can also **double-click empty space** for a new text card, or **drag a note*
 
 ### Shapes for flowcharts
 
+![The Release flow canvas: Start, Write the release notes, a Reviewed? decision with yes and no connections, Publish the update, an Update feed database, a Changelog document and Done. The yes connection is selected, and the toolbar shows its arrow and line choices.](images/canvas-flowchart.png)
+
 Choose **Add a shape** for the usual flowchart shapes. Their text sits in the middle, and they connect like any card.
 
 | Shape | Usually means |

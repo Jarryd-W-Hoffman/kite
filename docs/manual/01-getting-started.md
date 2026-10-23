@@ -37,7 +37,7 @@ Vaults you've opened before are listed under **Recent vaults**. To switch vaults
 
 The window has three parts:
 
-1. **The sidebar** (left): search, today's note, tasks, flashcards and the graph at the top, then the calendar, your favourite and recent notes, and the file tree with your notes and folders. Views, saved searches and canvases are listed below the tree.
+1. **The sidebar** (left): search, today's note, tasks, flashcards and the graph at the top, then the calendar, your favourite and recent notes, and the file tree with your notes, folders and attachments. Views, saved searches and canvases are listed below the tree.
 2. **The note** (middle): the editor, the rendered preview, or both side by side. The bar above it shows where the note is, whether it's saved, and buttons for the view mode, favourites, comments, the details panel and more actions (<kbd>⋯</kbd>).
 3. **The details panel** (right): the note's local graph, its outline, backlinks, unlinked mentions, links, tags and properties. Toggle it with the panel button in the note's bar.
 

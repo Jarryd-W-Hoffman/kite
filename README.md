@@ -53,7 +53,7 @@
   - Mermaid diagrams
   - tables and task lists
   - embedded notes and sections (`![[Note#Heading]]`)
-- **Attachments:** paste or drop images and files into a note.
+- **Attachments:** paste or drop images and files into a note. They're listed in the file tree, and open in their usual app.
 - **Properties:** frontmatter edited as typed properties (text, number, checkbox, date, list).
 - **Templates** with `{{title}}`, `{{date}}`, `{{date:D j M}}` and `{{time}}`.
 - **Daily notes:** a calendar of your daily notes, one click to today's, and [quick capture](#-quick-capture) from anywhere.
@@ -106,7 +106,7 @@ Jot down a thought without switching to Kite. A small window pops up over whatev
     <img src=".github/screenshots/graph-large.png" alt="The graph view of a 10,000-note vault in dark mode, its notes coloured by topic into ten clusters, with the busiest notes labelled." width="900">
 </p>
 
-- **Canvases:** a whiteboard of text, note, image and link cards, grouped and connected. Saved as open [JSON Canvas](https://jsoncanvas.org) files that Obsidian can open too.
+- **Canvases:** a whiteboard of text, note, image and link cards, grouped and connected. Draw flowcharts with the usual shapes (process, decision, start or end, database and more), with arrows at either end, both or neither, and solid, dashed or dotted lines. Saved as open [JSON Canvas](https://jsoncanvas.org) files that Obsidian can open too.
 
 <p align="center">
     <img src=".github/screenshots/canvas.png" alt="A canvas with a goal card, the Kite launch note and the Roadmap note, connected by labelled arrows inside a group." width="900">
@@ -196,7 +196,7 @@ Kite also keeps a search index and other caches in its own database. These can b
 
 ## Keyboard shortcuts
 
-`Mod` is <kbd>⌘</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. Press <kbd>Mod</kbd>+<kbd>/</kbd> in the app for the full list, or see [Preferences and shortcuts](docs/manual/16-preferences-and-shortcuts.md#keyboard-shortcuts) in the manual.
+`Mod` is <kbd>⌘</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. Press <kbd>Mod</kbd>+<kbd>/</kbd> in the app for the full list, and choose **Customise…** there to [change them](docs/manual/16-preferences-and-shortcuts.md#change-a-shortcut). See also [Preferences and shortcuts](docs/manual/16-preferences-and-shortcuts.md#keyboard-shortcuts) in the manual.
 
 | Shortcut | Action | | Shortcut | Action |
 | --- | --- | --- | --- | --- |
