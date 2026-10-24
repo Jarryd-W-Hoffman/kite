@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\RewriteLockedLinks;
 use App\Http\Requests\StoreVaultPassphraseRequest;
 use App\Http\Requests\UpdateVaultPassphraseRequest;
 use App\Models\Vault;
@@ -35,7 +36,7 @@ final readonly class VaultPassphraseController
      * Change the passphrase, given the current one or, when it's forgotten, the recovery key. A
      * recovery key that has been used is replaced with a new one, returned this once.
      */
-    public function update(UpdateVaultPassphraseRequest $request, Vault $vault, NoteLocks $locks): JsonResponse
+    public function update(UpdateVaultPassphraseRequest $request, Vault $vault, NoteLocks $locks, RewriteLockedLinks $rewriteLockedLinks): JsonResponse
     {
         $recoveryKey = $request->string('recovery_key')->toString();
         $recovering = $recoveryKey !== '';
@@ -49,6 +50,7 @@ final readonly class VaultPassphraseController
             : ['current_passphrase' => __('That passphrase is not right.')]));
 
         $locks->changePassphrase($vault, $key, $request->string('passphrase')->toString());
+        $rewriteLockedLinks->handle($vault, $key);
 
         return response()->json([
             'key' => base64_encode($key),

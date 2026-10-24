@@ -29,10 +29,25 @@ final readonly class RewriteLinks
     {
         $vault = $source->vault;
         $contents = $this->files->read($vault, $source->path);
+        $rewritten = $this->rewrite($contents, $keys, $path);
+
+        if ($rewritten !== $contents) {
+            $this->files->write($vault, $source->path, $rewritten);
+            $this->indexNote->handle($vault, $source->path, resolveDanglingLinks: false);
+        }
+    }
+
+    /**
+     * A note's text with the wiki links whose targets match any of the keys pointed at another path.
+     *
+     * @param  array<mixed>  $keys
+     */
+    public function rewrite(string $contents, array $keys, string $path): string
+    {
         $pathWithoutExtension = (string) preg_replace('/\.md$/i', '', $path);
         $name = basename($pathWithoutExtension);
 
-        $rewritten = (string) preg_replace_callback(self::LINK_PATTERN, function (array $match) use ($keys, $pathWithoutExtension, $name): string {
+        return (string) preg_replace_callback(self::LINK_PATTERN, function (array $match) use ($keys, $pathWithoutExtension, $name): string {
             $inner = $match[2];
             $targetEnd = strcspn($inner, '#|');
             $target = mb_substr($inner, 0, $targetEnd);
@@ -45,10 +60,5 @@ final readonly class RewriteLinks
 
             return $match[1].'[['.$replacement.mb_substr($inner, $targetEnd).']]';
         }, $contents);
-
-        if ($rewritten !== $contents) {
-            $this->files->write($vault, $source->path, $rewritten);
-            $this->indexNote->handle($vault, $source->path, resolveDanglingLinks: false);
-        }
     }
 }

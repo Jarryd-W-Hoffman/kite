@@ -7,10 +7,12 @@ namespace App\Http\Controllers;
 use App\Actions\CreateFolder;
 use App\Actions\DeleteFolder;
 use App\Actions\RenameFolder;
+use App\Actions\RewriteLockedLinks;
 use App\Http\Requests\DestroyFolderRequest;
 use App\Http\Requests\StoreFolderRequest;
 use App\Http\Requests\UpdateFolderRequest;
 use App\Models\Vault;
+use App\Services\NoteLocks;
 use App\Services\VaultFilesystem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
@@ -34,12 +36,18 @@ final readonly class FolderController
         return back();
     }
 
-    public function update(UpdateFolderRequest $request, Vault $vault, RenameFolder $action): RedirectResponse
+    public function update(UpdateFolderRequest $request, Vault $vault, RenameFolder $action, RewriteLockedLinks $rewriteLockedLinks, NoteLocks $locks): RedirectResponse
     {
         try {
             $action->handle($vault, $request->string('path')->toString(), $request->string('to')->toString());
         } catch (InvalidArgumentException $invalidArgumentException) {
             throw ValidationException::withMessages(['to' => $this->message($invalidArgumentException)]);
+        }
+
+        $key = $locks->keyFrom($vault, $request->header(NoteLocks::HEADER));
+
+        if ($key !== null) {
+            $rewriteLockedLinks->handle($vault, $key);
         }
 
         return back();

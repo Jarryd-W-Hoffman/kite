@@ -70,6 +70,14 @@ final class Vault extends Model
     }
 
     /**
+     * @return HasMany<PendingLinkRewrite, $this>
+     */
+    public function pendingLinkRewrites(): HasMany
+    {
+        return $this->hasMany(PendingLinkRewrite::class);
+    }
+
+    /**
      * @return HasMany<TableView, $this>
      */
     public function tableViews(): HasMany
