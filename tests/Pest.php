@@ -55,6 +55,14 @@ final class TemporaryVaults
 /**
  * A path written with `/` as the app builds it on this platform, with its own directory separator.
  */
+/**
+ * The page's JavaScript errors as JSON, for `->assertScript(JS_ERRORS, '[]')`. Use it instead of
+ * assertNoJavaScriptErrors() after a full page load, where Pest's check can crash rather than
+ * retry: its error collector may not be on the new page yet, or it can read a late reply to an
+ * earlier script.
+ */
+const JS_ERRORS = 'JSON.stringify(window.__pestBrowser?.jsErrors ?? null)';
+
 function osPath(string $path): string
 {
     return str_replace('/', DIRECTORY_SEPARATOR, $path);

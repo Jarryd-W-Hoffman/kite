@@ -101,9 +101,7 @@ it('keeps tabs saved before tabs could hold pages', function (): void {
         ->assertPresent('[aria-label="Unpin Beta"]')
         ->assertAttribute('[role=tab][aria-selected=true] a', 'title', 'Alpha')
         ->assertScript("JSON.parse(localStorage.getItem('kite:tabs:{$vault->id}')).active", "note:{$alpha}")
-        // Pest's error check crashes, rather than retrying, if its collector isn't on the new page yet.
-        ->assertScript('typeof window.__pestBrowser?.jsErrors', 'object')
-        ->assertNoJavaScriptErrors();
+        ->assertScript(JS_ERRORS, '[]');
 });
 
 it('drops tabs whose note has gone, and keeps tab titles current', function (): void {
