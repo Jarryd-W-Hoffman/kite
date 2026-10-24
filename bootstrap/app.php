@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\ContentSecurityPolicy;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Vault;
@@ -41,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->web(append: [
+            ContentSecurityPolicy::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
