@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Vite;
+use Native\Desktop\Events\LivewireDispatcher;
 
 it('lets only scripts from Kite, or with the page nonce, run', function (): void {
     Vite::useHotFile(storage_path('framework/testing/no-hot'));
@@ -54,4 +55,13 @@ it('sends the policy with pages, and the nonce on the inline script', function (
 
     expect($response->headers->get('Content-Security-Policy'))->toContain("'nonce-{$nonce}'")
         ->and($response->getContent())->toContain("<script nonce=\"{$nonce}\">");
+});
+
+it("keeps NativePHP's Livewire script, which has no nonce, out of pages", function (): void {
+    // What NativePHP does when it boots inside the desktop app.
+    resolve(LivewireDispatcher::class)->register();
+
+    $this->get(route('vaults.index'))
+        ->assertOk()
+        ->assertDontSee('NativePHP Livewire Dispatcher', false);
 });

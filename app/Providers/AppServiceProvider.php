@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
+use Native\Desktop\Events\LivewireDispatcher;
 use PDO;
 use Pdo\Sqlite;
 use PDOException;
@@ -45,6 +46,17 @@ final class AppServiceProvider extends ServiceProvider
         Connection::resolverFor('sqlite', fn (PDO|Closure $pdo, string $database, string $prefix, array $config): SQLiteConnection => new SQLiteConnection(
             $pdo, $database, $prefix, [...$config, 'mask_bindings_in_exception_messages' => true],
         ));
+
+        // NativePHP adds an inline script to every page to pass its events to Livewire. Kite has no
+        // Livewire (its interface listens through `window.Native`), and the script has no nonce, so
+        // the content security policy would refuse it with an error on every page.
+        $this->app->bind(LivewireDispatcher::class, fn (): LivewireDispatcher => new class extends LivewireDispatcher
+        {
+            public function register(): void
+            {
+                //
+            }
+        });
     }
 
     public function boot(): void
