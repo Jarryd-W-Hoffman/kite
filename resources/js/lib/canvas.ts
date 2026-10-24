@@ -562,3 +562,51 @@ export function freeSpot(card: Rect, nodes: Rect[], gap = 40): Rect {
 
     return spot;
 }
+
+/** A group's box around some cards, with room for them to breathe, or null for no cards. */
+export function fitAround(nodes: Rect[]): Rect | null {
+    const box = bounds(nodes);
+
+    return box
+        ? {
+              x: snap(box.x - 40),
+              y: snap(box.y - 40),
+              width: snap(box.width + 80),
+              height: snap(box.height + 80),
+          }
+        : null;
+}
+
+/** The canvas without some cards and connections, and without connections to removed cards. */
+export function without(data: CanvasData, ids: Set<string>): CanvasData {
+    const nodes = data.nodes.filter((node) => !ids.has(node.id));
+    const kept = new Set(nodes.map((node) => node.id));
+
+    return {
+        nodes,
+        edges: data.edges.filter(
+            (edge) =>
+                !ids.has(edge.id) &&
+                kept.has(edge.fromNode) &&
+                kept.has(edge.toNode),
+        ),
+    };
+}
+
+export function withColor<T extends { color?: string }>(
+    item: T,
+    color: string | null,
+): T {
+    const { color: _previous, ...rest } = item;
+
+    return (color === null ? rest : { ...rest, color }) as T;
+}
+
+export function withLabel<T extends { label?: string }>(
+    item: T,
+    label: string,
+): T {
+    const { label: _previous, ...rest } = item;
+
+    return (label === '' ? rest : { ...rest, label }) as T;
+}

@@ -1,46 +1,37 @@
 import { router } from '@inertiajs/react';
-import {
-    useCallback,
-    useEffect,
-    useLayoutEffect,
-    useMemo,
-    useRef,
-    useState,
-} from 'react';
-import type {
-    DragEvent,
-    KeyboardEvent as ReactKeyboardEvent,
-    PointerEvent as ReactPointerEvent,
-} from 'react';
+import { useMemo, useState } from 'react';
+import type { DragEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { CanvasCard } from '@/components/kite/canvas/canvas-card';
 import {
     CanvasEdges,
     layoutEdges,
 } from '@/components/kite/canvas/canvas-edges';
+import { CanvasLabelEditor } from '@/components/kite/canvas/canvas-label-editor';
 import { CanvasToolbar } from '@/components/kite/canvas/canvas-toolbar';
 import type { useCanvasDocument } from '@/hooks/use-canvas-document';
+import { useCanvasGestures } from '@/hooks/use-canvas-gestures';
+import { useCanvasViewport } from '@/hooks/use-canvas-viewport';
 import { useOpenExternalLink } from '@/hooks/use-open-external-link';
 import {
     DEFAULT_SIZES,
     anchor,
-    clampZoom,
-    contains,
     edgeGeometry,
-    fitViewport,
+    fitAround,
     freeSpot,
-    intersects,
     nearestSide,
     newId,
     reversed,
     shapeOf,
     SHAPES,
     snap,
+    without,
+    withColor,
     withEnds,
+    withLabel,
     withLineStyle,
     withShape,
 } from '@/lib/canvas';
 import type {
-    CanvasData,
     CanvasEdge,
     CanvasFile,
     CanvasNode,
@@ -48,7 +39,6 @@ import type {
     CanvasSide,
     Point,
     Rect,
-    Viewport,
 } from '@/lib/canvas';
 import { requestJson } from '@/lib/kite-http';
 import { index as describeFiles } from '@/routes/canvas-cards';
@@ -58,23 +48,6 @@ import type { TreeNote, VaultSummary } from '@/types';
 
 /** What the file tree puts on a dragged note: its id. */
 const TREE_DRAG_TYPE = 'application/x-kite-tree-item';
-
-const MIN_SIZE = { width: 80, height: 40 };
-
-/** How far a press has to move before it counts as a drag rather than a click. */
-const DRAG_THRESHOLD = 3;
-
-type Gesture =
-    | { kind: 'pan'; start: Point; origin: Viewport }
-    | {
-          kind: 'move';
-          start: Point;
-          origins: Map<string, Point>;
-          moved: boolean;
-      }
-    | { kind: 'resize'; id: string; start: Point; origin: Rect }
-    | { kind: 'connect'; from: string; side: CanvasSide }
-    | { kind: 'marquee'; start: Point; base: Set<string> };
 
 type Doc = ReturnType<typeof useCanvasDocument>;
 
@@ -103,70 +76,35 @@ export function CanvasBoard({
 }: Props) {
     const openExternalLink = useOpenExternalLink();
     const { data, readOnly } = doc;
-    const container = useRef<HTMLDivElement>(null);
-    const [size, setSize] = useState({ width: 0, height: 0 });
-    const [viewport, setViewport] = useState<Viewport | null>(null);
+    const viewport = useCanvasViewport(data.nodes);
+    const { container, view, toCanvas, center, zoomAround, fit } = viewport;
     const [selected, setSelected] = useState<Set<string>>(() => new Set());
     const [editing, setEditing] = useState<string | null>(null);
     const [editingLabel, setEditingLabel] = useState<string | null>(null);
     const [files, setFiles] = useState(initialFiles);
     const [texts, setTexts] = useState(initialTexts);
-    const [connecting, setConnecting] = useState<{
-        from: string;
-        side: CanvasSide;
-        point: Point;
-    } | null>(null);
-    const [marquee, setMarquee] = useState<Rect | null>(null);
-    const gesture = useRef<Gesture | null>(null);
-    const space = useRef(false);
-
-    const view = viewport ?? { x: 0, y: 0, zoom: 1 };
-
-    useLayoutEffect(() => {
-        const element = container.current;
-
-        if (!element) {
-            return;
-        }
-
-        const observer = new ResizeObserver(([entry]) =>
-            setSize({
-                width: entry.contentRect.width,
-                height: entry.contentRect.height,
-            }),
-        );
-
-        observer.observe(element);
-
-        return () => observer.disconnect();
-    }, []);
-
-    // Start with every card in view.
-    if (viewport === null && size.width > 0) {
-        setViewport(fitViewport(data.nodes, size.width, size.height));
-    }
-
-    const toCanvas = useCallback(
-        (clientX: number, clientY: number): Point => {
-            const rect = container.current?.getBoundingClientRect();
-
-            return {
-                x: (clientX - (rect?.left ?? 0) - view.x) / view.zoom,
-                y: (clientY - (rect?.top ?? 0) - view.y) / view.zoom,
-            };
-        },
-        [view.x, view.y, view.zoom],
-    );
-
-    const center = (): Point => ({
-        x: (size.width / 2 - view.x) / view.zoom,
-        y: (size.height / 2 - view.y) / view.zoom,
-    });
 
     const nodeById = useMemo(
         () => new Map(data.nodes.map((node) => [node.id, node])),
         [data.nodes],
     );
+    const {
+        connecting,
+        marquee,
+        onPointerDown,
+        onPointerMove,
+        onPointerUp,
+        onConnectStart,
+        onResizeStart,
+    } = useCanvasGestures({
+        doc,
+        viewport,
+        selected,
+        setSelected,
+        nodeById,
+        // Declared further down, so it is reached through a closure here.
+        onConnectEnd: (...args) => finishConnection(...args),
+    });
     const layouts = useMemo(
         () => layoutEdges(data.nodes, data.edges),
         [data.nodes, data.edges],
@@ -250,8 +188,9 @@ export function CanvasBoard({
         addNode({ ...place('link', center(), true), type: 'link', url });
 
     const addGroup = () => {
-        const chosen = data.nodes.filter((node) => selected.has(node.id));
-        const box = chosen.length > 0 ? fitAround(chosen) : null;
+        const box = fitAround(
+            data.nodes.filter((node) => selected.has(node.id)),
+        );
 
         addNode(
             box
@@ -358,343 +297,19 @@ export function CanvasBoard({
             ),
         }));
 
-    const zoomAround = (
-        factor: number,
-        focus: Point = { x: size.width / 2, y: size.height / 2 },
-    ) =>
-        setViewport((current) => {
-            const from = current ?? view;
-            const zoom = clampZoom(from.zoom * factor);
-
-            return {
-                zoom,
-                x: focus.x - ((focus.x - from.x) / from.zoom) * zoom,
-                y: focus.y - ((focus.y - from.y) / from.zoom) * zoom,
-            };
-        });
-
-    // Wheel: pinch or Ctrl/Cmd-scroll zooms, scrolling pans (unless a card's content scrolls).
-    useEffect(() => {
-        const element = container.current;
-
-        if (!element) {
-            return;
-        }
-
-        const onWheel = (event: WheelEvent) => {
-            const rect = element.getBoundingClientRect();
-
-            if (event.ctrlKey || event.metaKey) {
-                event.preventDefault();
-                zoomAround(Math.exp(-event.deltaY * 0.01), {
-                    x: event.clientX - rect.left,
-                    y: event.clientY - rect.top,
-                });
-
-                return;
-            }
-
-            const scroller = (event.target as HTMLElement).closest<HTMLElement>(
-                '[data-canvas-scroll]',
-            );
-
-            if (scroller && scroller.scrollHeight > scroller.clientHeight) {
-                return;
-            }
-
-            event.preventDefault();
-            setViewport((current) =>
-                current
-                    ? {
-                          ...current,
-                          x: current.x - event.deltaX,
-                          y: current.y - event.deltaY,
-                      }
-                    : current,
-            );
-        };
-
-        element.addEventListener('wheel', onWheel, { passive: false });
-
-        return () => element.removeEventListener('wheel', onWheel);
-    });
-
-    // Space held: drag pans.
-    useEffect(() => {
-        const down = (event: KeyboardEvent) => {
-            if (
-                event.code === 'Space' &&
-                !(event.target as HTMLElement).closest('input, textarea')
-            ) {
-                space.current = true;
-            }
-        };
-        const up = (event: KeyboardEvent) => {
-            if (event.code === 'Space') {
-                space.current = false;
-            }
-        };
-
-        window.addEventListener('keydown', down);
-        window.addEventListener('keyup', up);
-
-        return () => {
-            window.removeEventListener('keydown', down);
-            window.removeEventListener('keyup', up);
-        };
-    }, []);
-
-    const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-        if (event.button === 2) {
-            return;
-        }
-
-        container.current?.focus({ preventScroll: true });
-        event.currentTarget.setPointerCapture(event.pointerId);
-
-        if (event.button === 1 || space.current) {
-            gesture.current = {
-                kind: 'pan',
-                start: { x: event.clientX, y: event.clientY },
-                origin: view,
-            };
-
-            return;
-        }
-
-        const point = toCanvas(event.clientX, event.clientY);
-        const id = (event.target as HTMLElement).closest<HTMLElement>(
-            '[data-node-id]',
-        )?.dataset.nodeId;
-
-        if (id === undefined) {
-            const base = event.shiftKey ? new Set(selected) : new Set<string>();
-
-            setSelected(base);
-            gesture.current = { kind: 'marquee', start: point, base };
-
-            return;
-        }
-
-        if (event.shiftKey && selected.has(id)) {
-            setSelected(new Set([...selected].filter((other) => other !== id)));
-
-            return;
-        }
-
-        const selection = selected.has(id)
-            ? selected
-            : event.shiftKey
-              ? new Set([...selected, id])
-              : new Set([id]);
-
-        setSelected(selection);
-
-        if (readOnly) {
-            return;
-        }
-
-        // Moving a group takes the cards inside it along.
-        const moving = new Set(selection);
-
-        for (const node of data.nodes) {
-            if (node.type === 'group' && selection.has(node.id)) {
-                data.nodes
-                    .filter((other) => other !== node && contains(node, other))
-                    .forEach((other) => moving.add(other.id));
-            }
-        }
-
-        gesture.current = {
-            kind: 'move',
-            start: point,
-            moved: false,
-            origins: new Map(
-                data.nodes
-                    .filter((node) => moving.has(node.id))
-                    .map((node) => [node.id, { x: node.x, y: node.y }]),
-            ),
-        };
-    };
-
-    const onConnectStart = (
-        event: ReactPointerEvent,
-        id: string,
+    const finishConnection = (
+        from: string,
         side: CanvasSide,
+        point: Point,
+        target: CanvasNode | undefined,
     ) => {
-        event.stopPropagation();
-        container.current?.setPointerCapture(event.pointerId);
-        gesture.current = { kind: 'connect', from: id, side };
-        setConnecting({
-            from: id,
-            side,
-            point: toCanvas(event.clientX, event.clientY),
-        });
-    };
+        if (target && target.id !== from) {
+            connect(from, side, target.id, nearestSide(target, point));
+        } else if (!target) {
+            // Dropped on empty space: connect to a new card there.
+            const node = addText(point);
 
-    const onResizeStart = (event: ReactPointerEvent, node: CanvasNode) => {
-        event.stopPropagation();
-        container.current?.setPointerCapture(event.pointerId);
-        doc.begin();
-        gesture.current = {
-            kind: 'resize',
-            id: node.id,
-            start: toCanvas(event.clientX, event.clientY),
-            origin: {
-                x: node.x,
-                y: node.y,
-                width: node.width,
-                height: node.height,
-            },
-        };
-    };
-
-    const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-        const current = gesture.current;
-
-        if (!current) {
-            return;
-        }
-
-        if (current.kind === 'pan') {
-            setViewport({
-                ...current.origin,
-                x: current.origin.x + event.clientX - current.start.x,
-                y: current.origin.y + event.clientY - current.start.y,
-            });
-
-            return;
-        }
-
-        const point = toCanvas(event.clientX, event.clientY);
-
-        if (current.kind === 'move') {
-            const dx = point.x - current.start.x;
-            const dy = point.y - current.start.y;
-
-            if (
-                !current.moved &&
-                Math.hypot(dx, dy) * view.zoom < DRAG_THRESHOLD
-            ) {
-                return;
-            }
-
-            if (!current.moved) {
-                current.moved = true;
-                doc.begin();
-            }
-
-            doc.preview((data) => ({
-                ...data,
-                nodes: data.nodes.map((node) => {
-                    const origin = current.origins.get(node.id);
-
-                    return origin
-                        ? { ...node, x: origin.x + dx, y: origin.y + dy }
-                        : node;
-                }),
-            }));
-        } else if (current.kind === 'resize') {
-            doc.preview((data) => ({
-                ...data,
-                nodes: data.nodes.map((node) =>
-                    node.id === current.id
-                        ? {
-                              ...node,
-                              width: Math.max(
-                                  MIN_SIZE.width,
-                                  current.origin.width +
-                                      point.x -
-                                      current.start.x,
-                              ),
-                              height: Math.max(
-                                  MIN_SIZE.height,
-                                  current.origin.height +
-                                      point.y -
-                                      current.start.y,
-                              ),
-                          }
-                        : node,
-                ),
-            }));
-        } else if (current.kind === 'connect') {
-            setConnecting({ from: current.from, side: current.side, point });
-        } else if (current.kind === 'marquee') {
-            const box = {
-                x: Math.min(current.start.x, point.x),
-                y: Math.min(current.start.y, point.y),
-                width: Math.abs(point.x - current.start.x),
-                height: Math.abs(point.y - current.start.y),
-            };
-
-            setMarquee(box);
-            setSelected(
-                new Set([
-                    ...current.base,
-                    ...data.nodes
-                        .filter((node) => intersects(box, node))
-                        .map((node) => node.id),
-                ]),
-            );
-        }
-    };
-
-    const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-        const current = gesture.current;
-
-        gesture.current = null;
-        setMarquee(null);
-        setConnecting(null);
-
-        if (!current) {
-            return;
-        }
-
-        if (
-            (current.kind === 'move' && current.moved) ||
-            current.kind === 'resize'
-        ) {
-            const changed =
-                current.kind === 'move'
-                    ? new Set(current.origins.keys())
-                    : new Set([current.id]);
-
-            doc.preview((data) => ({
-                ...data,
-                nodes: data.nodes.map((node) =>
-                    changed.has(node.id)
-                        ? {
-                              ...node,
-                              x: snap(node.x),
-                              y: snap(node.y),
-                              width: snap(node.width) || 20,
-                              height: snap(node.height) || 20,
-                          }
-                        : node,
-                ),
-            }));
-            doc.end();
-        } else if (current.kind === 'connect') {
-            const point = toCanvas(event.clientX, event.clientY);
-            const targetId = document
-                .elementFromPoint(event.clientX, event.clientY)
-                ?.closest<HTMLElement>('[data-node-id]')?.dataset.nodeId;
-            const target =
-                targetId === undefined ? undefined : nodeById.get(targetId);
-
-            if (target && target.id !== current.from) {
-                connect(
-                    current.from,
-                    current.side,
-                    target.id,
-                    nearestSide(target, point),
-                );
-            } else if (!target) {
-                // Dropped on empty space: connect to a new card there.
-                const node = addText(point);
-
-                connect(current.from, current.side, node.id, null);
-            }
+            connect(from, side, node.id, null);
         }
     };
 
@@ -901,44 +516,27 @@ export function CanvasBoard({
                     )}
 
                     {(labelEdge || labelGroup) && (
-                        <input
-                            autoFocus
-                            aria-label={
-                                labelEdge ? 'Connection label' : 'Group name'
-                            }
-                            data-test="canvas-label-editor"
-                            defaultValue={
+                        <CanvasLabelEditor
+                            name={labelEdge ? 'Connection label' : 'Group name'}
+                            label={
                                 labelEdge
                                     ? (labelEdge.edge.label ?? '')
                                     : labelGroup?.type === 'group'
                                       ? (labelGroup.label ?? '')
                                       : ''
                             }
-                            className="absolute z-20 w-48 rounded-md border bg-background px-2 py-1 text-sm shadow-kite-sm outline-none focus:ring-2 focus:ring-ring"
-                            style={
+                            at={
                                 labelEdge
                                     ? {
-                                          left: labelEdge.middle.x - 96,
-                                          top: labelEdge.middle.y - 16,
+                                          x: labelEdge.middle.x - 96,
+                                          y: labelEdge.middle.y - 16,
                                       }
                                     : {
-                                          left: labelGroup?.x ?? 0,
-                                          top: (labelGroup?.y ?? 0) - 34,
+                                          x: labelGroup?.x ?? 0,
+                                          y: (labelGroup?.y ?? 0) - 34,
                                       }
                             }
-                            onPointerDown={(event) => event.stopPropagation()}
-                            onKeyDown={(event) => {
-                                event.stopPropagation();
-
-                                if (
-                                    event.key === 'Enter' ||
-                                    event.key === 'Escape'
-                                ) {
-                                    event.currentTarget.blur();
-                                }
-                            }}
-                            onBlur={(event) => {
-                                const label = event.target.value.trim();
+                            onDone={(label) => {
                                 const id = editingLabel;
 
                                 setEditingLabel(null);
@@ -1011,11 +609,7 @@ export function CanvasBoard({
                 onUndo={doc.undo}
                 onRedo={doc.redo}
                 onZoom={(factor) => zoomAround(factor)}
-                onFit={() =>
-                    setViewport(
-                        fitViewport(data.nodes, size.width, size.height),
-                    )
-                }
+                onFit={fit}
             />
         </div>
     );
@@ -1049,50 +643,4 @@ export function CanvasBoard({
             />
         );
     }
-}
-
-/** The canvas without some cards and connections, and without connections to removed cards. */
-function without(data: CanvasData, ids: Set<string>): CanvasData {
-    const nodes = data.nodes.filter((node) => !ids.has(node.id));
-    const kept = new Set(nodes.map((node) => node.id));
-
-    return {
-        nodes,
-        edges: data.edges.filter(
-            (edge) =>
-                !ids.has(edge.id) &&
-                kept.has(edge.fromNode) &&
-                kept.has(edge.toNode),
-        ),
-    };
-}
-
-function withColor<T extends { color?: string }>(
-    item: T,
-    color: string | null,
-): T {
-    const { color: _previous, ...rest } = item;
-
-    return (color === null ? rest : { ...rest, color }) as T;
-}
-
-function withLabel<T extends { label?: string }>(item: T, label: string): T {
-    const { label: _previous, ...rest } = item;
-
-    return (label === '' ? rest : { ...rest, label }) as T;
-}
-
-/** A group's box around some cards, with room for them to breathe. */
-function fitAround(nodes: Rect[]): Rect {
-    const left = Math.min(...nodes.map((node) => node.x));
-    const top = Math.min(...nodes.map((node) => node.y));
-    const right = Math.max(...nodes.map((node) => node.x + node.width));
-    const bottom = Math.max(...nodes.map((node) => node.y + node.height));
-
-    return {
-        x: snap(left - 40),
-        y: snap(top - 40),
-        width: snap(right - left + 80),
-        height: snap(bottom - top + 80),
-    };
 }
