@@ -28,7 +28,8 @@ final readonly class RenameNote
     }
 
     /**
-     * Move a note to a new path and rewrite every wiki link that pointed at it.
+     * Move a note to a new path and rewrite every wiki link that pointed at it. Links in locked
+     * notes wait for the vault's key: see RewriteLockedLinks.
      */
     public function handle(Note $note, string $path): Note
     {
@@ -46,6 +47,8 @@ final readonly class RenameNote
             "A note already exists at [{$path}].",
         );
 
+        $lockedLinkKeys = $this->lockedLinkKeys($note);
+
         $backlinks = NoteLink::query()
             ->with('source')
             ->where('target_note_id', $note->id)
@@ -56,7 +59,7 @@ final readonly class RenameNote
         $this->comments->move($vault, $note->path, $path);
         $this->canvases->moveFile($vault, $note->path, $path);
 
-        return DB::transaction(function () use ($note, $vault, $path, $backlinks): Note {
+        return DB::transaction(function () use ($note, $vault, $path, $backlinks, $lockedLinkKeys): Note {
             $selfLinkKeys = $note->outgoingLinks()->where('target_note_id', $note->id)->pluck('target_key')->all();
 
             $note->update(['path' => $path]);
@@ -75,9 +78,31 @@ final readonly class RenameNote
                 $this->rewriteLinks->handle($renamed, $selfLinkKeys, $path);
             }
 
+            if ($lockedLinkKeys !== []) {
+                $vault->pendingLinkRewrites()->create(['keys' => $lockedLinkKeys, 'path' => $path]);
+            }
+
             $this->resolveLinks->handle($vault, $this->resolver->keysFor($renamed->path_key));
 
             return $renamed->refresh();
         });
+    }
+
+    /**
+     * The link keys that lead to the note, when the vault has locked notes whose links might use
+     * them. Keys that lead to another note (one closer to the vault root) don't count.
+     *
+     * @return list<string>
+     */
+    private function lockedLinkKeys(Note $note): array
+    {
+        if (! Note::query()->where('vault_id', $note->vault_id)->where('locked', true)->exists()) {
+            return [];
+        }
+
+        $keys = $this->resolver->keysFor($note->path_key);
+        $resolved = $this->resolver->resolve($note->vault, $keys);
+
+        return array_values(array_filter($keys, fn (string $key): bool => ($resolved[$key] ?? null) === $note->id));
     }
 }

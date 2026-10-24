@@ -6,6 +6,7 @@ use App\Models\Attachment;
 use App\Models\Note;
 use App\Models\NoteLink;
 use App\Models\NoteTag;
+use App\Models\PendingLinkRewrite;
 use App\Models\Vault;
 
 it('relates vaults, notes, links and tags', function (): void {
@@ -47,4 +48,11 @@ it('relates attachments to their vault', function (): void {
     $attachment = Attachment::factory()->create();
 
     expect($attachment->vault->attachments()->sole()->is($attachment))->toBeTrue();
+});
+
+it('relates pending link rewrites to their vault and casts their keys', function (): void {
+    $rewrite = PendingLinkRewrite::factory()->create(['keys' => ['a/b', 'b']])->refresh();
+
+    expect($rewrite->keys)->toBe(['a/b', 'b'])
+        ->and($rewrite->vault->pendingLinkRewrites()->sole()->is($rewrite))->toBeTrue();
 });

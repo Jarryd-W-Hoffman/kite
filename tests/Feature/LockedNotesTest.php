@@ -12,6 +12,7 @@ use App\Actions\RemoveNoteLock;
 use App\Enums\VersionSource;
 use App\Models\DeletedNote;
 use App\Models\Note;
+use App\Models\PendingLinkRewrite;
 use App\Services\CommentStore;
 use App\Services\DailyNotes;
 use App\Services\NoteLocks;
@@ -276,4 +277,89 @@ it('shows a deleted locked note only with the vault key', function (): void {
 
     $this->withoutHeader(NoteLocks::HEADER)->getJson(route('deleted-notes.show', [$this->vault, $deleted]))->assertJsonPath('contents', '');
     ($this->withKey)()->getJson(route('deleted-notes.show', [$this->vault, $deleted]))->assertJsonPath('contents', "# Secret\n\nThe code is swordfish");
+});
+
+it('rewrites links in locked notes when a note is renamed with the vault unlocked', function (): void {
+    file_put_contents($this->vault->path.'/Secret.md', "See [[Plain]], [[Plain#Part|that part]] and [[Other]].\n");
+    resolve(IndexVault::class)->handle($this->vault);
+    resolve(LockNote::class)->handle($this->secret->refresh(), $this->key);
+
+    ($this->withKey)()->put(route('note-path.update', [$this->vault, $this->plain]), ['path' => 'Archive/Moved'])
+        ->assertRedirect();
+
+    $contents = (string) file_get_contents($this->vault->path.'/Secret.md');
+
+    expect($this->locks->isLocked($contents))->toBeTrue()
+        ->and($this->locks->unlockNote($contents, $this->key))->toBe("See [[Moved]], [[Moved#Part|that part]] and [[Other]].\n")
+        ->and(PendingLinkRewrite::query()->count())->toBe(0);
+});
+
+it('rewrites links in locked notes renamed while the vault was locked once it unlocks', function (): void {
+    file_put_contents($this->vault->path.'/Secret.md', "See [[Plain]] and [[Plain.md|this]].\n");
+    file_put_contents($this->vault->path.'/Broken.md', "# Broken\n");
+    resolve(IndexVault::class)->handle($this->vault);
+    resolve(LockNote::class)->handle($this->secret->refresh(), $this->key);
+
+    $broken = Note::query()->where('path', 'Broken.md')->sole();
+    resolve(LockNote::class)->handle($broken, $this->key);
+    $tampered = str_replace('```kite-locked', "```kite-locked\nAAAA", (string) file_get_contents($this->vault->path.'/Broken.md'));
+    file_put_contents($this->vault->path.'/Broken.md', $tampered);
+    $locked = (string) file_get_contents($this->vault->path.'/Secret.md');
+
+    $this->put(route('note-path.update', [$this->vault, $this->plain]), ['path' => 'Moved'])->assertRedirect();
+    $this->put(route('note-path.update', [$this->vault, $this->plain->refresh()]), ['path' => 'Final'])->assertRedirect();
+
+    expect(file_get_contents($this->vault->path.'/Secret.md'))->toBe($locked)
+        ->and(PendingLinkRewrite::query()->count())->toBe(2);
+
+    $this->postJson(route('vault-key.store', $this->vault), ['passphrase' => 'correct horse battery'])->assertOk();
+
+    expect($this->locks->unlockNote((string) file_get_contents($this->vault->path.'/Secret.md'), $this->key))->toBe("See [[Final]] and [[Final|this]].\n")
+        ->and(file_get_contents($this->vault->path.'/Broken.md'))->toBe($tampered)
+        ->and(PendingLinkRewrite::query()->count())->toBe(0);
+});
+
+it('only waits to rewrite link keys that led to the renamed note', function (): void {
+    $vault = vaultWithFiles([
+        'Target.md' => '# Target',
+        'Sub/Target.md' => '# Sub target',
+        'Secret.md' => "[[Target]] and [[Sub/Target]]\n",
+    ]);
+    resolve(IndexVault::class)->handle($vault);
+    $key = $this->locks->setUp($vault, 'correct horse battery');
+    resolve(LockNote::class)->handle(Note::query()->where('vault_id', $vault->id)->where('path', 'Secret.md')->sole(), $key);
+    $sub = Note::query()->where('vault_id', $vault->id)->where('path', 'Sub/Target.md')->sole();
+
+    $this->put(route('note-path.update', [$vault, $sub]), ['path' => 'Sub/Other'])->assertRedirect();
+
+    expect(PendingLinkRewrite::query()->sole()->keys)->toBe(['sub/target']);
+
+    $this->withHeader(NoteLocks::HEADER, base64_encode($key))
+        ->put(route('folders.update', $vault), ['path' => 'Sub', 'to' => 'Elsewhere'])
+        ->assertRedirect();
+
+    expect($this->locks->unlockNote((string) file_get_contents($vault->path.'/Secret.md'), $key))->toBe("[[Target]] and [[Elsewhere/Other]]\n")
+        ->and(PendingLinkRewrite::query()->count())->toBe(0);
+});
+
+it('applies renames from while the vault was locked before locking another note', function (): void {
+    file_put_contents($this->vault->path.'/Secret.md', "[[Plain]]\n");
+    file_put_contents($this->vault->path.'/Fresh.md', "[[Plain]]\n");
+    resolve(IndexVault::class)->handle($this->vault);
+    resolve(LockNote::class)->handle($this->secret->refresh(), $this->key);
+
+    $this->put(route('note-path.update', [$this->vault, $this->plain]), ['path' => 'Moved'])->assertRedirect();
+    file_put_contents($this->vault->path.'/Fresh.md', "[[Plain]] is a new note now\n");
+    resolve(IndexVault::class)->handle($this->vault);
+
+    resolve(LockNote::class)->handle(Note::query()->where('path', 'Fresh.md')->sole(), $this->key);
+
+    expect($this->locks->unlockNote((string) file_get_contents($this->vault->path.'/Secret.md'), $this->key))->toBe("[[Moved]]\n")
+        ->and($this->locks->unlockNote((string) file_get_contents($this->vault->path.'/Fresh.md'), $this->key))->toBe("[[Plain]] is a new note now\n");
+});
+
+it('keeps no renames to rewrite for vaults without locked notes', function (): void {
+    $this->put(route('note-path.update', [$this->vault, $this->plain]), ['path' => 'Moved'])->assertRedirect();
+
+    expect(PendingLinkRewrite::query()->count())->toBe(0);
 });

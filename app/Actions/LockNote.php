@@ -20,6 +20,7 @@ final readonly class LockNote
         private NoteLocks $locks,
         private CommentStore $comments,
         private RecordNoteVersion $recordVersion,
+        private RewriteLockedLinks $rewriteLockedLinks,
         private IndexNote $indexNote,
     ) {
         //
@@ -33,6 +34,10 @@ final readonly class LockNote
     public function handle(Note $note, #[SensitiveParameter] string $key): Note
     {
         $vault = $note->vault;
+
+        // Renames from while the vault was locked are for the notes locked then, not this one.
+        $this->rewriteLockedLinks->handle($vault, $key);
+
         $contents = $this->files->read($vault, $note->path);
 
         throw_if($this->locks->isLocked($contents), InvalidArgumentException::class, 'That note is already locked.');

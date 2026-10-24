@@ -9,6 +9,7 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 ### Fixed
 
 - **Locked notes stay locked when you go back.** After locking the vault, pressing back to a locked note you'd opened could show its text for a moment before it closed again. Kite now forgets those pages when the vault locks.
+- **Links in locked notes follow renames.** Renaming or moving a note now updates the links to it inside locked notes too. If the vault is locked at the time, they're updated the next time you unlock it.
 
 ## [0.3.1] - 2026-10-23
 
