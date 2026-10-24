@@ -6,6 +6,8 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-24
+
 ### Fixed
 
 - **Locked notes stay locked when you go back.** After locking the vault, pressing back to a locked note you'd opened could show its text for a moment before it closed again. Kite now forgets those pages when the vault locks.
