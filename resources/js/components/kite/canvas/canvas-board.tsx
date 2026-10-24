@@ -1,12 +1,5 @@
 import { router } from '@inertiajs/react';
-import {
-    useCallback,
-    useEffect,
-    useLayoutEffect,
-    useMemo,
-    useRef,
-    useState,
-} from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type {
     DragEvent,
     KeyboardEvent as ReactKeyboardEvent,
@@ -19,15 +12,14 @@ import {
 } from '@/components/kite/canvas/canvas-edges';
 import { CanvasToolbar } from '@/components/kite/canvas/canvas-toolbar';
 import type { useCanvasDocument } from '@/hooks/use-canvas-document';
+import { useCanvasViewport } from '@/hooks/use-canvas-viewport';
 import { useOpenExternalLink } from '@/hooks/use-open-external-link';
 import {
     DEFAULT_SIZES,
     anchor,
-    clampZoom,
     contains,
     edgeGeometry,
     fitAround,
-    fitViewport,
     freeSpot,
     intersects,
     nearestSide,
@@ -106,9 +98,16 @@ export function CanvasBoard({
 }: Props) {
     const openExternalLink = useOpenExternalLink();
     const { data, readOnly } = doc;
-    const container = useRef<HTMLDivElement>(null);
-    const [size, setSize] = useState({ width: 0, height: 0 });
-    const [viewport, setViewport] = useState<Viewport | null>(null);
+    const {
+        container,
+        view,
+        setViewport,
+        toCanvas,
+        center,
+        zoomAround,
+        fit,
+        spaceHeld,
+    } = useCanvasViewport(data.nodes);
     const [selected, setSelected] = useState<Set<string>>(() => new Set());
     const [editing, setEditing] = useState<string | null>(null);
     const [editingLabel, setEditingLabel] = useState<string | null>(null);
@@ -121,50 +120,6 @@ export function CanvasBoard({
     } | null>(null);
     const [marquee, setMarquee] = useState<Rect | null>(null);
     const gesture = useRef<Gesture | null>(null);
-    const space = useRef(false);
-
-    const view = viewport ?? { x: 0, y: 0, zoom: 1 };
-
-    useLayoutEffect(() => {
-        const element = container.current;
-
-        if (!element) {
-            return;
-        }
-
-        const observer = new ResizeObserver(([entry]) =>
-            setSize({
-                width: entry.contentRect.width,
-                height: entry.contentRect.height,
-            }),
-        );
-
-        observer.observe(element);
-
-        return () => observer.disconnect();
-    }, []);
-
-    // Start with every card in view.
-    if (viewport === null && size.width > 0) {
-        setViewport(fitViewport(data.nodes, size.width, size.height));
-    }
-
-    const toCanvas = useCallback(
-        (clientX: number, clientY: number): Point => {
-            const rect = container.current?.getBoundingClientRect();
-
-            return {
-                x: (clientX - (rect?.left ?? 0) - view.x) / view.zoom,
-                y: (clientY - (rect?.top ?? 0) - view.y) / view.zoom,
-            };
-        },
-        [view.x, view.y, view.zoom],
-    );
-
-    const center = (): Point => ({
-        x: (size.width / 2 - view.x) / view.zoom,
-        y: (size.height / 2 - view.y) / view.zoom,
-    });
 
     const nodeById = useMemo(
         () => new Map(data.nodes.map((node) => [node.id, node])),
@@ -362,92 +317,6 @@ export function CanvasBoard({
             ),
         }));
 
-    const zoomAround = (
-        factor: number,
-        focus: Point = { x: size.width / 2, y: size.height / 2 },
-    ) =>
-        setViewport((current) => {
-            const from = current ?? view;
-            const zoom = clampZoom(from.zoom * factor);
-
-            return {
-                zoom,
-                x: focus.x - ((focus.x - from.x) / from.zoom) * zoom,
-                y: focus.y - ((focus.y - from.y) / from.zoom) * zoom,
-            };
-        });
-
-    // Wheel: pinch or Ctrl/Cmd-scroll zooms, scrolling pans (unless a card's content scrolls).
-    useEffect(() => {
-        const element = container.current;
-
-        if (!element) {
-            return;
-        }
-
-        const onWheel = (event: WheelEvent) => {
-            const rect = element.getBoundingClientRect();
-
-            if (event.ctrlKey || event.metaKey) {
-                event.preventDefault();
-                zoomAround(Math.exp(-event.deltaY * 0.01), {
-                    x: event.clientX - rect.left,
-                    y: event.clientY - rect.top,
-                });
-
-                return;
-            }
-
-            const scroller = (event.target as HTMLElement).closest<HTMLElement>(
-                '[data-canvas-scroll]',
-            );
-
-            if (scroller && scroller.scrollHeight > scroller.clientHeight) {
-                return;
-            }
-
-            event.preventDefault();
-            setViewport((current) =>
-                current
-                    ? {
-                          ...current,
-                          x: current.x - event.deltaX,
-                          y: current.y - event.deltaY,
-                      }
-                    : current,
-            );
-        };
-
-        element.addEventListener('wheel', onWheel, { passive: false });
-
-        return () => element.removeEventListener('wheel', onWheel);
-    });
-
-    // Space held: drag pans.
-    useEffect(() => {
-        const down = (event: KeyboardEvent) => {
-            if (
-                event.code === 'Space' &&
-                !(event.target as HTMLElement).closest('input, textarea')
-            ) {
-                space.current = true;
-            }
-        };
-        const up = (event: KeyboardEvent) => {
-            if (event.code === 'Space') {
-                space.current = false;
-            }
-        };
-
-        window.addEventListener('keydown', down);
-        window.addEventListener('keyup', up);
-
-        return () => {
-            window.removeEventListener('keydown', down);
-            window.removeEventListener('keyup', up);
-        };
-    }, []);
-
     const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
         if (event.button === 2) {
             return;
@@ -456,7 +325,7 @@ export function CanvasBoard({
         container.current?.focus({ preventScroll: true });
         event.currentTarget.setPointerCapture(event.pointerId);
 
-        if (event.button === 1 || space.current) {
+        if (event.button === 1 || spaceHeld.current) {
             gesture.current = {
                 kind: 'pan',
                 start: { x: event.clientX, y: event.clientY },
@@ -1015,11 +884,7 @@ export function CanvasBoard({
                 onUndo={doc.undo}
                 onRedo={doc.redo}
                 onZoom={(factor) => zoomAround(factor)}
-                onFit={() =>
-                    setViewport(
-                        fitViewport(data.nodes, size.width, size.height),
-                    )
-                }
+                onFit={fit}
             />
         </div>
     );
