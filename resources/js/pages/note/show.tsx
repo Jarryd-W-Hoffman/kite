@@ -1,6 +1,6 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { LockKeyhole, MessageSquare, PanelRight, Star } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { CommandPalette } from '@/components/kite/command-palette';
@@ -45,19 +45,17 @@ import { useClipboard } from '@/hooks/use-clipboard';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useNoteComments } from '@/hooks/use-note-comments';
 import { useNoteDocument } from '@/hooks/use-note-document';
-import { useNoteLinkModifiers } from '@/hooks/use-note-link-modifiers';
+import { useNoteFragment } from '@/hooks/use-note-fragment';
 import { useNoteLock } from '@/hooks/use-note-lock';
 import { useNoteProperties } from '@/hooks/use-note-properties';
+import { useNoteSlashCommands } from '@/hooks/use-note-slash-commands';
 import { useNoteStar } from '@/hooks/use-note-star';
+import { useSplitNote } from '@/hooks/use-split-note';
 import { useVaultSync } from '@/hooks/use-vault-sync';
-import { requestJson } from '@/lib/kite-http';
 import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
 import { noteName } from '@/lib/note-tree';
-import { BASE_COMMANDS } from '@/lib/slash-commands';
-import type { SlashCommand } from '@/lib/slash-commands';
 import {
     booleanCodec,
-    idCodec,
     oneOfCodec,
     readStored,
     useStoredState,
@@ -69,7 +67,6 @@ import { show as noteExport } from '@/routes/note-exports';
 import { update as updatePath } from '@/routes/note-path';
 import { store as publishNote } from '@/routes/note-publications';
 import { store as restoreVersion } from '@/routes/note-version-restores';
-import { show as showTemplate } from '@/routes/templates';
 import type { NoteDetail, OutlineItem, WorkspaceProps } from '@/types';
 
 const VIEW_MODES = ['edit', 'split', 'preview'] as const;
@@ -78,8 +75,6 @@ type ViewMode = (typeof VIEW_MODES)[number];
 
 const viewModeCodec = oneOfCodec(VIEW_MODES);
 const panelCodec = oneOfCodec(['open', 'closed'] as const);
-
-const splitKey = (vaultId: number) => `kite:split:${vaultId}`;
 
 export default function NoteShow(props: WorkspaceProps) {
     const { vault, vaults, tree, folders, tags, note, indexing } = props;
@@ -198,9 +193,6 @@ function NoteWorkspace({
     const [merging, setMerging] = useState(false);
     const [extracting, setExtracting] = useState<EditorSelectionText | null>(
         null,
-    );
-    const [splitNoteId, setSplitNoteId] = useState<number | null>(() =>
-        readStored(splitKey(vault.id), idCodec, null),
     );
     const editorRef = useRef<NoteEditorHandle>(null);
     const [, copy] = useClipboard();
@@ -322,27 +314,7 @@ function NoteWorkspace({
         }
     }, [noteComments.ranges]);
 
-    const openSplit = useCallback(
-        (id: number | null) => {
-            setSplitNoteId(id);
-            writeStored(splitKey(vault.id), idCodec, id);
-        },
-        [vault.id],
-    );
-
-    const closeSplit = useCallback(() => openSplit(null), [openSplit]);
-
-    useNoteLinkModifiers(vault.id, openSplit);
-
-    useEffect(() => {
-        const onOpenSplit = (event: Event) => {
-            openSplit((event as CustomEvent<number>).detail);
-        };
-
-        window.addEventListener('kite:open-split', onOpenSplit);
-
-        return () => window.removeEventListener('kite:open-split', onOpenSplit);
-    }, [openSplit]);
+    const { splitNoteId, closeSplit } = useSplitNote(vault.id);
 
     useVaultSync(
         vault,
@@ -363,32 +335,7 @@ function NoteWorkspace({
         watching,
     );
 
-    useEffect(() => {
-        const slug = window.location.hash.slice(1);
-        const lineLink = /^L(\d+)$/.exec(slug);
-
-        if (lineLink) {
-            editorRef.current?.jumpToLine(Number(lineLink[1]));
-
-            return;
-        }
-
-        const fragment = decodeURIComponent(slug);
-
-        if (fragment.startsWith('^')) {
-            if (!scrollToHeading(slug)) {
-                editorRef.current?.jumpToBlock(fragment.slice(1));
-            }
-
-            return;
-        }
-
-        const line = note.outline.find((item) => item.slug === fragment)?.line;
-
-        if (slug !== '' && !scrollToHeading(slug) && line !== undefined) {
-            editorRef.current?.jumpToLine(line);
-        }
-    }, [note.outline]);
+    useNoteFragment(editorRef, note.outline);
 
     const selectHeading = (item: OutlineItem) => {
         scrollToHeading(item.slug);
@@ -505,41 +452,11 @@ function NoteWorkspace({
         link.click();
     };
 
-    const slashCommands = useMemo<SlashCommand[]>(
-        () => [
-            ...BASE_COMMANDS,
-            ...templates.map((template): SlashCommand => ({
-                id: `template-${template.id}`,
-                label: template.name,
-                section: 'Templates',
-                description: 'Insert this template',
-                keywords: 'template',
-                icon: '⧉',
-                insert: async () => {
-                    const { contents } = await requestJson<{
-                        contents: string;
-                    }>(
-                        showTemplate(
-                            { vault: vault.id, path: template.path },
-                            {
-                                query: {
-                                    title: meta.title,
-                                    folder: note.path.includes('/')
-                                        ? note.path.slice(
-                                              0,
-                                              note.path.lastIndexOf('/'),
-                                          )
-                                        : '',
-                                },
-                            },
-                        ),
-                    );
-
-                    return { text: contents, block: true };
-                },
-            })),
-        ],
-        [templates, vault.id, meta.title, note.path],
+    const slashCommands = useNoteSlashCommands(
+        vault,
+        templates,
+        meta.title,
+        note.path,
     );
 
     const followLink = (target: string) => followWikiLink(vault, tree, target);
