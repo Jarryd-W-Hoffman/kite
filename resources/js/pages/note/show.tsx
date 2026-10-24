@@ -1,7 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { LockKeyhole, MessageSquare, PanelRight, Star } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CommandPalette } from '@/components/kite/command-palette';
 import { CommentRail } from '@/components/kite/comment-rail';
@@ -15,12 +13,7 @@ import type {
     EditorSelectionText,
     NoteEditorHandle,
 } from '@/components/kite/note-editor';
-import {
-    DayNavigation,
-    NotePathTitle,
-    SaveStatus,
-    ViewModeToggle,
-} from '@/components/kite/note-header';
+import { NoteHeader } from '@/components/kite/note-header';
 import { NotePanel } from '@/components/kite/note-panel';
 import { NotePreview, scrollToHeading } from '@/components/kite/note-preview';
 import {
@@ -28,6 +21,7 @@ import {
     MergeNoteDialog,
 } from '@/components/kite/refactor-dialogs';
 import { SaveConflictBanner } from '@/components/kite/save-conflict';
+import { SideDrawer } from '@/components/kite/side-drawer';
 import { SplitPane } from '@/components/kite/split-pane';
 import { TabBar } from '@/components/kite/tab-bar';
 import { VersionHistoryDialog } from '@/components/kite/version-history-dialog';
@@ -39,25 +33,22 @@ import {
     EmptyWorkspace,
     LockedWorkspace,
 } from '@/components/kite/workspace-states';
-import { Button } from '@/components/ui/button';
 import { useAppCommands } from '@/hooks/use-app-commands';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useNoteComments } from '@/hooks/use-note-comments';
 import { useNoteDocument } from '@/hooks/use-note-document';
-import { useNoteLinkModifiers } from '@/hooks/use-note-link-modifiers';
+import { useNoteFragment } from '@/hooks/use-note-fragment';
 import { useNoteLock } from '@/hooks/use-note-lock';
 import { useNoteProperties } from '@/hooks/use-note-properties';
+import { useNoteSlashCommands } from '@/hooks/use-note-slash-commands';
 import { useNoteStar } from '@/hooks/use-note-star';
+import { useSplitNote } from '@/hooks/use-split-note';
 import { useVaultSync } from '@/hooks/use-vault-sync';
-import { requestJson } from '@/lib/kite-http';
 import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
 import { noteName } from '@/lib/note-tree';
-import { BASE_COMMANDS } from '@/lib/slash-commands';
-import type { SlashCommand } from '@/lib/slash-commands';
 import {
     booleanCodec,
-    idCodec,
     oneOfCodec,
     readStored,
     useStoredState,
@@ -69,7 +60,6 @@ import { show as noteExport } from '@/routes/note-exports';
 import { update as updatePath } from '@/routes/note-path';
 import { store as publishNote } from '@/routes/note-publications';
 import { store as restoreVersion } from '@/routes/note-version-restores';
-import { show as showTemplate } from '@/routes/templates';
 import type { NoteDetail, OutlineItem, WorkspaceProps } from '@/types';
 
 const VIEW_MODES = ['edit', 'split', 'preview'] as const;
@@ -78,8 +68,6 @@ type ViewMode = (typeof VIEW_MODES)[number];
 
 const viewModeCodec = oneOfCodec(VIEW_MODES);
 const panelCodec = oneOfCodec(['open', 'closed'] as const);
-
-const splitKey = (vaultId: number) => `kite:split:${vaultId}`;
 
 export default function NoteShow(props: WorkspaceProps) {
     const { vault, vaults, tree, folders, tags, note, indexing } = props;
@@ -198,9 +186,6 @@ function NoteWorkspace({
     const [merging, setMerging] = useState(false);
     const [extracting, setExtracting] = useState<EditorSelectionText | null>(
         null,
-    );
-    const [splitNoteId, setSplitNoteId] = useState<number | null>(() =>
-        readStored(splitKey(vault.id), idCodec, null),
     );
     const editorRef = useRef<NoteEditorHandle>(null);
     const [, copy] = useClipboard();
@@ -322,27 +307,7 @@ function NoteWorkspace({
         }
     }, [noteComments.ranges]);
 
-    const openSplit = useCallback(
-        (id: number | null) => {
-            setSplitNoteId(id);
-            writeStored(splitKey(vault.id), idCodec, id);
-        },
-        [vault.id],
-    );
-
-    const closeSplit = useCallback(() => openSplit(null), [openSplit]);
-
-    useNoteLinkModifiers(vault.id, openSplit);
-
-    useEffect(() => {
-        const onOpenSplit = (event: Event) => {
-            openSplit((event as CustomEvent<number>).detail);
-        };
-
-        window.addEventListener('kite:open-split', onOpenSplit);
-
-        return () => window.removeEventListener('kite:open-split', onOpenSplit);
-    }, [openSplit]);
+    const { splitNoteId, closeSplit } = useSplitNote(vault.id);
 
     useVaultSync(
         vault,
@@ -363,32 +328,7 @@ function NoteWorkspace({
         watching,
     );
 
-    useEffect(() => {
-        const slug = window.location.hash.slice(1);
-        const lineLink = /^L(\d+)$/.exec(slug);
-
-        if (lineLink) {
-            editorRef.current?.jumpToLine(Number(lineLink[1]));
-
-            return;
-        }
-
-        const fragment = decodeURIComponent(slug);
-
-        if (fragment.startsWith('^')) {
-            if (!scrollToHeading(slug)) {
-                editorRef.current?.jumpToBlock(fragment.slice(1));
-            }
-
-            return;
-        }
-
-        const line = note.outline.find((item) => item.slug === fragment)?.line;
-
-        if (slug !== '' && !scrollToHeading(slug) && line !== undefined) {
-            editorRef.current?.jumpToLine(line);
-        }
-    }, [note.outline]);
+    useNoteFragment(editorRef, note.outline);
 
     const selectHeading = (item: OutlineItem) => {
         scrollToHeading(item.slug);
@@ -505,41 +445,11 @@ function NoteWorkspace({
         link.click();
     };
 
-    const slashCommands = useMemo<SlashCommand[]>(
-        () => [
-            ...BASE_COMMANDS,
-            ...templates.map((template): SlashCommand => ({
-                id: `template-${template.id}`,
-                label: template.name,
-                section: 'Templates',
-                description: 'Insert this template',
-                keywords: 'template',
-                icon: '⧉',
-                insert: async () => {
-                    const { contents } = await requestJson<{
-                        contents: string;
-                    }>(
-                        showTemplate(
-                            { vault: vault.id, path: template.path },
-                            {
-                                query: {
-                                    title: meta.title,
-                                    folder: note.path.includes('/')
-                                        ? note.path.slice(
-                                              0,
-                                              note.path.lastIndexOf('/'),
-                                          )
-                                        : '',
-                                },
-                            },
-                        ),
-                    );
-
-                    return { text: contents, block: true };
-                },
-            })),
-        ],
-        [templates, vault.id, meta.title, note.path],
+    const slashCommands = useNoteSlashCommands(
+        vault,
+        templates,
+        meta.title,
+        note.path,
     );
 
     const followLink = (target: string) => followWikiLink(vault, tree, target);
@@ -565,18 +475,21 @@ function NoteWorkspace({
     const sidePanels = (
         <>
             {commentsOpen && !locked && (
-                <Drawer overlay={narrow} onClose={() => toggleComments(false)}>
+                <SideDrawer
+                    overlay={narrow}
+                    onClose={() => toggleComments(false)}
+                >
                     <CommentRail
                         notes={noteComments}
                         error={commentsError}
                         onSelect={revealComment}
                         onClose={() => toggleComments(false)}
                     />
-                </Drawer>
+                </SideDrawer>
             )}
 
             {panelOpen && !(narrow && commentsOpen) && (
-                <Drawer overlay={narrow} onClose={onTogglePanel}>
+                <SideDrawer overlay={narrow} onClose={onTogglePanel}>
                     <aside
                         aria-label="Note details"
                         className="h-full w-72 shrink-0 overflow-y-auto border-l border-border/70 bg-sidebar/40"
@@ -596,7 +509,7 @@ function NoteWorkspace({
                             onPropertiesChange={changeProperties}
                         />
                     </aside>
-                </Drawer>
+                </SideDrawer>
             )}
         </>
     );
@@ -624,115 +537,48 @@ function NoteWorkspace({
                         }}
                     />
                 )}
-                <header
-                    className={cn(
-                        'kite-drag flex h-12 shrink-0 items-center gap-2 border-b border-border/70 px-3',
-                        focus &&
-                            'border-transparent opacity-0 transition-opacity duration-300 focus-within:opacity-100 hover:opacity-100',
-                    )}
+                <NoteHeader
+                    path={note.path}
+                    renaming={renaming}
+                    onRenamingChange={setRenaming}
+                    onRename={submitRename}
+                    locked={locked}
+                    saveState={saveState}
+                    daily={Boolean(meta.daily_date)}
+                    onShiftDay={shiftDay}
+                    viewMode={viewMode}
+                    onViewModeChange={changeViewMode}
+                    starred={starred}
+                    onToggleStar={toggleStar}
+                    commentsOpen={commentsOpen}
+                    openComments={openComments}
+                    onToggleComments={() => toggleComments(!commentsOpen)}
+                    panelOpen={panelOpen}
+                    onTogglePanel={onTogglePanel}
+                    focus={focus}
                 >
-                    <NotePathTitle
-                        path={note.path}
-                        renaming={renaming}
-                        onRenamingChange={setRenaming}
-                        onRename={submitRename}
+                    <NoteActionsMenu
+                        locked={locked}
+                        native={kite.native}
+                        platform={kite.platform}
+                        passphraseSet={passphraseSet}
+                        recoveryKeySet={recoveryKeySet}
+                        onRename={() => setRenaming(true)}
+                        onFocus={onToggleFocus}
+                        onMerge={() => setMerging(true)}
+                        onHistory={() => setHistoryOpen(true)}
+                        onLockNote={lockNote}
+                        onRemoveLock={removeLock}
+                        onLockVault={() => void lockVault(vault.id)}
+                        onChangePassphrase={() =>
+                            setLockStep('change-passphrase')
+                        }
+                        onRecoveryKey={() => setLockStep('recovery-key')}
+                        onExport={(format) => void exportNote(format)}
+                        onPublish={publish}
+                        onDelete={() => setDeleting(true)}
                     />
-
-                    {locked && (
-                        <span
-                            className="flex shrink-0 items-center gap-1 rounded-md bg-kite-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-primary"
-                            title="Encrypted on disk with the vault’s passphrase"
-                            data-test="locked-badge"
-                        >
-                            <LockKeyhole className="size-3" />
-                            Locked
-                        </span>
-                    )}
-
-                    <SaveStatus state={saveState} />
-
-                    <div className="kite-no-drag ml-auto flex items-center gap-1">
-                        {meta.daily_date && (
-                            <DayNavigation onShift={shiftDay} />
-                        )}
-                        <ViewModeToggle
-                            value={viewMode}
-                            onChange={changeViewMode}
-                        />
-
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                                'size-8',
-                                starred &&
-                                    'text-amber-500 hover:text-amber-500',
-                            )}
-                            aria-label={
-                                starred
-                                    ? 'Remove from favourites'
-                                    : 'Add to favourites'
-                            }
-                            aria-pressed={starred}
-                            data-test="star-note"
-                            onClick={toggleStar}
-                        >
-                            <Star className={cn(starred && 'fill-current')} />
-                        </Button>
-
-                        {!locked && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 gap-1 px-2"
-                                aria-label="Toggle comments"
-                                aria-pressed={commentsOpen}
-                                data-test="toggle-comments"
-                                onClick={() => toggleComments(!commentsOpen)}
-                            >
-                                <MessageSquare />
-                                {openComments > 0 && (
-                                    <span className="text-xs tabular-nums">
-                                        {openComments}
-                                    </span>
-                                )}
-                            </Button>
-                        )}
-
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            aria-label="Toggle details panel"
-                            aria-pressed={panelOpen}
-                            onClick={onTogglePanel}
-                        >
-                            <PanelRight />
-                        </Button>
-
-                        <NoteActionsMenu
-                            locked={locked}
-                            native={kite.native}
-                            platform={kite.platform}
-                            passphraseSet={passphraseSet}
-                            recoveryKeySet={recoveryKeySet}
-                            onRename={() => setRenaming(true)}
-                            onFocus={onToggleFocus}
-                            onMerge={() => setMerging(true)}
-                            onHistory={() => setHistoryOpen(true)}
-                            onLockNote={lockNote}
-                            onRemoveLock={removeLock}
-                            onLockVault={() => void lockVault(vault.id)}
-                            onChangePassphrase={() =>
-                                setLockStep('change-passphrase')
-                            }
-                            onRecoveryKey={() => setLockStep('recovery-key')}
-                            onExport={(format) => void exportNote(format)}
-                            onPublish={publish}
-                            onDelete={() => setDeleting(true)}
-                        />
-                    </div>
-                </header>
+                </NoteHeader>
 
                 {conflict && (
                     <SaveConflictBanner
@@ -923,40 +769,6 @@ function NoteWorkspace({
                 onOpenChange={setMerging}
                 beforeMerge={save}
             />
-        </>
-    );
-}
-
-/**
- * A side panel: in line beside the note, or floating over it (with a click-away backdrop) when
- * the window is too narrow for both.
- */
-function Drawer({
-    overlay,
-    onClose,
-    children,
-}: {
-    overlay: boolean;
-    onClose: () => void;
-    children: ReactNode;
-}) {
-    if (!overlay) {
-        return children;
-    }
-
-    return (
-        <>
-            <div
-                className="absolute inset-0 z-30 bg-black/10 dark:bg-black/30"
-                onClick={onClose}
-                aria-hidden
-            />
-            <div
-                className="absolute inset-y-0 right-0 z-40 flex bg-background shadow-kite-lg"
-                data-test="side-drawer"
-            >
-                {children}
-            </div>
         </>
     );
 }
