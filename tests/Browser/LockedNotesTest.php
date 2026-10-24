@@ -80,6 +80,42 @@ it('asks for the passphrase again after the app reloads', function (): void {
         ->assertNoJavaScriptErrors();
 });
 
+it('forgets the window history of locked notes when the vault locks', function (): void {
+    $vault = vaultWithFiles(['Secret.md' => '# Secret', 'Plain.md' => '# Plain']);
+    resolve(IndexVault::class)->handle($vault);
+    $locks = resolve(NoteLocks::class);
+    $key = $locks->setUp($vault, 'correct horse battery');
+    file_put_contents($vault->path.'/Secret.md', $locks->lock("# Secret\n\nHidden text", $key));
+    resolve(IndexVault::class)->handle($vault);
+
+    $page = visit(route('notes.show', [$vault, Note::query()->where('path', 'Secret.md')->sole()]))
+        ->fill('passphrase', 'correct horse battery')
+        ->click('Unlock')
+        ->assertSeeIn('@note-editor', 'Hidden text')
+        ->click('Plain')
+        ->assertSeeIn('@note-editor', 'Plain')
+        ->click('[data-test=tree-lock]')
+        ->assertSeeIn('@note-editor', 'Hidden text');
+
+    $historyKey = $page->script("sessionStorage.getItem('historyKey')");
+
+    $page->click('@note-actions')
+        ->click('@lock-vault')
+        ->assertVisible('@locked-note');
+
+    // The key the note's earlier page was encrypted with is gone, so going back can't read it.
+    expect($historyKey)->toBeString()
+        ->and($page->script("sessionStorage.getItem('historyKey')"))->not->toBe($historyKey);
+
+    $page->script('history.back()');
+    $page->assertSeeIn('@note-editor', 'Plain');
+    $page->script('history.back()');
+
+    $page->assertVisible('@locked-note')
+        ->assertDontSee('Hidden text')
+        ->assertNoJavaScriptErrors();
+});
+
 it('resets a forgotten passphrase with the recovery key', function (): void {
     $vault = vaultWithFiles(['Secret.md' => '# Secret']);
     resolve(IndexVault::class)->handle($vault);

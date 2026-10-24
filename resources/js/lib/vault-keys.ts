@@ -1,4 +1,4 @@
-import { http } from '@inertiajs/react';
+import { http, router } from '@inertiajs/react';
 
 /** How long an unlocked vault stays unlocked without any typing or clicking. */
 export const IDLE_LOCK_MS = 15 * 60 * 1000;
@@ -34,7 +34,11 @@ export function rememberVaultKey(vaultId: number, key: string): void {
     notify();
 }
 
-/** Forget a vault's key, after giving open locked notes a chance to save. */
+/**
+ * Forget a vault's key, after giving open locked notes a chance to save. The window's history is
+ * cleared too: a locked note's page is kept there encrypted, but with a key that would otherwise
+ * outlast the vault's, so going back would show its text again.
+ */
 export async function lockVault(vaultId: number): Promise<void> {
     if (!unlocked.has(vaultId)) {
         return;
@@ -46,6 +50,7 @@ export async function lockVault(vaultId: number): Promise<void> {
 
     window.clearTimeout(unlocked.get(vaultId)?.timer);
     unlocked.delete(vaultId);
+    router.clearHistory();
     notify();
 }
 
