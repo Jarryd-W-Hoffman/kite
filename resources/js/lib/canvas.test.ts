@@ -2,11 +2,15 @@ import { describe, expect, test } from 'vite-plus/test';
 import {
     anchor,
     endsOf,
+    fitAround,
     lineStyleOf,
     parallelogramSlant,
     reversed,
     shapeOf,
+    without,
+    withColor,
     withEnds,
+    withLabel,
     withLineStyle,
     withShape,
 } from '@/lib/canvas';
@@ -145,5 +149,37 @@ describe('connections', () => {
         expect(
             lineStyleOf({ ...edge, styleAttributes: { path: 'zigzag' } }),
         ).toBe('solid');
+    });
+});
+
+describe('editing', () => {
+    test('removes cards and connections, and connections left hanging', () => {
+        const other: CanvasNode = { ...card, id: 'b' };
+        const third: CanvasNode = { ...card, id: 'c' };
+        const toThird: CanvasEdge = { ...edge, id: 'f', toNode: 'c' };
+        const data = { nodes: [card, other, third], edges: [edge, toThird] };
+
+        expect(without(data, new Set(['b']))).toEqual({
+            nodes: [card, third],
+            edges: [toThird],
+        });
+        expect(without(data, new Set(['f']))).toEqual({
+            nodes: [card, other, third],
+            edges: [edge],
+        });
+    });
+
+    test('sets and clears colours and labels', () => {
+        expect(withColor(card, '4')).toEqual({ ...card, color: '4' });
+        expect(withColor({ ...card, color: '4' }, null)).toEqual(card);
+        expect(withLabel(edge, 'yes')).toEqual({ ...edge, label: 'yes' });
+        expect(withLabel({ ...edge, label: 'yes' }, '')).toEqual(edge);
+    });
+
+    test('fits a group around cards, on the grid, with room around them', () => {
+        expect(
+            fitAround([card, { ...card, x: 300, y: 150, width: 90 }]),
+        ).toEqual({ x: -40, y: -40, width: 480, height: 340 });
+        expect(fitAround([])).toBeNull();
     });
 });

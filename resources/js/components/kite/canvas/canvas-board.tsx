@@ -26,6 +26,7 @@ import {
     clampZoom,
     contains,
     edgeGeometry,
+    fitAround,
     fitViewport,
     freeSpot,
     intersects,
@@ -35,12 +36,14 @@ import {
     shapeOf,
     SHAPES,
     snap,
+    without,
+    withColor,
     withEnds,
+    withLabel,
     withLineStyle,
     withShape,
 } from '@/lib/canvas';
 import type {
-    CanvasData,
     CanvasEdge,
     CanvasFile,
     CanvasNode,
@@ -250,8 +253,9 @@ export function CanvasBoard({
         addNode({ ...place('link', center(), true), type: 'link', url });
 
     const addGroup = () => {
-        const chosen = data.nodes.filter((node) => selected.has(node.id));
-        const box = chosen.length > 0 ? fitAround(chosen) : null;
+        const box = fitAround(
+            data.nodes.filter((node) => selected.has(node.id)),
+        );
 
         addNode(
             box
@@ -1049,50 +1053,4 @@ export function CanvasBoard({
             />
         );
     }
-}
-
-/** The canvas without some cards and connections, and without connections to removed cards. */
-function without(data: CanvasData, ids: Set<string>): CanvasData {
-    const nodes = data.nodes.filter((node) => !ids.has(node.id));
-    const kept = new Set(nodes.map((node) => node.id));
-
-    return {
-        nodes,
-        edges: data.edges.filter(
-            (edge) =>
-                !ids.has(edge.id) &&
-                kept.has(edge.fromNode) &&
-                kept.has(edge.toNode),
-        ),
-    };
-}
-
-function withColor<T extends { color?: string }>(
-    item: T,
-    color: string | null,
-): T {
-    const { color: _previous, ...rest } = item;
-
-    return (color === null ? rest : { ...rest, color }) as T;
-}
-
-function withLabel<T extends { label?: string }>(item: T, label: string): T {
-    const { label: _previous, ...rest } = item;
-
-    return (label === '' ? rest : { ...rest, label }) as T;
-}
-
-/** A group's box around some cards, with room for them to breathe. */
-function fitAround(nodes: Rect[]): Rect {
-    const left = Math.min(...nodes.map((node) => node.x));
-    const top = Math.min(...nodes.map((node) => node.y));
-    const right = Math.max(...nodes.map((node) => node.x + node.width));
-    const bottom = Math.max(...nodes.map((node) => node.y + node.height));
-
-    return {
-        x: snap(left - 40),
-        y: snap(top - 40),
-        width: snap(right - left + 80),
-        height: snap(bottom - top + 80),
-    };
 }
