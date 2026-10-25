@@ -6,6 +6,10 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ## [Unreleased]
 
+### Fixed
+
+- **Renaming or moving a big folder is much quicker.** In a large vault, Kite could stop responding for a minute or more while it moved a folder of a few hundred notes. It now takes a few seconds.
+
 ## [0.3.2] - 2026-10-24
 
 ### Fixed

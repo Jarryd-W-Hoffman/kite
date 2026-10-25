@@ -20,8 +20,8 @@ final readonly class RenameFolder
     }
 
     /**
-     * Rename or move a folder and return its new path. Notes move one at a time through RenameNote
-     * so links that name them by path are rewritten; everything else follows afterwards.
+     * Rename or move a folder and return its new path. Notes move through RenameNote so links that
+     * name them by path are rewritten; everything else follows afterwards.
      */
     public function handle(Vault $vault, string $from, string $to): string
     {
@@ -63,9 +63,13 @@ final readonly class RenameFolder
             ->orderBy('path')
             ->get();
 
+        $moves = [];
+
         foreach ($notes as $note) {
-            $this->renameNote->handle($note, $to.mb_substr($note->path, mb_strlen($from)));
+            $moves[] = [$note, $to.mb_substr($note->path, mb_strlen($from))];
         }
+
+        $this->renameNote->handleMany($vault, $moves);
 
         $this->files->moveFolderContents($vault, $from, $to);
 

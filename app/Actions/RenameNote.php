@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Note;
 use App\Models\NoteLink;
+use App\Models\Vault;
 use App\Services\Canvases;
 use App\Services\CommentStore;
 use App\Services\LinkResolver;
@@ -33,7 +34,44 @@ final readonly class RenameNote
      */
     public function handle(Note $note, string $path): Note
     {
-        $vault = $note->vault;
+        return $this->handleMany($note->vault, [[$note, $path]])[0];
+    }
+
+    /**
+     * Move several notes, such as a folder's, as handle() moves one. Canvases and link targets
+     * each take a pass over the whole vault, so they're updated once for all the notes.
+     *
+     * @param  list<array{0: Note, 1: string}>  $moves  Each note with its new path.
+     * @return list<Note>
+     */
+    public function handleMany(Vault $vault, array $moves): array
+    {
+        $renamed = [];
+        $canvasMoves = [];
+        $keys = [];
+
+        foreach ($moves as [$note, $path]) {
+            $from = $note->path;
+            $note = $this->move($vault, $note, $path);
+
+            if ($note->path !== $from) {
+                $canvasMoves[$from] = $note->path;
+                $keys = [...$keys, ...$this->resolver->keysFor($note->path_key)];
+            }
+
+            $renamed[] = $note;
+        }
+
+        if ($canvasMoves !== []) {
+            $this->canvases->moveFiles($vault, $canvasMoves);
+            $this->resolveLinks->handle($vault, array_values(array_unique($keys)));
+        }
+
+        return $renamed;
+    }
+
+    private function move(Vault $vault, Note $note, string $path): Note
+    {
         $path = $this->files->normalise($path);
         $path = preg_match('/\.md$/i', $path) === 1 ? $path : $path.'.md';
 
@@ -57,7 +95,6 @@ final readonly class RenameNote
 
         $this->files->move($vault, $note->path, $path);
         $this->comments->move($vault, $note->path, $path);
-        $this->canvases->moveFile($vault, $note->path, $path);
 
         return DB::transaction(function () use ($note, $vault, $path, $backlinks, $lockedLinkKeys): Note {
             $selfLinkKeys = $note->outgoingLinks()->where('target_note_id', $note->id)->pluck('target_key')->all();
@@ -81,8 +118,6 @@ final readonly class RenameNote
             if ($lockedLinkKeys !== []) {
                 $vault->pendingLinkRewrites()->create(['keys' => $lockedLinkKeys, 'path' => $path]);
             }
-
-            $this->resolveLinks->handle($vault, $this->resolver->keysFor($renamed->path_key));
 
             return $renamed->refresh();
         });

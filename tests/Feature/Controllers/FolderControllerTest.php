@@ -88,6 +88,29 @@ it('renames a folder, moving everything in it and rewriting path links', functio
         ->and(NoteLink::query()->whereNull('target_note_id')->count())->toBe(0);
 });
 
+it('points canvases and links at every note a renamed folder moved', function (): void {
+    $card = fn (string $id, string $file): array => ['id' => $id, 'type' => 'file', 'file' => $file, 'x' => 0, 'y' => 0, 'width' => 250, 'height' => 60];
+    $vault = vaultWithFiles([
+        'Home.md' => "# Home\n\n[[Plan]]",
+        'Zeta/Plan.md' => '# Older plan',
+        'Projects/Sub/Plan.md' => '# Plan',
+        'Projects/Sub/Spec.md' => '# Spec',
+        'Board.canvas' => json_encode(['nodes' => [$card('p', 'Projects/Sub/Plan.md'), $card('s', 'Projects/Sub/Spec.md'), $card('z', 'Zeta/Plan.md')], 'edges' => []]),
+    ]);
+    resolve(IndexVault::class)->handle($vault);
+
+    // [[Plan]] means the match closest to the vault root, which is Zeta/Plan.md until the folder moves up.
+    $link = NoteLink::query()->where('target_key', 'plan')->sole();
+    expect($link->targetNote?->path)->toBe('Zeta/Plan.md');
+
+    $this->put(route('folders.update', $vault), ['path' => 'Projects/Sub', 'to' => 'Alpha'])->assertSessionHasNoErrors();
+
+    $board = json_decode((string) file_get_contents($vault->path.'/Board.canvas'), true);
+
+    expect(array_column($board['nodes'], 'file'))->toBe(['Alpha/Plan.md', 'Alpha/Spec.md', 'Zeta/Plan.md'])
+        ->and($link->refresh()->targetNote?->path)->toBe('Alpha/Plan.md');
+});
+
 it('moves a folder into another one and handles case-only renames', function (): void {
     $vault = folderVault();
 
