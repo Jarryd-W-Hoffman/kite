@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\BuildGraph;
 use App\Actions\IndexVault;
 use App\Models\Note;
+use App\Models\TableView;
 use App\Models\Vault;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -142,6 +143,22 @@ it('stays quick in a vault of 10,000 notes', function (): void {
     expect(count(resolve(BuildGraph::class)->handle($vault)['nodes']))->toBeGreaterThanOrEqual(BENCHMARK_NOTES);
 
     measureStep($timings, 'Open the task list', 3_500, fn () => $this->get(route('tasks.index', $vault))->assertOk(), runs: 3);
+
+    $view = TableView::factory()->for($vault)->create(['columns' => ['status', 'tags', 'created'], 'sort_key' => 'created']);
+    measureStep($timings, 'Open a table view of every note', 3_500, fn () => $this->get(route('table-views.show', [$vault, $view]))->assertOk(), runs: 3);
+
+    measureStep($timings, 'Open a common tag', 2_000, fn () => $this->get(route('vault-tags.show', [$vault, 'idea']))->assertOk(), runs: 3);
+    measureStep($timings, 'Open the flashcards', 2_000, fn () => $this->get(route('flashcards.index', $vault))->assertOk(), runs: 3);
+    measureStep($timings, 'Local graph, two links deep', 500, fn () => $this->getJson(route('note-graphs.show', [$vault, $hub, 'depth' => 2]))->assertOk(), runs: 3);
+    measureStep($timings, 'Check indexing status (polled)', 100, fn () => $this->getJson(route('vault-status.show', $vault))->assertOk(), runs: 5);
+
+    // Renames rewrite every link that names the note, so the best-linked note is the slowest one.
+    measureStep($timings, "Rename the best-linked note ({$hub->backlinks_count} links)", 20_000, fn () => $this->put(route('note-path.update', [$vault, $hub]), ['path' => 'Inbox/Renamed hub.md'])->assertRedirect());
+
+    $folder = 'Resources/Software';
+    $notesInFolder = Note::query()->where('vault_id', $vault->id)->where('path', 'like', $folder.'/%')->count();
+    measureStep($timings, "Rename a folder ({$notesInFolder} notes)", 25_000, fn () => $this->put(route('folders.update', $vault), ['path' => $folder, 'to' => 'Resources/Programming'])->assertRedirect());
+    expect(Note::query()->where('vault_id', $vault->id)->where('path', 'like', 'Resources/Programming/%')->count())->toBe($notesInFolder);
 
     reportTimings($timings, $this->bytes);
 

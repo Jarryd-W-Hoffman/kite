@@ -114,10 +114,12 @@ final readonly class Canvases
     }
 
     /**
-     * Point cards that show a moved file at its new path, in every canvas. Returns how many
+     * Point cards that show moved files at their new paths, in every canvas. Returns how many
      * canvases changed.
+     *
+     * @param  array<string, string>  $moves  Each file's new path, by its old one.
      */
-    public function moveFile(Vault $vault, string $from, string $to): int
+    public function moveFiles(Vault $vault, array $moves): int
     {
         $changed = 0;
 
@@ -131,8 +133,10 @@ final readonly class Canvases
             $moved = false;
 
             foreach ($nodes as $index => $node) {
-                if (($node['type'] ?? null) === 'file' && ($node['file'] ?? null) === $from) {
-                    $nodes[$index]['file'] = $to;
+                $file = $node['file'] ?? null;
+
+                if (($node['type'] ?? null) === 'file' && is_string($file) && isset($moves[$file])) {
+                    $nodes[$index]['file'] = $moves[$file];
                     $moved = true;
                 }
             }
