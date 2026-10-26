@@ -245,6 +245,13 @@
     -webkit-app-region: no-drag;
 }
 
+/* While a panel is being resized, keep the resize cursor and don't select text along the way. */
+.kite-resizing,
+.kite-resizing * {
+    cursor: col-resize !important;
+    user-select: none;
+}
+
 /* Kite: editor */
 .kite-editor {
     tab-size: 4;

@@ -38,6 +38,7 @@ import { IndexingStatus } from '@/components/kite/indexing-status';
 import { Kbd } from '@/components/kite/kbd';
 import { NotionImportDialog } from '@/components/kite/notion-import-dialog';
 import { PreferencesDialog } from '@/components/kite/preferences-dialog';
+import { ResizeHandle } from '@/components/kite/resize-handle';
 import { ShortcutsDialog } from '@/components/kite/shortcuts-dialog';
 import { TemplateDialog } from '@/components/kite/template-dialog';
 import { Button } from '@/components/ui/button';
@@ -57,9 +58,11 @@ import {
 import { useAppCommands } from '@/hooks/use-app-commands';
 import { useAppearance } from '@/hooks/use-appearance';
 import type { Appearance } from '@/hooks/use-appearance';
+import { usePanelWidth } from '@/hooks/use-panel-width';
 import type { ColourGroup } from '@/lib/colour-groups';
 import { flashcardsUrl } from '@/lib/flashcards';
 import { useShortcuts } from '@/lib/key-bindings';
+import { SIDEBAR_WIDTH } from '@/lib/panel-width';
 import { formatShortcut } from '@/lib/shortcuts';
 import { booleanCodec, useStoredState } from '@/lib/storage';
 import { requestNewTab } from '@/lib/tabs';
@@ -145,6 +148,7 @@ export function WorkspaceSidebar({
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const [importing, setImporting] = useState(false);
     const [deletedOpen, setDeletedOpen] = useState(false);
+    const sidebarWidth = usePanelWidth('kite:sidebar-width', SIDEBAR_WIDTH);
     const [calendarOpen, setCalendarOpen] = useStoredState(
         'kite:calendar-open',
         booleanCodec,
@@ -207,8 +211,14 @@ export function WorkspaceSidebar({
     return (
         <aside
             aria-label="Sidebar"
-            className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
+            className="relative flex h-full shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
+            style={{ width: sidebarWidth.width }}
         >
+            <ResizeHandle
+                label="Resize sidebar"
+                panel={sidebarWidth}
+                edge="right"
+            />
             <div
                 className={cn(
                     'kite-drag flex h-12 shrink-0 items-center gap-1 px-2',

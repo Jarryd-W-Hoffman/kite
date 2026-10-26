@@ -6,6 +6,10 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ## [Unreleased]
 
+### Added
+
+- **Resizable sidebars.** Drag the edge of the sidebar or the note details panel to widen it. Double-click the edge to put it back. With the edge focused, the arrow keys resize it too. Kite remembers the widths.
+
 ### Fixed
 
 - **Renaming or moving a big folder is much quicker.** In a large vault, Kite could stop responding for a minute or more while it moved a folder of a few hundred notes. It now takes a few seconds.

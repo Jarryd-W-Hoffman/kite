@@ -20,6 +20,7 @@ import {
     ExtractNoteDialog,
     MergeNoteDialog,
 } from '@/components/kite/refactor-dialogs';
+import { ResizeHandle } from '@/components/kite/resize-handle';
 import { SaveConflictBanner } from '@/components/kite/save-conflict';
 import { SideDrawer } from '@/components/kite/side-drawer';
 import { SplitPane } from '@/components/kite/split-pane';
@@ -43,10 +44,12 @@ import { useNoteLock } from '@/hooks/use-note-lock';
 import { useNoteProperties } from '@/hooks/use-note-properties';
 import { useNoteSlashCommands } from '@/hooks/use-note-slash-commands';
 import { useNoteStar } from '@/hooks/use-note-star';
+import { usePanelWidth } from '@/hooks/use-panel-width';
 import { useSplitNote } from '@/hooks/use-split-note';
 import { useVaultSync } from '@/hooks/use-vault-sync';
 import { followWikiLink, uploadAttachments } from '@/lib/note-actions';
 import { noteName } from '@/lib/note-tree';
+import { DETAILS_WIDTH } from '@/lib/panel-width';
 import {
     booleanCodec,
     oneOfCodec,
@@ -224,6 +227,7 @@ function NoteWorkspace({
     const [cursorLine, setCursorLine] = useState<number | null>(null);
     // Side panels float over the note in narrow windows, and split view needs room for two panes.
     const narrow = useMediaQuery('(max-width: 1279px)');
+    const detailsWidth = usePanelWidth('kite:panel-width', DETAILS_WIDTH);
     const tooNarrowToSplit = useMediaQuery('(max-width: 1099px)');
     // Focus mode shows one pane: the editor, or the preview when that's what was showing.
     const shownMode =
@@ -492,22 +496,30 @@ function NoteWorkspace({
                 <SideDrawer overlay={narrow} onClose={onTogglePanel}>
                     <aside
                         aria-label="Note details"
-                        className="h-full w-72 shrink-0 overflow-y-auto border-l border-border/70 bg-sidebar/40"
+                        className="relative h-full shrink-0 border-l border-border/70 bg-sidebar/40"
+                        style={{ width: detailsWidth.width }}
                     >
-                        <NotePanel
-                            vault={vault}
-                            note={meta}
-                            backlinks={backlinks}
-                            outgoing={outgoing}
-                            mentions={mentions}
-                            onSelectHeading={selectHeading}
-                            headingLinks={note.heading_links}
-                            cursorLine={
-                                shownMode === 'preview' ? null : cursorLine
-                            }
-                            properties={properties}
-                            onPropertiesChange={changeProperties}
+                        <ResizeHandle
+                            label="Resize note details"
+                            panel={detailsWidth}
+                            edge="left"
                         />
+                        <div className="h-full overflow-y-auto">
+                            <NotePanel
+                                vault={vault}
+                                note={meta}
+                                backlinks={backlinks}
+                                outgoing={outgoing}
+                                mentions={mentions}
+                                onSelectHeading={selectHeading}
+                                headingLinks={note.heading_links}
+                                cursorLine={
+                                    shownMode === 'preview' ? null : cursorLine
+                                }
+                                properties={properties}
+                                onPropertiesChange={changeProperties}
+                            />
+                        </div>
                     </aside>
                 </SideDrawer>
             )}
