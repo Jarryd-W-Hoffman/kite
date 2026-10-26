@@ -2,6 +2,10 @@ import { router, useForm } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, Check, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
+import {
+    QueryInput,
+    keepOpenWhileSuggesting,
+} from '@/components/kite/query-input';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -63,6 +67,7 @@ export function ColourGroupEditor({
                 className="kite-no-drag w-full gap-0 sm:max-w-md"
                 data-test="colour-group-editor"
                 onInteractOutside={(event) => event.preventDefault()}
+                onEscapeKeyDown={keepOpenWhileSuggesting}
             >
                 <SheetHeader className="border-b">
                     <SheetTitle>Colour groups</SheetTitle>
@@ -211,14 +216,13 @@ function GroupForm({
             <InputError message={form.errors.name} />
 
             <div className="flex items-center gap-2">
-                <Input
+                <QueryInput
                     aria-label="Query"
                     placeholder="tag:project folder:Work"
                     value={form.data.query}
-                    onChange={(event) =>
-                        form.setData('query', event.target.value)
-                    }
+                    onValueChange={(query) => form.setData('query', query)}
                     className="h-8 font-mono text-xs"
+                    wrapperClassName="min-w-0 flex-1"
                 />
                 <span
                     className="w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums"

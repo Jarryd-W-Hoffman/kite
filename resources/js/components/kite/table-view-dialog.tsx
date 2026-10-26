@@ -1,6 +1,10 @@
 import { router } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import {
+    QueryInput,
+    keepOpenWhileSuggesting,
+} from '@/components/kite/query-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -57,6 +61,7 @@ export function TableViewDialog({
             <DialogContent
                 className="kite-no-drag sm:max-w-lg"
                 data-test="view-dialog"
+                onEscapeKeyDown={keepOpenWhileSuggesting}
             >
                 {open && (
                     <ViewForm
@@ -156,11 +161,11 @@ function ViewForm({
 
             <div className="grid gap-1.5">
                 <Label htmlFor="view-query">Notes</Label>
-                <Input
+                <QueryInput
                     id="view-query"
                     value={query}
                     placeholder="All notes, or e.g. folder:Projects status:active"
-                    onChange={(event) => setQuery(event.target.value)}
+                    onValueChange={setQuery}
                     className="font-mono text-sm"
                 />
                 <p

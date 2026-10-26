@@ -8,6 +8,7 @@ Write entries for people using Kite, not for developers. When releasing, rename 
 
 ### Added
 
+- **Folder suggestions in filters.** While you type `folder:` in search, a view, a colour group or the graph filter, Kite suggests matching folders from any part of their path. Pick one to fill in its whole path, so `shell` finds `Projects/shell-tools`.
 - **Resizable sidebars.** Drag the edge of the sidebar or the note details panel to widen it. Double-click the edge to put it back. With the edge focused, the arrow keys resize it too. Kite remembers the widths.
 
 ### Fixed
