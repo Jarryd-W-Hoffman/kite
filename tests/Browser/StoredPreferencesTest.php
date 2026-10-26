@@ -22,6 +22,8 @@ it('ignores stored preferences it can’t read', function (): void {
         localStorage.setItem('kite:panel-collapsed', '{"Backlinks": true}');
         localStorage.setItem('kite:collapsed:{$vault->id}', '[1, 2');
         localStorage.setItem('kite:tabs:{$vault->id}', '{"tabs": [{"id": "x"}], "active": 1}');
+        localStorage.setItem('kite:sidebar-width', 'wide');
+        localStorage.setItem('kite:panel-width', '{');
         localStorage.setItem('appearance', 'neon');
     })()
     JS);
@@ -29,5 +31,6 @@ it('ignores stored preferences it can’t read', function (): void {
     $page->refresh()
         ->assertSeeIn('@note-editor', 'Note')
         ->assertSee('Inner')
+        ->assertScript("document.querySelector('aside[aria-label=Sidebar]').getBoundingClientRect().width", 256)
         ->assertScript(JS_ERRORS, '[]');
 });
