@@ -119,3 +119,15 @@ it('drops tabs whose note has gone, and keeps tab titles current', function (): 
         ->assertDontSeeIn('@tab-bar', 'Old name')
         ->assertNoJavaScriptErrors();
 });
+
+it('fits tabs in the tab bar without a scrollbar', function (): void {
+    $vault = tabsVault();
+    $notes = fn (string $path): string => 'a[href="/vaults/'.$vault->id.'/notes/'.noteId($path).'"]';
+
+    $page = visitSplit(route('notes.show', [$vault, noteId('Alpha.md')]));
+
+    $page->withKeyDown('Control', fn ($page) => $page->click('nav '.$notes('Beta.md')))
+        ->assertSeeIn('@tab-bar', 'Beta')
+        ->assertScript("(() => { const bar = document.querySelector('[data-test=tab-bar]'); return bar.scrollHeight <= bar.clientHeight; })()", true)
+        ->screenshot(filename: 'tab-bar');
+});
