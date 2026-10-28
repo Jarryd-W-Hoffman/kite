@@ -131,6 +131,11 @@
             "pestphp/pest-plugin": true,
             "php-http/discovery": true,
             "laravel/vet": true
+        },
+        "audit": {
+            "ignore": {
+                "PKSA-qhjm-rpqc-qkn6": "PHPUnit <13.4.4 (GHSA-9vw2-f4vp-x7gf). Pest 5.3.4 moves to the fixed 13.4.5 but is younger than vet.json's minimum release age. Dev-only: the app is built with --no-dev, Kite has no PHPT tests, and CI runners aren't shared. Remove when upgrading to Pest 5.3.4."
+            }
         }
     },
     "minimum-stability": "stable",
