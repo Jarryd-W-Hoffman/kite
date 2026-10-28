@@ -3,6 +3,7 @@ import { FileText, SearchCheck, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { CommandPalette } from '@/components/kite/command-palette';
 import { EmptyState } from '@/components/kite/empty-state';
+import { QueryInput } from '@/components/kite/query-input';
 import { WorkspaceSidebar } from '@/components/kite/workspace-sidebar';
 import { Button } from '@/components/ui/button';
 import { useVaultSync } from '@/hooks/use-vault-sync';
@@ -141,7 +142,8 @@ export default function SavedSearchShow(props: Props) {
                             >
                                 Find notes with
                             </label>
-                            <input
+                            <QueryInput
+                                plain
                                 id="saved-search-query"
                                 value={query}
                                 maxLength={500}
@@ -150,9 +152,9 @@ export default function SavedSearchShow(props: Props) {
                                 aria-describedby="saved-search-help"
                                 className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                                 placeholder="Words to find, and filters like tag:project folder:Work -tag:archived status:done"
-                                onChange={(event) => {
-                                    setQuery(event.target.value);
-                                    save({ name, query: event.target.value });
+                                onValueChange={(value) => {
+                                    setQuery(value);
+                                    save({ name, query: value });
                                 }}
                             />
                             <p

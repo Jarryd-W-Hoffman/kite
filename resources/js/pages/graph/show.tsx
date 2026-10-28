@@ -11,6 +11,7 @@ import { CommandPalette } from '@/components/kite/command-palette';
 import { EmptyState } from '@/components/kite/empty-state';
 import { GraphCanvas } from '@/components/kite/graph-canvas';
 import type { GraphEdge, GraphNode } from '@/components/kite/graph-canvas';
+import { QueryInput } from '@/components/kite/query-input';
 import {
     WorkspaceSidebar,
     createNote,
@@ -256,11 +257,10 @@ export default function GraphShow({
                                     className="size-3.5 text-muted-foreground"
                                     aria-hidden
                                 />
-                                <input
+                                <QueryInput
+                                    plain
                                     value={filter}
-                                    onChange={(event) =>
-                                        changeFilter(event.target.value)
-                                    }
+                                    onValueChange={changeFilter}
                                     placeholder="Filter: folder:Work -tag:old"
                                     aria-label="Filter notes"
                                     aria-invalid={filterError !== null}
