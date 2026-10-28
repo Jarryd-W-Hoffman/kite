@@ -64,6 +64,7 @@ flowchart LR
 | --- | --- |
 | `tag:project` | have the tag, or a tag nested under it |
 | `folder:Work` | are in the folder or below it |
+| `folder:Work/Clients` | are in a nested folder or below it: give its whole path from the top of the vault |
 | `status:active` | have that frontmatter property with that value |
 | `status:*` | have the property at all |
 | `meeting` | have the word in their title |

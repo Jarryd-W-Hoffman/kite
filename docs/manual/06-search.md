@@ -40,6 +40,8 @@ Filters narrow a search, and combine with words and with each other:
 | --- | --- |
 | `tag:project` | tagged `#project`, or a tag nested under it (`#project/kite`) |
 | `folder:Work` | in the `Work` folder or below it |
+| `folder:Work/Clients` | in a nested folder or below it: give its whole path from the top of the vault, since `folder:Clients` only looks for a `Clients` folder at the top |
+| `folder:"Work/Client A"` | in a folder whose name has spaces |
 | `path:2026` | whose path contains the text |
 | `title:launch` | whose title contains the text |
 | `status:done` | with a property `status` set to `done` (any property works) |

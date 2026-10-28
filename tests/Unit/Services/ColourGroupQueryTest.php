@@ -25,6 +25,7 @@ dataset('group queries', [
     'partial tag does not match' => ['tag:proj', false],
     'folder' => ['folder:Work', true],
     'nested folder with slashes' => ['folder:/work/projects/', true],
+    'nested folder needs its whole path' => ['folder:Projects', false],
     'other folder' => ['folder:Personal', false],
     'folder prefix is not a folder' => ['folder:Wor', false],
     'path text' => ['path:projects/weekly', true],
